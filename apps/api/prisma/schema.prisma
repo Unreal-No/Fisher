@@ -223,6 +223,19 @@ enum StockMoveType {
   ADJUSTMENT
 }
 
+enum SalesStatus {
+  DRAFT
+  CONFIRMED
+  VOID
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CHEQUE
+  OTHER
+}
+
 enum NotificationSeverity {
   INFO
   WARNING
@@ -604,6 +617,7 @@ model FishingTrip {
   statusHistory TripStatusHistory[]
   catches       CatchRecord[]
   losses        CatchLoss[]
+  salesItems    SalesItem[]
 
   @@index([vesselId, status])
   @@index([status])
@@ -737,6 +751,7 @@ model FishSpecies {
   deletedAt      DateTime?       @map("deleted_at") @db.Timestamptz
   catches        CatchRecord[]
   losses         CatchLoss[]
+  salesItems     SalesItem[]
 
   @@map("fish_species")
 }
@@ -749,6 +764,7 @@ model CatchGrade {
   sortOrder   Int           @default(0) @map("sort_order")
   isActive    Boolean       @default(true) @map("is_active")
   catches     CatchRecord[]
+  salesItems  SalesItem[]
 
   @@map("catch_grades")
 }
@@ -1250,4 +1266,145 @@ model GoodsReceiptItem {
   poItem          PurchaseOrderItem @relation(fields: [poItemId], references: [id])
 
   @@map("goods_receipt_items")
+}
+
+// ======================= SALES =======================
+model Customer {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  code           String         @unique
+  name           String
+  taxId          String?        @map("tax_id")
+  branch         String?
+  contactName    String?        @map("contact_name")
+  phone          String?
+  email          String?
+  address        String?
+  creditTermDays Int?           @map("credit_term_days")
+  isActive       Boolean        @default(true) @map("is_active")
+  notes          String?
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?      @map("deleted_at") @db.Timestamptz
+  invoices       SalesInvoice[]
+  payments       SalesPayment[]
+
+  @@map("customers")
+}
+
+/// DRAFT = sales order; CONFIRMED = invoice (lots consumed); VOID = cancelled invoice (no active payments).
+model SalesInvoice {
+  id             String         @id @default(uuid(7)) @db.Uuid
+  orderNo        String         @unique @map("order_no")
+  invoiceNo      String?        @unique @map("invoice_no")
+  status         SalesStatus    @default(DRAFT)
+  customerId     String         @map("customer_id") @db.Uuid
+  invoiceDate    DateTime       @map("invoice_date") @db.Date
+  dueDate        DateTime?      @map("due_date") @db.Date
+  subtotal       Decimal        @db.Decimal(14, 2)
+  discount       Decimal        @default(0) @db.Decimal(14, 2)
+  /// charged to customer (transport, ice…) — not fish revenue
+  additionalCost Decimal        @default(0) @map("additional_cost") @db.Decimal(14, 2)
+  vatRate        Decimal        @default(0) @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount      Decimal        @default(0) @map("vat_amount") @db.Decimal(14, 2)
+  total          Decimal        @db.Decimal(14, 2)
+  /// maintained with payments / credit notes (invoice row locked)
+  paidAmount     Decimal        @default(0) @map("paid_amount") @db.Decimal(14, 2)
+  creditedAmount Decimal        @default(0) @map("credited_amount") @db.Decimal(14, 2)
+  notes          String?
+  confirmedAt    DateTime?      @map("confirmed_at") @db.Timestamptz
+  confirmedById  String?        @map("confirmed_by_id") @db.Uuid
+  voidedAt       DateTime?      @map("voided_at") @db.Timestamptz
+  voidReason     String?        @map("void_reason")
+  version        Int            @default(1)
+  createdById    String?        @map("created_by_id") @db.Uuid
+  createdAt      DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime       @updatedAt @map("updated_at") @db.Timestamptz
+  customer       Customer       @relation(fields: [customerId], references: [id])
+  items          SalesItem[]
+  payments       SalesPayment[]
+  returns        SalesReturn[]
+
+  @@index([status, invoiceDate])
+  @@index([customerId, invoiceDate])
+  @@map("sales_invoices")
+}
+
+/// Line sold from a lot = trip × species × grade (traceability catch → sale).
+model SalesItem {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  invoiceId      String            @map("invoice_id") @db.Uuid
+  tripId         String            @map("trip_id") @db.Uuid
+  vesselId       String            @map("vessel_id") @db.Uuid
+  speciesId      String            @map("species_id") @db.Uuid
+  gradeId        String?           @map("grade_id") @db.Uuid
+  description    String
+  weightKg       Decimal           @map("weight_kg") @db.Decimal(12, 3)
+  quantity       Int?
+  unitPrice      Decimal           @map("unit_price") @db.Decimal(12, 4)
+  lineTotal      Decimal           @map("line_total") @db.Decimal(14, 2)
+  /// header discount allocated pro-rata (revenue = line_total - discount_share - returned_amount)
+  discountShare  Decimal           @default(0) @map("discount_share") @db.Decimal(14, 2)
+  returnedKg     Decimal           @default(0) @map("returned_kg") @db.Decimal(12, 3)
+  returnedAmount Decimal           @default(0) @map("returned_amount") @db.Decimal(14, 2)
+  invoice        SalesInvoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  trip           FishingTrip       @relation(fields: [tripId], references: [id])
+  species        FishSpecies       @relation(fields: [speciesId], references: [id])
+  grade          CatchGrade?       @relation(fields: [gradeId], references: [id])
+  returns        SalesReturnItem[]
+
+  @@index([invoiceId])
+  @@index([tripId, speciesId, gradeId])
+  @@map("sales_items")
+}
+
+model SalesPayment {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  receiptNo   String        @unique @map("receipt_no")
+  invoiceId   String        @map("invoice_id") @db.Uuid
+  customerId  String        @map("customer_id") @db.Uuid
+  paidAt      DateTime      @map("paid_at") @db.Timestamptz
+  amount      Decimal       @db.Decimal(14, 2)
+  method      PaymentMethod
+  reference   String?
+  notes       String?
+  voidedAt    DateTime?     @map("voided_at") @db.Timestamptz
+  voidReason  String?       @map("void_reason")
+  voidedById  String?       @map("voided_by_id") @db.Uuid
+  createdById String?       @map("created_by_id") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  invoice     SalesInvoice  @relation(fields: [invoiceId], references: [id])
+  customer    Customer      @relation(fields: [customerId], references: [id])
+
+  @@index([invoiceId])
+  @@index([customerId, paidAt])
+  @@map("sales_payments")
+}
+
+/// Credit note. Returned fish is not restocked (normally spoiled) — it only reduces the receivable/revenue.
+model SalesReturn {
+  id           String            @id @default(uuid(7)) @db.Uuid
+  creditNoteNo String            @unique @map("credit_note_no")
+  invoiceId    String            @map("invoice_id") @db.Uuid
+  returnDate   DateTime          @map("return_date") @db.Date
+  reason       String
+  amount       Decimal           @db.Decimal(14, 2)
+  createdById  String?           @map("created_by_id") @db.Uuid
+  createdAt    DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  invoice      SalesInvoice      @relation(fields: [invoiceId], references: [id])
+  items        SalesReturnItem[]
+
+  @@index([invoiceId])
+  @@map("sales_returns")
+}
+
+model SalesReturnItem {
+  id          String      @id @default(uuid(7)) @db.Uuid
+  returnId    String      @map("return_id") @db.Uuid
+  salesItemId String      @map("sales_item_id") @db.Uuid
+  weightKg    Decimal     @map("weight_kg") @db.Decimal(12, 3)
+  amount      Decimal     @db.Decimal(14, 2)
+  return      SalesReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  salesItem   SalesItem   @relation(fields: [salesItemId], references: [id])
+
+  @@map("sales_return_items")
 }

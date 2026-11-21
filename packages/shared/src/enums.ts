@@ -129,3 +129,13 @@ export type PoStatus = (typeof PO_STATUS)[number];
 
 export const STOCK_MOVE_TYPE = ['RECEIPT', 'ISSUE', 'TRANSFER_OUT', 'TRANSFER_IN', 'ADJUSTMENT'] as const;
 export type StockMoveType = (typeof STOCK_MOVE_TYPE)[number];
+
+export const SALES_STATUS = ['DRAFT', 'CONFIRMED', 'VOID'] as const;
+export type SalesStatus = (typeof SALES_STATUS)[number];
+
+export const PAYMENT_METHOD = ['CASH', 'TRANSFER', 'CHEQUE', 'OTHER'] as const;
+export type PaymentMethod = (typeof PAYMENT_METHOD)[number];
+
+/** Derived from paid/credited vs total */
+export const PAYMENT_STATUS = ['UNPAID', 'PARTIAL', 'PAID'] as const;
+export type PaymentStatus = (typeof PAYMENT_STATUS)[number];

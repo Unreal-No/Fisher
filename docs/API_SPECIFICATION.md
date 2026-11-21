@@ -45,6 +45,13 @@ Codes: 400 VALIDATION_ERROR/BAD_REQUEST · 401 · 403 FORBIDDEN/CSRF/MUST_CHANGE
 | GET/POST /purchasing/orders · GET/PUT …/:id · POST …/:id/{approve,cancel,close} | purchase.view/create/approve | ยกเลิกได้ก่อนรับของ; ปิดเมื่อรับบางส่วน |
 | POST /purchasing/orders/:id/receive | inventory.edit | 409 OVER_RECEIPT; ล็อกใบสั่งซื้อ FOR UPDATE |
 | GET /purchasing/summary?from&to | purchase.view | ตามผู้ขาย/เดือน (ไม่รวมร่าง/ยกเลิก) |
+| GET/POST /sales/customers · PATCH …/:id | sales.view / sales.create | |
+| GET /sales/lots?tripId&speciesId&availableOnly | sales.view∨catch.view | ล็อต = เที่ยว×ชนิด×เกรด |
+| GET/POST /sales/invoices · GET/PUT …/:id · POST …/:id/confirm | sales.view / sales.create | 409 LOT_INSUFFICIENT (บันทึก) / LOT_OVERSOLD (ยืนยัน) |
+| POST /sales/invoices/:id/void | sales.approve | 409 HAS_PAYMENTS / HAS_CREDIT_NOTES |
+| POST /sales/invoices/:id/payments · /sales/payments/:id/void | sales.create∨finance.edit / sales.approve∨finance.approve | 409 OVERPAYMENT |
+| POST /sales/invoices/:id/returns | sales.approve | ใบลดหนี้ (ยอด ex-VAT × (1+VAT)); 409 OVER_RETURN / CREDIT_EXCEEDS_OUTSTANDING |
+| GET /sales/receivables · /sales/report?from&to&groupBy | sales.view(∨finance.view) / sales.view | aging ตามวันครบกำหนด; ยอดขายสุทธิ ex-VAT |
 | GET/POST /users · PATCH /users/:id · POST /users/:id/reset-password | user.manage | |
 | GET /roles · /permissions · PUT /roles/:id/permissions | role.manage∨user.manage / role.manage | SUPER_ADMIN แก้ไม่ได้ |
 | GET /audit-logs | audit.view | |

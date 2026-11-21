@@ -13,6 +13,7 @@ import { prisma, type Tx } from '../../lib/prisma';
 import { has } from '../../plugins/auth';
 import { checklist } from '../employees/docs';
 import { fullName } from '../employees/service';
+import { tripRevenue } from '../sales/service';
 
 export async function getTrip(req: FastifyRequest, id: string, db: Tx | typeof prisma = prisma) {
   const t = await db.fishingTrip.findUnique({ where: { id } });
@@ -290,6 +291,7 @@ export async function settlement(tripId: string): Promise<TripSettlement> {
   const suppliesCost = num(supplies._sum.totalCost);
   const totalCost = fuelCost + suppliesCost + exp + estExp;
   const r2 = (v: number) => Math.round(v * 100) / 100;
+  const sales = (await tripRevenue([tripId])).get(tripId) ?? { soldKg: 0, revenue: 0 };
   const engineHours =
     t.engineHoursAtDeparture !== null && t.engineHoursAtArrival !== null ? r2(num(t.engineHoursAtArrival) - num(t.engineHoursAtDeparture)) : null;
   return {
@@ -307,6 +309,9 @@ export async function settlement(tripId: string): Promise<TripSettlement> {
     totalCost: r2(totalCost),
     fuelCostPerKg: catchKg > 0 ? r2(fuelCost / catchKg) : null,
     costPerKg: catchKg > 0 ? r2(totalCost / catchKg) : null,
+    soldKg: Math.round(sales.soldKg * 1000) / 1000,
+    revenue: r2(sales.revenue),
+    grossProfit: r2(sales.revenue - totalCost),
   };
 }
 

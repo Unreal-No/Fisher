@@ -54,4 +54,8 @@ export interface TripSettlement {
   totalCost: number;
   fuelCostPerKg: number | null;
   costPerKg: number | null;
+  /** confirmed sales of this trip's lots, net of discount share and credit notes, excl. VAT */
+  soldKg: number;
+  revenue: number;
+  grossProfit: number;
 }

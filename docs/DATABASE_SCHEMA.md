@@ -38,13 +38,17 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | purchase_requests / _items | ใบขอซื้อ DRAFT→SUBMITTED→APPROVED/REJECTED→ORDERED | |
 | purchase_orders / _items | ใบสั่งซื้อ (ส่วนลด, VAT, ยอดรวม), received_qty ต่อรายการ | CHECK received ≤ ordered |
 | goods_receipts / _items | ใบรับสินค้า: ต้นทุนสุทธิ (หลังส่วนลด ไม่รวม VAT), ผูก stock_movement หรือ trip_supply | |
+| customers | ลูกค้า (เลขผู้เสียภาษี, เครดิตเทอม) | code unique |
+| sales_invoices | DRAFT (ใบสั่งขาย SO) → CONFIRMED (ใบแจ้งหนี้ INV) → VOID; paid_amount/credited_amount ดูแลใน transaction | CHECK paid+credited ≤ total; CONFIRMED ต้องมี invoice_no |
+| sales_items | ขายจากล็อต trip×species×grade; discount_share, returned_kg/amount | CHECK returned ≤ sold |
+| sales_payments | ใบเสร็จ RC (ยกเลิกด้วยเหตุผล ไม่ลบ) | CHECK amount > 0 |
+| sales_returns / _items | ใบลดหนี้ CN (ไม่คืนสต็อก) | |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |
 | doc_sequences | เลขรันต่อ key/period | PK (key, period) |
 
 ## แผนตารางเฟสถัดไป
-- Sales: `customers`, `catch_lots` (catch→lot), `sales_orders`, `sales_items` (lot_id), `sales_invoices`, `sales_payments`, `sales_returns`
 - Maintenance: `maintenance_plans`, `maintenance_orders`, `service_providers`
 - Payroll: `compensation_rules` (ต่อเรือ/ตำแหน่ง, JSON formula versioned), `payroll_periods`, `payroll_records`, `payroll_items`, `employee_advances`, `loans`, `deductions`, `payment_vouchers`
 - Accounting: `chart_of_accounts`, `fiscal_periods` (closing), `journal_entries` (DRAFT/POSTED/REVERSED), `journal_lines` (Σdr=Σcr ตรวจด้วย deferred constraint trigger), `bank_accounts`, `cost_allocations` (vessel/trip/department)

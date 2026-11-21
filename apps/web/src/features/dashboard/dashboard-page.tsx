@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Anchor, Fish, Fuel, Plus, Ship, Users, Wallet, Wrench } from 'lucide-react';
+import { AlertTriangle, Anchor, Banknote, Fish, Fuel, Plus, Receipt, Ship, TrendingUp, Users, Wallet, Wrench } from 'lucide-react';
 import { Link, useNavigate } from 'react-router';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { formatDate, formatDateTime, formatKg, formatMoney, formatMonth, formatNumber, toISODate, type TripStatus } from '@fisher/shared';
@@ -23,6 +23,7 @@ interface Summary {
   catch: { totalKg: number; records: number; bySpecies: { name: string; weightKg: number }[]; monthly: { month: string; weightKg: number }[] };
   fuel: { liters: number; cost: number | null };
   expenses: { confirmed: number; estimated: number } | null;
+  sales: { revenue: number; soldKg: number; receivables: number; suppliesCost: number; estimatedProfit: number } | null;
   alerts: {
     documents: { id: string; employeeId: string; employee: string; documentType: string; expiryDate: string }[];
     vessels: { id: string; code: string; name: string; licenseExpiry: string }[];
@@ -92,6 +93,12 @@ export function DashboardPage() {
               <Stat label="น้ำหนักสัตว์น้ำ (กก.)" value={formatKg(d.catch.totalKg)} icon={<Fish />} sub={`${formatNumber(d.catch.records)} รายการ`} />
               <Stat label="น้ำมันที่เติม (ลิตร)" value={formatNumber(d.fuel.liters)} icon={<Fuel />} />
               {d.fuel.cost !== null && <Stat label="ค่าน้ำมัน (บาท)" value={formatMoney(d.fuel.cost)} icon={<Fuel />} />}
+              {d.sales && <Stat label="ยอดขายสัตว์น้ำ (บาท)" value={formatMoney(d.sales.revenue)} icon={<Banknote />} sub={`${formatKg(d.sales.soldKg)} กก. · ไม่รวม VAT`} />}
+              {d.sales && <Stat label="ลูกหนี้ค้างรับ (บาท)" value={formatMoney(d.sales.receivables)} icon={<Receipt />} tone={d.sales.receivables > 0 ? 'warn' : undefined} sub="ทั้งหมด ณ ปัจจุบัน" />}
+              {d.sales && (
+                <Stat label="กำไรจากการดำเนินงาน (ประมาณการ)" value={formatMoney(d.sales.estimatedProfit)} icon={<TrendingUp />} tone={d.sales.estimatedProfit < 0 ? 'bad' : 'ok'}
+                  sub="ยอดขาย − น้ำมัน − เสบียง − ค่าใช้จ่ายเที่ยว · ยังไม่รวมค่าแรง/ค่าเสื่อม" />
+              )}
               {d.expenses && (
                 <Stat
                   label="ค่าใช้จ่ายเที่ยวเรือ (บาท)"

@@ -175,3 +175,6 @@ export const PO_STATUS_TH: Record<E.PoStatus, string> = {
 export const STOCK_MOVE_TYPE_TH: Record<E.StockMoveType, string> = {
   RECEIPT: 'รับเข้า', ISSUE: 'เบิกจ่าย', TRANSFER_OUT: 'โอนออก', TRANSFER_IN: 'โอนเข้า', ADJUSTMENT: 'ปรับยอด',
 };
+export const SALES_STATUS_TH: Record<E.SalesStatus, string> = { DRAFT: 'ร่าง (ใบสั่งขาย)', CONFIRMED: 'ออกใบแจ้งหนี้แล้ว', VOID: 'ยกเลิก' };
+export const PAYMENT_METHOD_TH: Record<E.PaymentMethod, string> = { CASH: 'เงินสด', TRANSFER: 'โอนเงิน', CHEQUE: 'เช็ค', OTHER: 'อื่นๆ' };
+export const PAYMENT_STATUS_TH: Record<E.PaymentStatus, string> = { UNPAID: 'ยังไม่ชำระ', PARTIAL: 'ชำระบางส่วน', PAID: 'ชำระครบ' };

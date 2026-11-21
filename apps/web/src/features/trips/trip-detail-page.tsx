@@ -228,9 +228,11 @@ export function TripDetailPage() {
                           ['ค่าใช้จ่ายยืนยันแล้ว', `${formatMoney(s.expenses)} บาท`], ['ค่าใช้จ่ายประมาณการ', `${formatMoney(s.estimatedExpenses)} บาท`],
                           ['ต้นทุนรวม', <b>{formatMoney(s.totalCost)} บาท</b>], ['ค่าน้ำมันต่อ กก.', s.fuelCostPerKg === null ? '-' : `${formatMoney(s.fuelCostPerKg)} บาท`],
                           ['ต้นทุนต่อ กก.', s.costPerKg === null ? '-' : `${formatMoney(s.costPerKg)} บาท`], ['สัตว์น้ำสูญเสีย', `${formatKg(s.lossKg)} กก.`],
+                          ['ขายแล้ว (สุทธิ)', `${formatKg(s.soldKg ?? 0)} กก. · ${formatMoney(s.revenue ?? 0)} บาท`],
+                          ['กำไรขั้นต้น (ขาย − ต้นทุนเที่ยว)', <b className={(s.grossProfit ?? 0) < 0 ? 'text-bad' : 'text-ok'}>{formatMoney(s.grossProfit ?? 0)} บาท</b>],
                           ['ชั่วโมงเครื่องยนต์', s.engineHours === null || s.engineHours === undefined ? '-' : formatNumber(s.engineHours, 1)], ['ลิตร/ชั่วโมงเครื่อง', s.litersPerEngineHour == null ? '-' : formatNumber(s.litersPerEngineHour, 1)],
                         ]} />
-                        <p className="mt-3 text-xs text-muted">ตัวเลขเชิงปฏิบัติการ ยังไม่ใช่รายการบัญชี รายได้จากการขายจะเชื่อมในโมดูลขาย (Phase 2)</p>
+                        <p className="mt-3 text-xs text-muted">ตัวเลขเชิงปฏิบัติการ ยังไม่ใช่รายการบัญชี · ยอดขายจากใบแจ้งหนี้ที่ยืนยันแล้ว ไม่รวม VAT หลังหักส่วนลด/ใบลดหนี้ · ยังไม่รวมค่าแรงลูกเรือ</p>
                       </Panel>
                     </div>
                   ),

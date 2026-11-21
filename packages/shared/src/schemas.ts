@@ -483,3 +483,49 @@ export const goodsReceiptSchema = z.object({
   notes: optStr(1000),
   lines: z.array(z.object({ poItemId: id, quantity: qty })).min(1, 'ระบุจำนวนที่รับอย่างน้อย 1 รายการ'),
 });
+
+// ---------- sales ----------
+export const customerSchema = z.object({
+  code: optStr(20),
+  name: reqStr(200),
+  taxId: z.preprocess(blankToNull, z.string().regex(/^\d{13}$/, 'เลขผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก').nullish()),
+  branch: optStr(60),
+  contactName: optStr(120),
+  phone: optStr(40),
+  email: z.preprocess(blankToNull, z.email('อีเมลไม่ถูกต้อง').nullish()),
+  address: optStr(500),
+  creditTermDays: optInt(0, 365),
+  isActive: z.boolean().default(true),
+  notes: optStr(1000),
+});
+const saleLine = z.object({
+  tripId: id,
+  speciesId: id,
+  gradeId: optId,
+  description: optStr(200),
+  weightKg: posNum(1e7),
+  quantity: optInt(0),
+  unitPrice: reqNum(0, 1e7),
+});
+export const salesInvoiceSchema = z.object({
+  customerId: id,
+  invoiceDate: isoDate,
+  dueDate: optDate,
+  discount: optNum(0, 1e10),
+  additionalCost: optNum(0, 1e10),
+  vatRate: z.preprocess((v) => (v === '' || v == null ? 0 : Number(v)), z.number().min(0).max(20)),
+  notes: optStr(1000),
+  items: z.array(saleLine).min(1, 'เพิ่มรายการอย่างน้อย 1 รายการ').max(300),
+});
+export const salesPaymentSchema = z.object({
+  paidAt: isoDateTime,
+  amount: posNum(1e10),
+  method: z.enum(E.PAYMENT_METHOD),
+  reference: optStr(100),
+  notes: optStr(500),
+});
+export const salesReturnSchema = z.object({
+  returnDate: isoDate,
+  reason: reqStr(500),
+  items: z.array(z.object({ salesItemId: id, weightKg: posNum(1e7), amount: posNum(1e10) })).min(1, 'ระบุรายการคืนอย่างน้อย 1 รายการ'),
+});

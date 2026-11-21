@@ -7,6 +7,7 @@ import { audit, diff } from '../../lib/audit';
 import { badRequest, conflict, notFound } from '../../lib/errors';
 import { d, dt, idParam, num, paged, paging, parse, parseList, scopeIds, vesselWhere } from '../../lib/http';
 import { Prisma, prisma } from '../../lib/prisma';
+import { assertLotsAvailable, lockLots } from '../sales/lots';
 import { assertStatus, getTrip } from '../trips/service';
 
 const include = {
@@ -147,8 +148,11 @@ export default async function catchRoutes(app: FastifyInstance) {
     const data = { ...b, catchDate: d(b.catchDate) };
     const changes = diff(before as never, Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined)));
     if (!Object.keys(changes).length) throw badRequest('ไม่มีข้อมูลที่เปลี่ยนแปลง');
+    const lotKeys = [{ tripId: before.tripId, speciesId: before.speciesId }, ...(b.speciesId ? [{ tripId: before.tripId, speciesId: b.speciesId }] : [])];
     return prisma.$transaction(async (tx) => {
+      await lockLots(tx, lotKeys);
       const after = await tx.catchRecord.update({ where: { id, version }, data: { ...data, version: { increment: 1 } }, include });
+      await assertLotsAvailable(tx, lotKeys); // cannot reduce below what has been sold
       await tx.catchAdjustment.create({ data: { catchRecordId: id, changes: changes as never, reason, adjustedById: req.user!.id } });
       await audit(tx, req, { action: 'ADJUST', entityType: 'CatchRecord', entityId: id, before: changes, note: reason });
       return after;
@@ -163,9 +167,11 @@ export default async function catchRoutes(app: FastifyInstance) {
     const trip = await getTrip(req, before.tripId);
     assertStatus(trip, CATCH_EDITABLE_STATUSES, 'ยกเลิกรายการสัตว์น้ำ');
     await prisma.$transaction(async (tx) => {
+      await lockLots(tx, [{ tripId: before.tripId, speciesId: before.speciesId }]);
       await tx.catchRecord.update({
         where: { id }, data: { voidedAt: new Date(), voidReason: reason, voidedById: req.user!.id, version: { increment: 1 } },
       });
+      await assertLotsAvailable(tx, [{ tripId: before.tripId, speciesId: before.speciesId }]);
       await tx.catchAdjustment.create({ data: { catchRecordId: id, changes: { voided: { from: false, to: true } }, reason, adjustedById: req.user!.id } });
       await audit(tx, req, { action: 'VOID', entityType: 'CatchRecord', entityId: id, before, note: reason });
     });
@@ -193,7 +199,9 @@ export default async function catchRoutes(app: FastifyInstance) {
       if (!r) throw badRequest('รายการสัตว์น้ำอ้างอิงไม่ถูกต้อง');
     }
     const loss = await prisma.$transaction(async (tx) => {
+      await lockLots(tx, [{ tripId: b.tripId, speciesId: b.speciesId }]);
       const l = await tx.catchLoss.create({ data: { ...b, recordedAt: dt(b.recordedAt), createdById: req.user!.id } });
+      await assertLotsAvailable(tx, [{ tripId: b.tripId, speciesId: b.speciesId }]);
       await audit(tx, req, { action: 'CREATE', entityType: 'CatchLoss', entityId: l.id, after: l, note: b.tripId });
       return l;
     });

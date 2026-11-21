@@ -17,6 +17,7 @@ import fuelRoutes from './modules/fuel/routes';
 import gpsRoutes from './modules/gps/routes';
 import inventoryRoutes from './modules/inventory/routes';
 import purchasingRoutes from './modules/purchasing/routes';
+import salesRoutes from './modules/sales/routes';
 import notificationRoutes from './modules/notifications/routes';
 import tripRoutes from './modules/trips/routes';
 import vesselRoutes from './modules/vessels/routes';
@@ -65,6 +66,7 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
       await api.register(fuelRoutes, { prefix: '/fuel' });
       await api.register(inventoryRoutes, { prefix: '/inventory' });
       await api.register(purchasingRoutes, { prefix: '/purchasing' });
+      await api.register(salesRoutes, { prefix: '/sales' });
     },
     { prefix: '/api/v1' },
   );
