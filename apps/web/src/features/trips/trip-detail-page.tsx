@@ -57,7 +57,7 @@ function ItemTable({ head, rows, onDelete }: { head: string[]; rows: { id: strin
         <tbody>
           {rows.map((r) => (
             <tr key={r.id} className="border-t border-line">
-              {r.cells.map((c, i) => <td key={i} className={cn('px-3 py-2', i === 0 && 'pl-4')}>{c}</td>)}
+              {r.cells.map((c, i) => <td key={i} className={cn('whitespace-nowrap px-3 py-2', i === 0 && 'pl-4')}>{c}</td>)}
               {onDelete && <td className="px-2 text-right"><Button variant="ghost" size="icon" aria-label="ลบ" onClick={() => onDelete(r.id)}><Trash2 /></Button></td>}
             </tr>
           ))}

@@ -78,7 +78,7 @@ export function DataTable<T>({
                 {r.getVisibleCells().map((c) => {
                   const m = c.column.columnDef.meta;
                   return (
-                    <td key={c.id} className={cn('px-3 py-2 align-middle', m?.align === 'right' && 'text-right tabular-nums', m?.align === 'center' && 'text-center', m?.className)}>
+                    <td key={c.id} className={cn('whitespace-nowrap px-3 py-2 align-middle', m?.align === 'right' && 'text-right tabular-nums', m?.align === 'center' && 'text-center', m?.className)}>
                       {flexRender(c.column.columnDef.cell, c.getContext())}
                     </td>
                   );
