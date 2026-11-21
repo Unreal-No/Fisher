@@ -1,0 +1,12 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+!.env.example
+storage*/
+*.log
+apps/api/src/generated/
+dev-dist/
+.DS_Store
+backups/*.dump
