@@ -1,0 +1,875 @@
+// Fishery ERP – Phase 1 schema (auth/RBAC, fleet, HR, trips, catch, GPS base, system).
+// Conventions: snake_case tables/columns, UUIDv7 ids, money Decimal(14,2), weight kg Decimal(12,3),
+// date-only fields @db.Date, soft delete via deleted_at on master data, trips/catch are never hard-deleted.
+// Enum values must match packages/shared/src/enums.ts.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ======================= ENUMS =======================
+enum VesselStatus {
+  AT_PORT
+  AT_SEA
+  MAINTENANCE
+  INACTIVE
+}
+
+enum VesselDocType {
+  REGISTRATION
+  FISHING_LICENSE
+  PORT_IN_OUT
+  INSURANCE
+  SAFETY_CERT
+  RADIO_LICENSE
+  OTHER
+}
+
+enum EmployeeStatus {
+  ACTIVE
+  ON_LEAVE
+  SUSPENDED
+  RESIGNED
+  TERMINATED
+}
+
+enum EmployeePosition {
+  CAPTAIN
+  ENGINEER
+  DECKHAND
+  COOK
+  FISH_HANDLER
+  OFFICE
+  MANAGER
+  OTHER
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+  UNSPECIFIED
+}
+
+enum PayType {
+  MONTHLY
+  DAILY
+  PER_TRIP
+  REVENUE_SHARE
+  CATCH_BASED
+}
+
+enum DocAppliesTo {
+  ALL
+  THAI
+  FOREIGN
+}
+
+enum EmpDocStatus {
+  ACTIVE
+  REPLACED
+  CANCELLED
+}
+
+enum TripStatus {
+  DRAFT
+  PREPARING
+  DEPARTED
+  AT_SEA
+  RETURNING
+  ARRIVED
+  PENDING_SETTLEMENT
+  CLOSED
+  CANCELLED
+}
+
+enum FuelType {
+  DIESEL
+  DIESEL_B7
+  DIESEL_B10
+  BENZINE
+  OTHER
+}
+
+enum Measurement {
+  MEASURED
+  ESTIMATED
+}
+
+enum SupplyCategory {
+  FOOD
+  WATER
+  ICE
+  NET
+  ROPE
+  FISHING_GEAR
+  SPARE_PART
+  SAFETY
+  MAINTENANCE
+  OTHER
+}
+
+enum TripExpenseCategory {
+  PORT_FEE
+  ICE
+  FOOD
+  REPAIR
+  LABOR
+  UNLOADING
+  OTHER
+}
+
+enum IncidentType {
+  ACCIDENT
+  INJURY
+  EQUIPMENT_FAILURE
+  WEATHER
+  LOST_GEAR
+  INSPECTION
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum SpeciesCategory {
+  FISH
+  SQUID
+  SHRIMP
+  CRAB
+  SHELLFISH
+  TRASH_FISH
+  OTHER
+}
+
+enum StorageType {
+  ICE
+  CHILLED
+  FROZEN
+  LIVE
+  DRIED
+  OTHER
+}
+
+enum CatchQuality {
+  EXCELLENT
+  GOOD
+  FAIR
+  POOR
+}
+
+enum LossType {
+  SPOILAGE
+  DAMAGE
+  WEIGH_DIFF
+  OTHER
+}
+
+enum GpsSource {
+  DEDICATED
+  MOBILE
+  AIS
+}
+
+enum NotificationSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
+enum FileSensitivity {
+  INTERNAL
+  CONFIDENTIAL
+  PERSONAL
+}
+
+// ======================= AUTH / RBAC =======================
+model User {
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  username           String    @unique
+  email              String?   @unique
+  passwordHash       String    @map("password_hash")
+  fullName           String    @map("full_name")
+  isActive           Boolean   @default(true) @map("is_active")
+  mustChangePassword Boolean   @default(false) @map("must_change_password")
+  failedLogins       Int       @default(0) @map("failed_logins")
+  lockedUntil        DateTime? @map("locked_until") @db.Timestamptz
+  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz
+  employeeId         String?   @unique @map("employee_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz
+
+  employee      Employee?      @relation(fields: [employeeId], references: [id])
+  roles         UserRole[]
+  vessels       UserVessel[]
+  sessions      Session[]
+  notifications Notification[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  code        String           @unique
+  name        String
+  description String?
+  isSystem    Boolean          @default(false) @map("is_system")
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  code        String           @unique
+  module      String
+  action      String
+  description String
+  roles       RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String     @map("role_id") @db.Uuid
+  permissionId String     @map("permission_id") @db.Uuid
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String @map("user_id") @db.Uuid
+  roleId String @map("role_id") @db.Uuid
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@id([userId, roleId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+/// Data scope: if a user has rows here, vessel-bound data is limited to these vessels. No rows = all vessels.
+model UserVessel {
+  userId   String @map("user_id") @db.Uuid
+  vesselId String @map("vessel_id") @db.Uuid
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vessel   Vessel @relation(fields: [vesselId], references: [id], onDelete: Cascade)
+
+  @@id([userId, vesselId])
+  @@map("user_vessels")
+}
+
+/// id = sha256(session token). Raw token only lives in the httpOnly cookie.
+model Session {
+  id         String   @id
+  userId     String   @map("user_id") @db.Uuid
+  csrfToken  String   @map("csrf_token")
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  lastSeenAt DateTime @default(now()) @map("last_seen_at") @db.Timestamptz
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+// ======================= FILES =======================
+model FileObject {
+  id           String          @id @default(uuid(7)) @db.Uuid
+  storageKey   String          @unique @map("storage_key")
+  fileName     String          @map("file_name")
+  mimeType     String          @map("mime_type")
+  sizeBytes    Int             @map("size_bytes")
+  sha256       String
+  sensitivity  FileSensitivity @default(INTERNAL)
+  uploadedById String?         @map("uploaded_by_id") @db.Uuid
+  createdAt    DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  deletedAt    DateTime?       @map("deleted_at") @db.Timestamptz
+
+  @@map("files")
+}
+
+// ======================= FLEET =======================
+model Vessel {
+  id                 String       @id @default(uuid(7)) @db.Uuid
+  code               String       @unique
+  name               String
+  registrationNo     String       @unique @map("registration_no")
+  vesselType         String       @map("vessel_type")
+  lengthM            Decimal?     @map("length_m") @db.Decimal(8, 2)
+  widthM             Decimal?     @map("width_m") @db.Decimal(8, 2)
+  grossTonnage       Decimal?     @map("gross_tonnage") @db.Decimal(10, 2)
+  netTonnage         Decimal?     @map("net_tonnage") @db.Decimal(10, 2)
+  hullMaterial       String?      @map("hull_material")
+  buildYear          Int?         @map("build_year")
+  homePort           String?      @map("home_port")
+  engineMake         String?      @map("engine_make")
+  engineModel        String?      @map("engine_model")
+  engineSerialNo     String?      @map("engine_serial_no")
+  enginePowerHp      Decimal?     @map("engine_power_hp") @db.Decimal(10, 2)
+  fuelTankCapacityL  Decimal?     @map("fuel_tank_capacity_l") @db.Decimal(12, 2)
+  ownerName          String?      @map("owner_name")
+  ownerTaxId         String?      @map("owner_tax_id")
+  captainId          String?      @map("captain_id") @db.Uuid
+  radioCallSign      String?      @map("radio_call_sign")
+  mmsi               String?      @unique
+  commEquipment      String?      @map("comm_equipment")
+  licenseNo          String?      @map("license_no")
+  licenseExpiry      DateTime?    @map("license_expiry") @db.Date
+  registrationExpiry DateTime?    @map("registration_expiry") @db.Date
+  status             VesselStatus @default(AT_PORT)
+  photoFileId        String?      @map("photo_file_id") @db.Uuid
+  notes              String?
+  createdById        String?      @map("created_by_id") @db.Uuid
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt          DateTime?    @map("deleted_at") @db.Timestamptz
+
+  captain       Employee?          @relation("VesselCaptain", fields: [captainId], references: [id])
+  documents     VesselDocument[]
+  trips         FishingTrip[]
+  catches       CatchRecord[]
+  assignments   VesselAssignment[]
+  crewEmployees Employee[]         @relation("EmployeeCurrentVessel")
+  gpsDevices    GpsDevice[]
+  gpsPositions  GpsPosition[]
+  userScopes    UserVessel[]
+
+  @@index([status])
+  @@index([deletedAt])
+  @@map("vessels")
+}
+
+model VesselDocument {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  vesselId    String        @map("vessel_id") @db.Uuid
+  docType     VesselDocType @map("doc_type")
+  docNo       String?       @map("doc_no")
+  issueDate   DateTime?     @map("issue_date") @db.Date
+  expiryDate  DateTime?     @map("expiry_date") @db.Date
+  fileId      String?       @map("file_id") @db.Uuid
+  notes       String?
+  createdById String?       @map("created_by_id") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  deletedAt   DateTime?     @map("deleted_at") @db.Timestamptz
+  vessel      Vessel        @relation(fields: [vesselId], references: [id])
+
+  @@index([vesselId])
+  @@index([expiryDate])
+  @@map("vessel_documents")
+}
+
+// ======================= HR =======================
+model Employee {
+  id                    String           @id @default(uuid(7)) @db.Uuid
+  code                  String           @unique
+  firstName             String           @map("first_name")
+  lastName              String           @map("last_name")
+  firstNameEn           String?          @map("first_name_en")
+  lastNameEn            String?          @map("last_name_en")
+  nickname              String?
+  dateOfBirth           DateTime?        @map("date_of_birth") @db.Date
+  nationality           String
+  gender                Gender           @default(UNSPECIFIED)
+  phone                 String?
+  address               String?
+  emergencyContactName  String?          @map("emergency_contact_name")
+  emergencyContactPhone String?          @map("emergency_contact_phone")
+  /// PDPA: personal identifier – masked unless employee.sensitive
+  nationalIdNo          String?          @map("national_id_no")
+  startDate             DateTime         @map("start_date") @db.Date
+  endDate               DateTime?        @map("end_date") @db.Date
+  status                EmployeeStatus   @default(ACTIVE)
+  position              EmployeePosition
+  currentVesselId       String?          @map("current_vessel_id") @db.Uuid
+  payType               PayType          @default(MONTHLY) @map("pay_type")
+  baseRate              Decimal?         @map("base_rate") @db.Decimal(14, 2)
+  bankName              String?          @map("bank_name")
+  /// PDPA: masked unless employee.sensitive
+  bankAccountNo         String?          @map("bank_account_no")
+  photoFileId           String?          @map("photo_file_id") @db.Uuid
+  notes                 String?
+  createdById           String?          @map("created_by_id") @db.Uuid
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt             DateTime?        @map("deleted_at") @db.Timestamptz
+
+  currentVessel Vessel?             @relation("EmployeeCurrentVessel", fields: [currentVesselId], references: [id])
+  captainOf     Vessel[]            @relation("VesselCaptain")
+  documents     EmployeeDocument[]
+  history       EmploymentHistory[]
+  assignments   VesselAssignment[]
+  tripCrew      TripCrew[]
+  captainTrips  FishingTrip[]       @relation("TripCaptain")
+  user          User?
+
+  @@index([status])
+  @@index([currentVesselId])
+  @@index([nationality])
+  @@index([deletedAt])
+  @@map("employees")
+}
+
+/// Configurable document checklist (passport, work permit, seaman book…). Reminders are business rules, not legal advice.
+model DocumentType {
+  id             String             @id @default(uuid(7)) @db.Uuid
+  code           String             @unique
+  nameTh         String             @map("name_th")
+  nameEn         String?            @map("name_en")
+  appliesTo      DocAppliesTo       @default(ALL) @map("applies_to")
+  isRequired     Boolean            @default(false) @map("is_required")
+  requiresExpiry Boolean            @default(true) @map("requires_expiry")
+  isActive       Boolean            @default(true) @map("is_active")
+  sortOrder      Int                @default(0) @map("sort_order")
+  documents      EmployeeDocument[]
+
+  @@map("document_types")
+}
+
+model EmployeeDocument {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  employeeId     String       @map("employee_id") @db.Uuid
+  documentTypeId String       @map("document_type_id") @db.Uuid
+  /// PDPA: masked unless employee.sensitive
+  documentNo     String?      @map("document_no")
+  issueDate      DateTime?    @map("issue_date") @db.Date
+  expiryDate     DateTime?    @map("expiry_date") @db.Date
+  issuedBy       String?      @map("issued_by")
+  fileId         String?      @map("file_id") @db.Uuid
+  status         EmpDocStatus @default(ACTIVE)
+  /// renewal chain: the document that replaced this one
+  replacedById   String?      @unique @map("replaced_by_id") @db.Uuid
+  notes          String?
+  createdById    String?      @map("created_by_id") @db.Uuid
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  employee     Employee          @relation(fields: [employeeId], references: [id])
+  documentType DocumentType      @relation(fields: [documentTypeId], references: [id])
+  replacedBy   EmployeeDocument? @relation("DocRenewal", fields: [replacedById], references: [id])
+  replaces     EmployeeDocument? @relation("DocRenewal")
+
+  @@index([employeeId, status])
+  @@index([expiryDate])
+  @@map("employee_documents")
+}
+
+model EmploymentHistory {
+  id            String   @id @default(uuid(7)) @db.Uuid
+  employeeId    String   @map("employee_id") @db.Uuid
+  eventType     String   @map("event_type") // HIRED, STATUS_CHANGE, POSITION_CHANGE, PAY_CHANGE, VESSEL_ASSIGN
+  effectiveDate DateTime @map("effective_date") @db.Date
+  fromValue     String?  @map("from_value")
+  toValue       String?  @map("to_value")
+  notes         String?
+  createdById   String?  @map("created_by_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz
+  employee      Employee @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, effectiveDate])
+  @@map("employment_history")
+}
+
+/// One open assignment (end_date null) per employee – enforced by partial unique index in migration.
+model VesselAssignment {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  employeeId  String           @map("employee_id") @db.Uuid
+  vesselId    String           @map("vessel_id") @db.Uuid
+  position    EmployeePosition
+  startDate   DateTime         @map("start_date") @db.Date
+  endDate     DateTime?        @map("end_date") @db.Date
+  notes       String?
+  createdById String?          @map("created_by_id") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  employee    Employee         @relation(fields: [employeeId], references: [id])
+  vessel      Vessel           @relation(fields: [vesselId], references: [id])
+
+  @@index([employeeId])
+  @@index([vesselId, endDate])
+  @@map("vessel_assignments")
+}
+
+// ======================= TRIPS =======================
+/// One vessel per trip. At most one trip per vessel in active statuses unless allow_concurrent (partial unique index).
+model FishingTrip {
+  id                         String       @id @default(uuid(7)) @db.Uuid
+  tripNo                     String       @unique @map("trip_no")
+  vesselId                   String       @map("vessel_id") @db.Uuid
+  captainId                  String?      @map("captain_id") @db.Uuid
+  status                     TripStatus   @default(DRAFT)
+  plannedDepartureAt         DateTime?    @map("planned_departure_at") @db.Timestamptz
+  plannedReturnAt            DateTime?    @map("planned_return_at") @db.Timestamptz
+  fishingArea                String?      @map("fishing_area")
+  departedAt                 DateTime?    @map("departed_at") @db.Timestamptz
+  departurePort              String?      @map("departure_port")
+  departureLat               Decimal?     @map("departure_lat") @db.Decimal(9, 6)
+  departureLng               Decimal?     @map("departure_lng") @db.Decimal(9, 6)
+  fuelAtDepartureL           Decimal?     @map("fuel_at_departure_l") @db.Decimal(12, 2)
+  fuelAtDepartureMeasurement Measurement? @map("fuel_at_departure_measurement")
+  conditionNote              String?      @map("condition_note")
+  departureOverrideReason    String?      @map("departure_override_reason")
+  arrivedAt                  DateTime?    @map("arrived_at") @db.Timestamptz
+  arrivalPort                String?      @map("arrival_port")
+  arrivalLat                 Decimal?     @map("arrival_lat") @db.Decimal(9, 6)
+  arrivalLng                 Decimal?     @map("arrival_lng") @db.Decimal(9, 6)
+  fuelAtArrivalL             Decimal?     @map("fuel_at_arrival_l") @db.Decimal(12, 2)
+  fuelAtArrivalMeasurement   Measurement? @map("fuel_at_arrival_measurement")
+  allowConcurrent            Boolean      @default(false) @map("allow_concurrent")
+  concurrentReason           String?      @map("concurrent_reason")
+  settlementSnapshot         Json?        @map("settlement_snapshot")
+  closedAt                   DateTime?    @map("closed_at") @db.Timestamptz
+  closedById                 String?      @map("closed_by_id") @db.Uuid
+  cancelledAt                DateTime?    @map("cancelled_at") @db.Timestamptz
+  cancelReason               String?      @map("cancel_reason")
+  notes                      String?
+  version                    Int          @default(1)
+  createdById                String?      @map("created_by_id") @db.Uuid
+  createdAt                  DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt                  DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  vessel        Vessel              @relation(fields: [vesselId], references: [id])
+  captain       Employee?           @relation("TripCaptain", fields: [captainId], references: [id])
+  crew          TripCrew[]
+  fuel          TripFuel[]
+  supplies      TripSupply[]
+  expenses      TripExpense[]
+  incidents     TripIncident[]
+  statusHistory TripStatusHistory[]
+  catches       CatchRecord[]
+  losses        CatchLoss[]
+
+  @@index([vesselId, status])
+  @@index([status])
+  @@index([departedAt])
+  @@map("fishing_trips")
+}
+
+model TripStatusHistory {
+  id          String      @id @default(uuid(7)) @db.Uuid
+  tripId      String      @map("trip_id") @db.Uuid
+  fromStatus  TripStatus? @map("from_status")
+  toStatus    TripStatus  @map("to_status")
+  note        String?
+  changedById String?     @map("changed_by_id") @db.Uuid
+  changedAt   DateTime    @default(now()) @map("changed_at") @db.Timestamptz
+  trip        FishingTrip @relation(fields: [tripId], references: [id])
+
+  @@index([tripId, changedAt])
+  @@map("trip_status_history")
+}
+
+model TripCrew {
+  id         String           @id @default(uuid(7)) @db.Uuid
+  tripId     String           @map("trip_id") @db.Uuid
+  employeeId String           @map("employee_id") @db.Uuid
+  role       EmployeePosition
+  /// document check result captured at departure (audit trail)
+  docCheck   Json?            @map("doc_check")
+  notes      String?
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  trip       FishingTrip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  employee   Employee         @relation(fields: [employeeId], references: [id])
+
+  @@unique([tripId, employeeId])
+  @@index([employeeId])
+  @@map("trip_crew")
+}
+
+model TripFuel {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  tripId        String      @map("trip_id") @db.Uuid
+  recordedAt    DateTime    @map("recorded_at") @db.Timestamptz
+  fuelType      FuelType    @map("fuel_type")
+  liters        Decimal     @db.Decimal(12, 2)
+  pricePerLiter Decimal?    @map("price_per_liter") @db.Decimal(10, 4)
+  totalCost     Decimal?    @map("total_cost") @db.Decimal(14, 2)
+  supplierName  String?     @map("supplier_name")
+  measurement   Measurement @default(MEASURED)
+  fileId        String?     @map("file_id") @db.Uuid
+  notes         String?
+  createdById   String?     @map("created_by_id") @db.Uuid
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  trip          FishingTrip @relation(fields: [tripId], references: [id])
+
+  @@index([tripId])
+  @@map("trip_fuel")
+}
+
+model TripSupply {
+  id          String         @id @default(uuid(7)) @db.Uuid
+  tripId      String         @map("trip_id") @db.Uuid
+  category    SupplyCategory
+  description String
+  quantity    Decimal        @db.Decimal(12, 3)
+  unit        String
+  unitCost    Decimal?       @map("unit_cost") @db.Decimal(14, 4)
+  totalCost   Decimal?       @map("total_cost") @db.Decimal(14, 2)
+  notes       String?
+  createdById String?        @map("created_by_id") @db.Uuid
+  createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
+  trip        FishingTrip    @relation(fields: [tripId], references: [id])
+
+  @@index([tripId])
+  @@map("trip_supplies")
+}
+
+model TripExpense {
+  id          String              @id @default(uuid(7)) @db.Uuid
+  tripId      String              @map("trip_id") @db.Uuid
+  category    TripExpenseCategory
+  description String
+  amount      Decimal             @db.Decimal(14, 2)
+  expenseDate DateTime            @map("expense_date") @db.Date
+  /// operational estimate vs. confirmed amount (accounting posts confirmed only)
+  isEstimate  Boolean             @default(false) @map("is_estimate")
+  fileId      String?             @map("file_id") @db.Uuid
+  notes       String?
+  createdById String?             @map("created_by_id") @db.Uuid
+  createdAt   DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  trip        FishingTrip         @relation(fields: [tripId], references: [id])
+
+  @@index([tripId])
+  @@map("trip_expenses")
+}
+
+model TripIncident {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  tripId      String       @map("trip_id") @db.Uuid
+  occurredAt  DateTime     @map("occurred_at") @db.Timestamptz
+  type        IncidentType
+  severity    Severity
+  description String
+  lat         Decimal?     @db.Decimal(9, 6)
+  lng         Decimal?     @db.Decimal(9, 6)
+  createdById String?      @map("created_by_id") @db.Uuid
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  trip        FishingTrip  @relation(fields: [tripId], references: [id])
+
+  @@index([tripId])
+  @@map("trip_incidents")
+}
+
+// ======================= CATCH =======================
+model FishSpecies {
+  id             String          @id @default(uuid(7)) @db.Uuid
+  code           String          @unique
+  nameTh         String          @map("name_th")
+  nameEn         String?         @map("name_en")
+  scientificName String?         @map("scientific_name")
+  category       SpeciesCategory
+  unit           String          @default("กก.")
+  defaultPrice   Decimal?        @map("default_price") @db.Decimal(12, 2)
+  isActive       Boolean         @default(true) @map("is_active")
+  sortOrder      Int             @default(0) @map("sort_order")
+  createdAt      DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt      DateTime?       @map("deleted_at") @db.Timestamptz
+  catches        CatchRecord[]
+  losses         CatchLoss[]
+
+  @@map("fish_species")
+}
+
+model CatchGrade {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  code        String        @unique
+  nameTh      String        @map("name_th")
+  description String?
+  sortOrder   Int           @default(0) @map("sort_order")
+  isActive    Boolean       @default(true) @map("is_active")
+  catches     CatchRecord[]
+
+  @@map("catch_grades")
+}
+
+/// Caught weight (NOT sold weight). Sales module links to catch/inventory lots later.
+model CatchRecord {
+  id              String        @id @default(uuid(7)) @db.Uuid
+  tripId          String        @map("trip_id") @db.Uuid
+  /// denormalised from trip for reporting; always equals trip.vessel_id
+  vesselId        String        @map("vessel_id") @db.Uuid
+  speciesId       String        @map("species_id") @db.Uuid
+  gradeId         String?       @map("grade_id") @db.Uuid
+  catchDate       DateTime      @map("catch_date") @db.Date
+  weightKg        Decimal       @map("weight_kg") @db.Decimal(12, 3)
+  quantity        Int?
+  basketCount     Int?          @map("basket_count")
+  quality         CatchQuality?
+  storageType     StorageType   @default(ICE) @map("storage_type")
+  notes           String?
+  /// offline idempotency key from client
+  clientRequestId String?       @unique @map("client_request_id") @db.Uuid
+  version         Int           @default(1)
+  voidedAt        DateTime?     @map("voided_at") @db.Timestamptz
+  voidReason      String?       @map("void_reason")
+  voidedById      String?       @map("voided_by_id") @db.Uuid
+  createdById     String?       @map("created_by_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+
+  trip        FishingTrip       @relation(fields: [tripId], references: [id])
+  vessel      Vessel            @relation(fields: [vesselId], references: [id])
+  species     FishSpecies       @relation(fields: [speciesId], references: [id])
+  grade       CatchGrade?       @relation(fields: [gradeId], references: [id])
+  adjustments CatchAdjustment[]
+  losses      CatchLoss[]
+
+  @@index([tripId])
+  @@index([vesselId, catchDate])
+  @@index([speciesId, catchDate])
+  @@index([catchDate])
+  @@map("catch_records")
+}
+
+model CatchAdjustment {
+  id            String      @id @default(uuid(7)) @db.Uuid
+  catchRecordId String      @map("catch_record_id") @db.Uuid
+  changes       Json // { field: { from, to } }
+  reason        String
+  adjustedById  String?     @map("adjusted_by_id") @db.Uuid
+  adjustedAt    DateTime    @default(now()) @map("adjusted_at") @db.Timestamptz
+  catchRecord   CatchRecord @relation(fields: [catchRecordId], references: [id])
+
+  @@index([catchRecordId])
+  @@map("catch_adjustments")
+}
+
+model CatchLoss {
+  id            String       @id @default(uuid(7)) @db.Uuid
+  tripId        String       @map("trip_id") @db.Uuid
+  catchRecordId String?      @map("catch_record_id") @db.Uuid
+  speciesId     String       @map("species_id") @db.Uuid
+  lossType      LossType     @map("loss_type")
+  weightKg      Decimal      @map("weight_kg") @db.Decimal(12, 3)
+  reason        String
+  recordedAt    DateTime     @map("recorded_at") @db.Timestamptz
+  createdById   String?      @map("created_by_id") @db.Uuid
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  trip          FishingTrip  @relation(fields: [tripId], references: [id])
+  catchRecord   CatchRecord? @relation(fields: [catchRecordId], references: [id])
+  species       FishSpecies  @relation(fields: [speciesId], references: [id])
+
+  @@index([tripId])
+  @@map("catch_losses")
+}
+
+// ======================= GPS (ingestion implemented in Phase 2) =======================
+model GpsDevice {
+  id         String        @id @default(uuid(7)) @db.Uuid
+  vesselId   String?       @map("vessel_id") @db.Uuid
+  source     GpsSource
+  identifier String        @unique // IMEI / MMSI / app device id
+  name       String?
+  apiKeyHash String?       @map("api_key_hash")
+  isActive   Boolean       @default(true) @map("is_active")
+  lastSeenAt DateTime?     @map("last_seen_at") @db.Timestamptz
+  notes      String?
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  vessel     Vessel?       @relation(fields: [vesselId], references: [id])
+  positions  GpsPosition[]
+
+  @@map("gps_devices")
+}
+
+model GpsPosition {
+  id            BigInt     @id @default(autoincrement())
+  vesselId      String     @map("vessel_id") @db.Uuid
+  deviceId      String?    @map("device_id") @db.Uuid
+  recordedAt    DateTime   @map("recorded_at") @db.Timestamptz
+  receivedAt    DateTime   @default(now()) @map("received_at") @db.Timestamptz
+  lat           Decimal    @db.Decimal(9, 6)
+  lng           Decimal    @db.Decimal(9, 6)
+  speedKnots    Decimal?   @map("speed_knots") @db.Decimal(6, 2)
+  headingDeg    Decimal?   @map("heading_deg") @db.Decimal(5, 2)
+  signalQuality Int?       @map("signal_quality")
+  source        GpsSource
+  isDemo        Boolean    @default(false) @map("is_demo")
+  vessel        Vessel     @relation(fields: [vesselId], references: [id])
+  device        GpsDevice? @relation(fields: [deviceId], references: [id])
+
+  @@unique([deviceId, recordedAt])
+  @@index([vesselId, recordedAt])
+  @@map("gps_positions")
+}
+
+// ======================= SYSTEM =======================
+model Notification {
+  id         String               @id @default(uuid(7)) @db.Uuid
+  userId     String               @map("user_id") @db.Uuid
+  type       String // DOC_EXPIRING, DOC_EXPIRED, VESSEL_LICENSE_EXPIRING, ...
+  severity   NotificationSeverity @default(INFO)
+  title      String
+  message    String
+  link       String?
+  entityType String?              @map("entity_type")
+  entityId   String?              @map("entity_id")
+  /// prevents duplicate reminders for the same threshold
+  dedupeKey  String               @map("dedupe_key")
+  readAt     DateTime?            @map("read_at") @db.Timestamptz
+  createdAt  DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         BigInt   @id @default(autoincrement())
+  at         DateTime @default(now()) @db.Timestamptz
+  userId     String?  @map("user_id") @db.Uuid
+  username   String?
+  action     String // CREATE, UPDATE, DELETE, STATUS_CHANGE, LOGIN, LOGIN_FAILED, LOGOUT, VIEW_SENSITIVE, OVERRIDE ...
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id")
+  before     Json?
+  after      Json?
+  note       String?
+  ip         String?
+  userAgent  String?  @map("user_agent")
+  requestId  String?  @map("request_id")
+
+  @@index([entityType, entityId])
+  @@index([userId, at])
+  @@index([at])
+  @@map("audit_logs")
+}
+
+model AppSetting {
+  key         String   @id
+  value       Json
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("app_settings")
+}
+
+/// Gap-free running numbers per key/period (TRP-2569-0001, EMP-00001 …)
+model DocSequence {
+  key       String
+  period    String
+  lastValue Int    @default(0) @map("last_value")
+
+  @@id([key, period])
+  @@map("doc_sequences")
+}
