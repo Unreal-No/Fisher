@@ -25,6 +25,8 @@ const Inventory = L(() => import('./features/inventory/inventory-page'), 'Invent
 const Purchasing = L(() => import('./features/purchasing/purchasing-page'), 'PurchasingPage');
 const PurchaseRequest = L(() => import('./features/purchasing/pr-detail-page'), 'PurchaseRequestPage');
 const PurchaseOrder = L(() => import('./features/purchasing/po-detail-page'), 'PurchaseOrderPage');
+const Sales = L(() => import('./features/sales/sales-page'), 'SalesPage');
+const SalesInvoice = L(() => import('./features/sales/invoice-detail-page'), 'SalesInvoicePage');
 const Catch = L(() => import('./features/catch/catch-page'), 'CatchPage');
 const Species = L(() => import('./features/catch/species-page'), 'SpeciesPage');
 const Notifications = L(() => import('./features/notifications/notifications-page'), 'NotificationsPage');
@@ -82,6 +84,8 @@ export const router = createBrowserRouter([
           { path: 'purchasing', element: <P perm={['purchase.view']}><Purchasing /></P> },
           { path: 'purchasing/requests/:id', element: <P perm={['purchase.view']}><PurchaseRequest /></P> },
           { path: 'purchasing/orders/:id', element: <P perm={['purchase.view']}><PurchaseOrder /></P> },
+          { path: 'sales', element: <P perm={['sales.view']}><Sales /></P> },
+          { path: 'sales/invoices/:id', element: <P perm={['sales.view']}><SalesInvoice /></P> },
           { path: 'catch', element: <P perm={['catch.view']}><Catch /></P> },
           { path: 'species', element: <P perm={['catch.view']}><Species /></P> },
           { path: 'notifications', element: <P><Notifications /></P> },
