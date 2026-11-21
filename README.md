@@ -62,11 +62,12 @@ DATABASE_URL=postgresql://... ./scripts/restore.sh backups/db-YYYYmmdd-HHMMSS.du
 ```
 แนะนำ cron รายวัน + เก็บสำเนานอกเครื่อง + ทดสอบ restore รายเดือน
 
-## Known limitations (Phase 1)
+## Known limitations
 - ขาย, ซ่อมบำรุง, เงินเดือน, บัญชี (รวมใบแจ้งหนี้ผู้ขาย/เจ้าหนี้), รายงาน PDF/Excel — ยังไม่ทำ (ซ่อนจากเมนู, ดู Roadmap)
 - GPS: รับข้อมูลผ่าน HTTP (generic/OsmAnd-Traccar/AIS push) และมือถือ; ยังไม่มี MQTT bridge และการดึงข้อมูลจากผู้ให้บริการ AIS/VMS (ต้องมี credential); แผนที่ใช้ tile ของ OpenStreetMap (production ควรใช้ผู้ให้บริการ tile ของตนเอง)
 - มือถือส่งตำแหน่งได้เฉพาะตอนเปิดหน้าเว็บค้างไว้ (ติดตามต่อเนื่องแนะนำแอป Traccar Client)
 - หลังอัปเกรดให้รัน `pnpm db:deploy && pnpm db:seed` (seed เพิ่มสิทธิ์ใหม่ให้บทบาทเดิมโดยไม่ทับที่แก้ไว้)
+- อัปเกรดจากเวอร์ชันก่อน 0.3.0: ค่าเริ่มต้นบทบาทที่เปลี่ยนสำหรับสิทธิ์ที่มีอยู่แล้ว ต้องเพิ่มเองที่หน้า "บทบาทและสิทธิ์" — ผู้จัดการฝ่ายปฏิบัติการ: `purchase.view`, `purchase.approve`, `inventory.edit`; เจ้าหน้าที่จัดซื้อ: `inventory.edit`
 - ช่องกรอกวันที่ใช้ date picker ของเบราว์เซอร์ (ปี ค.ศ.); การแสดงผลเป็น พ.ศ.
 - Offline: รองรับบันทึกสัตว์น้ำ; ฟอร์มอื่นต้องออนไลน์
 - Background job เป็น single-instance (setInterval)

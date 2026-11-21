@@ -21,6 +21,10 @@ const TripList = L(() => import('./features/trips/trip-list-page'), 'TripListPag
 const TripDetail = L(() => import('./features/trips/trip-detail-page'), 'TripDetailPage');
 const Gps = L(() => import('./features/gps/gps-page'), 'GpsPage');
 const Fuel = L(() => import('./features/fuel/fuel-page'), 'FuelPage');
+const Inventory = L(() => import('./features/inventory/inventory-page'), 'InventoryPage');
+const Purchasing = L(() => import('./features/purchasing/purchasing-page'), 'PurchasingPage');
+const PurchaseRequest = L(() => import('./features/purchasing/pr-detail-page'), 'PurchaseRequestPage');
+const PurchaseOrder = L(() => import('./features/purchasing/po-detail-page'), 'PurchaseOrderPage');
 const Catch = L(() => import('./features/catch/catch-page'), 'CatchPage');
 const Species = L(() => import('./features/catch/species-page'), 'SpeciesPage');
 const Notifications = L(() => import('./features/notifications/notifications-page'), 'NotificationsPage');
@@ -74,6 +78,10 @@ export const router = createBrowserRouter([
           { path: 'trips/:id', element: <P perm={['trip.view']}><TripDetail /></P> },
           { path: 'gps', element: <P perm={['gps.view']}><Gps /></P> },
           { path: 'fuel', element: <P perm={['fuel.view']}><Fuel /></P> },
+          { path: 'inventory', element: <P perm={['inventory.view']}><Inventory /></P> },
+          { path: 'purchasing', element: <P perm={['purchase.view']}><Purchasing /></P> },
+          { path: 'purchasing/requests/:id', element: <P perm={['purchase.view']}><PurchaseRequest /></P> },
+          { path: 'purchasing/orders/:id', element: <P perm={['purchase.view']}><PurchaseOrder /></P> },
           { path: 'catch', element: <P perm={['catch.view']}><Catch /></P> },
           { path: 'species', element: <P perm={['catch.view']}><Species /></P> },
           { path: 'notifications', element: <P><Notifications /></P> },

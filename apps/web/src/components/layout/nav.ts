@@ -1,5 +1,5 @@
 import {
-  Anchor, Bell, Fuel, MapPinned, ClipboardList, FileWarning, Fish, LayoutDashboard, ScrollText, Settings, Shield, Ship, Users, UserCog,
+  Anchor, Bell, Boxes, Fuel, MapPinned, ShoppingCart, ClipboardList, FileWarning, Fish, LayoutDashboard, ScrollText, Settings, Shield, Ship, Users, UserCog,
   type LucideIcon,
 } from 'lucide-react';
 import type { Permission } from '@fisher/shared';
@@ -29,6 +29,13 @@ export const NAV: { group: string; items: NavItem[] }[] = [
       { to: '/documents', label: 'เอกสารใกล้หมดอายุ', icon: FileWarning, perm: ['employee.view'] },
     ],
   },
+  {
+    group: 'จัดซื้อและคลัง',
+    items: [
+      { to: '/purchasing', label: 'จัดซื้อ', icon: ShoppingCart, perm: ['purchase.view'] },
+      { to: '/inventory', label: 'คลังสินค้า', icon: Boxes, perm: ['inventory.view'] },
+    ],
+  },
   { group: 'ข้อมูลหลัก', items: [{ to: '/species', label: 'ชนิดสัตว์น้ำ', icon: ClipboardList, perm: ['catch.view'] }] },
   {
     group: 'ระบบ',
@@ -46,5 +53,5 @@ export const NAV: { group: string; items: NavItem[] }[] = [
 export const CRUMB: Record<string, string> = {
   trips: 'เที่ยวเรือ', catch: 'สัตว์น้ำ', vessels: 'ทะเบียนเรือ', employees: 'พนักงาน', documents: 'เอกสารใกล้หมดอายุ',
   species: 'ชนิดสัตว์น้ำ', notifications: 'การแจ้งเตือน', admin: 'ระบบ', users: 'ผู้ใช้งาน', roles: 'บทบาทและสิทธิ์',
-  audit: 'ประวัติการใช้งาน', gps: 'ติดตามเรือ', fuel: 'น้ำมัน', settings: 'ตั้งค่า', new: 'เพิ่มใหม่', edit: 'แก้ไข', account: 'บัญชีของฉัน',
+  audit: 'ประวัติการใช้งาน', gps: 'ติดตามเรือ', fuel: 'น้ำมัน', purchasing: 'จัดซื้อ', inventory: 'คลังสินค้า', requests: 'ใบขอซื้อ', orders: 'ใบสั่งซื้อ', settings: 'ตั้งค่า', new: 'เพิ่มใหม่', edit: 'แก้ไข', account: 'บัญชีของฉัน',
 };
