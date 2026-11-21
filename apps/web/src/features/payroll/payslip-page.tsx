@@ -20,7 +20,7 @@ function Lines({ title, items, total }: { title: string; items: SlipItem[]; tota
             {items.length ? items.map((x) => (
               <tr key={x.id} className="border-b border-slate-300 align-top">
                 <td className="py-1">
-                  {PAY_ITEM_CODE_TH[x.code]}{x.description ? ` — ${x.description}` : ''}
+                  {!x.description ? PAY_ITEM_CODE_TH[x.code] : x.description.startsWith(PAY_ITEM_CODE_TH[x.code]) ? x.description : `${PAY_ITEM_CODE_TH[x.code]} — ${x.description}`}
                   {(x.calc?.formula || x.calc?.source) && (
                     <span className="block text-xs text-slate-500 print:hidden">{[x.calc.formula, x.calc.source].filter(Boolean).join(' · ')}</span>
                   )}
@@ -80,7 +80,7 @@ export function PayslipPage() {
               <Lines title="รายการหัก" items={deductions} total={r.deduction} />
               <dl className="ml-auto grid max-w-xs grid-cols-2 gap-y-1 text-right">
                 <dt>รายได้รวม</dt><dd className="tabular-nums">{formatMoney(r.gross)}</dd>
-                <dt>รายการหักรวม</dt><dd className="tabular-nums">-{formatMoney(r.deduction)}</dd>
+                <dt>รายการหักรวม</dt><dd className="tabular-nums">{Number(r.deduction) > 0 ? `-${formatMoney(r.deduction)}` : formatMoney(0)}</dd>
                 <dt className="text-base font-bold">จ่ายสุทธิ</dt><dd className="text-base font-bold tabular-nums">{formatMoney(r.net)}</dd>
               </dl>
               <div className="grid grid-cols-2 gap-8 pt-12 text-center">

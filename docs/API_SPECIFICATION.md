@@ -56,6 +56,15 @@ Codes: 400 VALIDATION_ERROR/BAD_REQUEST · 401 · 403 FORBIDDEN/CSRF/MUST_CHANGE
 | GET/POST /maintenance/engine-hours | maintenance.view / maintenance.create | 409 ENGINE_HOURS_DECREASE (รีเซ็ตต้องมีเหตุผล) |
 | GET/POST /maintenance/orders · GET/PATCH …/:id · POST …/:id/{start,parts,complete,cancel,attachments} | maintenance.view/create/edit | 409 VESSEL_AT_SEA / HAS_PARTS · 422 INSUFFICIENT_STOCK |
 | GET /maintenance/report?from&to&groupBy=vessel\|category\|month | maintenance.view | ใบสั่งซ่อมที่เสร็จแล้ว |
+| GET/POST /payroll/rules · PUT …/:id | payroll.view / payroll.edit | REVENUE_SHARE ต้องมี basis และ ≤ 100% |
+| GET/POST /payroll/advances · POST …/:id/cancel | payroll.view / payroll.edit / payroll.approve | LOAN ต้องมี installment; ยกเลิกได้เมื่อยังไม่เคยหัก |
+| GET/POST /payroll/periods · GET/PUT …/:id | payroll.view / payroll.edit | แก้ไขแล้วงวดกลับเป็น DRAFT (needsRecalc) |
+| POST /payroll/periods/:id/calculate | payroll.edit | คืน skipped [{employeeId,name,reason}] (ซ้อนงวด/หักเกินรายได้) |
+| POST /payroll/periods/:id/{approve,pay,cancel} | payroll.approve | 403 ผู้คำนวณอนุมัติเอง · 409 ADVANCE_CHANGED / PERIOD_OVERLAP / INVALID_STATUS |
+| POST/DELETE /payroll/periods/:id/adjustments[/:adjId] | payroll.edit | เฉพาะงวดที่ยังไม่อนุมัติ |
+| GET /payroll/periods/:id/records/:recordId | payroll.view | สลิป (เลขบัญชี mask ถ้าไม่มี employee.sensitive) |
+| GET /payroll/periods/:id/bank-file | payroll.approve + employee.sensitive | CSV ทั่วไป (UTF-8 BOM), header x-missing-accounts; audit EXPORT |
+| GET /payroll/employees/:id/history | payroll.view | งวดและเงินเบิกของพนักงาน |
 | GET/POST /users · PATCH /users/:id · POST /users/:id/reset-password | user.manage | |
 | GET /roles · /permissions · PUT /roles/:id/permissions | role.manage∨user.manage / role.manage | SUPER_ADMIN แก้ไม่ได้ |
 | GET /audit-logs | audit.view | |

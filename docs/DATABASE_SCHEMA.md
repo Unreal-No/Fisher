@@ -47,11 +47,17 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | engine_hour_logs | มิเตอร์ชั่วโมงเครื่อง (MANUAL/TRIP_DEPARTURE/TRIP_ARRIVAL/MAINTENANCE), is_reset | ห้ามถอยหลัง (ตรวจค่าก่อน/หลัง) |
 | maintenance_orders | ใบสั่งซ่อม MO: OPEN→IN_PROGRESS→COMPLETED/CANCELLED, takes_out_of_service, ค่าแรง/ภายนอก/อะไหล่ (parts_cost จาก stock_movements ref MAINTENANCE) | CHECK ต้นทุน ≥ 0 |
 | maintenance_attachments | ไฟล์แนบใบสั่งซ่อม | |
+| compensation_rules | กฎค่าตอบแทน: method (MONTHLY/DAILY/PER_TRIP/REVENUE_SHARE/CATCH_BASED), rate, basis, ขอบเขต เรือ/ตำแหน่ง/พนักงาน, ช่วงมีผล | CHECK rate ≥ 0, to ≥ from |
+| employee_advances | เงินเบิก ADV (หักเต็มงวดถัดไป) / เงินกู้ (ผ่อน installment), recovered_amount อัปเดตเมื่ออนุมัติงวด | CHECK recovered ≤ amount, installment > 0 |
+| payroll_periods | งวด PAY: DRAFT→CALCULATED→APPROVED→PAID / CANCELLED, ทั้งบริษัทหรือเฉพาะเรือ, ผู้คำนวณ/ผู้อนุมัติ, ยอดรวม | CHECK end ≥ start |
+| payroll_records | ยอดต่อพนักงานต่องวด gross/deduction/net + warnings | unique (period, employee); CHECK net ≥ 0 |
+| payroll_items | บรรทัดรายได้/รายการหัก + calc (สูตร/ข้อมูลที่ใช้), อ้างอิง trip/rule/advance | CHECK amount ≥ 0 |
+| payroll_adjustments | โบนัส/รายได้อื่น/รายการหักอื่น ระดับงวด (แก้แล้วงวดกลับเป็นร่าง) | CHECK amount > 0 |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |
 | doc_sequences | เลขรันต่อ key/period | PK (key, period) |
 
 ## แผนตารางเฟสถัดไป
-- Payroll: `compensation_rules` (ต่อเรือ/ตำแหน่ง, JSON formula versioned), `payroll_periods`, `payroll_records`, `payroll_items`, `employee_advances`, `loans`, `deductions`, `payment_vouchers`
+- Payroll ต่อยอด: ประกันสังคม/ภาษีหัก ณ ที่จ่าย, payment vouchers ผูกบัญชี (M7)
 - Accounting: `chart_of_accounts`, `fiscal_periods` (closing), `journal_entries` (DRAFT/POSTED/REVERSED), `journal_lines` (Σdr=Σcr ตรวจด้วย deferred constraint trigger), `bank_accounts`, `cost_allocations` (vessel/trip/department)

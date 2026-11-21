@@ -42,6 +42,8 @@ async function main() {
     return;
   }
   await seedSupplyDemo();
+  await seedPayrollDemo();
+  await mkUser('acc', 'เจ้าหน้าที่บัญชี (ตัวอย่าง)', 'ACCOUNTANT');
   if (await prisma.vessel.count()) {
     console.log('Demo data already present – skipped.');
     return;
@@ -168,6 +170,19 @@ async function main() {
   await mkUser('buyer', 'เจ้าหน้าที่จัดซื้อ (ตัวอย่าง)', 'PURCHASING_OFFICER');
   await mkUser('store', 'เจ้าหน้าที่คลัง (ตัวอย่าง)', 'WAREHOUSE_OFFICER');
   console.log('Seed done (core + demo).');
+}
+
+/** DEV/DEMO: example compensation rules (idempotent; skipped once any rule exists). */
+async function seedPayrollDemo() {
+  if (await prisma.compensationRule.count()) return;
+  const from = new Date('2026-01-01');
+  await prisma.compensationRule.createMany({
+    data: [
+      { name: 'ค่าจ้างรายวันลูกเรือ', method: 'DAILY', position: 'DECKHAND', rate: 400, effectiveFrom: from, notes: DEMO },
+      { name: 'ส่วนแบ่งไต้ก๋ง 5% ของยอดขาย', method: 'REVENUE_SHARE', basis: 'GROSS_REVENUE', position: 'CAPTAIN', rate: 5, effectiveFrom: from, notes: DEMO },
+      { name: 'ค่าปลาลูกเรือ 0.30 บาท/กก.', method: 'CATCH_BASED', basis: 'CAUGHT_KG', position: 'DECKHAND', rate: 0.3, effectiveFrom: from, notes: DEMO },
+    ],
+  });
 }
 
 /** DEV/DEMO: warehouse, items, supplier and opening stock (idempotent; skipped once any warehouse exists). */
