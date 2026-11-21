@@ -187,3 +187,19 @@ export const MAINT_STATUS_TH: Record<E.MaintStatus, string> = { OPEN: 'รอด
 export const PRIORITY_TH: Record<E.Priority, string> = { LOW: 'ต่ำ', MEDIUM: 'ปานกลาง', HIGH: 'สูง', CRITICAL: 'วิกฤต' };
 export const ENGINE_HOUR_SOURCE_TH: Record<E.EngineHourSource, string> = { MANUAL: 'บันทึกเอง', TRIP_DEPARTURE: 'ออกเรือ', TRIP_ARRIVAL: 'เข้าท่า', MAINTENANCE: 'ซ่อมบำรุง' };
 export const DUE_STATE_TH: Record<E.DueState, string> = { OK: 'ปกติ', DUE_SOON: 'ใกล้ถึงกำหนด', OVERDUE: 'เกินกำหนด', NO_BASELINE: 'ยังไม่มีข้อมูลครั้งล่าสุด' };
+export const COMP_BASIS_TH: Record<E.CompBasis, string> = {
+  GROSS_REVENUE: 'ยอดขายสุทธิของเที่ยว', NET_PROFIT: 'กำไรขั้นต้นของเที่ยว', CAUGHT_KG: 'น้ำหนักสัตว์น้ำที่จับได้ (กก.)', SOLD_KG: 'น้ำหนักที่ขายได้ (กก.)',
+};
+export const PAYROLL_STATUS_TH: Record<E.PayrollStatus, string> = { DRAFT: 'ร่าง', CALCULATED: 'คำนวณแล้ว', APPROVED: 'อนุมัติแล้ว', PAID: 'จ่ายแล้ว', CANCELLED: 'ยกเลิก' };
+export const ADVANCE_KIND_TH: Record<E.AdvanceKind, string> = { ADVANCE: 'เบิกล่วงหน้า', LOAN: 'เงินกู้ (ผ่อนชำระ)' };
+export const ADVANCE_STATUS_TH: Record<E.AdvanceStatus, string> = { OPEN: 'ค้างหัก', SETTLED: 'หักครบแล้ว', CANCELLED: 'ยกเลิก' };
+export const PAY_ITEM_CODE_TH: Record<E.PayItemCode, string> = {
+  SALARY: 'เงินเดือน', DAILY_WAGE: 'ค่าจ้างรายวัน', TRIP_PAY: 'ค่าจ้างรายเที่ยว', REVENUE_SHARE: 'ส่วนแบ่งรายได้', CATCH_PAY: 'ค่าจ้างตามปริมาณสัตว์น้ำ',
+  BONUS: 'โบนัส', OTHER_EARNING: 'รายได้อื่น', ADVANCE_RECOVERY: 'หักเงินเบิกล่วงหน้า', LOAN_REPAYMENT: 'หักผ่อนเงินกู้', OTHER_DEDUCTION: 'รายการหักอื่น',
+};
+/** Warning codes stored on payroll records (calc engine). */
+export const PAYROLL_WARNING_TH: Record<string, string> = {
+  RECOVERY_LIMITED: 'หักเงินเบิก/เงินกู้ได้ไม่ครบ เพราะรายได้ในงวดไม่พอ (ยอดค้างยกไปงวดถัดไป)',
+  DEDUCTION_OVER_LIMIT: 'ยอดหักเกินร้อยละที่ตั้งไว้ — ตรวจสอบเพดานการหักตาม พ.ร.บ.คุ้มครองแรงงาน ม.76',
+  NO_EARNINGS: 'ไม่มีรายได้ในงวดนี้',
+};

@@ -576,3 +576,60 @@ export const maintenanceCompleteSchema = z.object({
 });
 export const maintenancePartSchema = z.object({ warehouseId: id, itemId: id, quantity: posNum(1e9), notes: optStr(300) });
 export const attachmentSchema = z.object({ fileId: id, note: optStr(300) });
+
+// ---------- payroll ----------
+export const compensationRuleSchema = z
+  .object({
+    name: reqStr(150),
+    method: z.enum(E.PAY_TYPE),
+    vesselId: optId,
+    position: z.preprocess(blankToNull, z.enum(E.EMPLOYEE_POSITION).nullish()),
+    employeeId: optId,
+    rate: optNum(0, 1e9),
+    basis: z.preprocess(blankToNull, z.enum(E.COMP_BASIS).nullish()),
+    effectiveFrom: isoDate,
+    effectiveTo: optDate,
+    isActive: z.boolean().default(true),
+    notes: optStr(1000),
+  })
+  .superRefine((r, ctx) => {
+    if (r.rate == null) ctx.addIssue({ code: 'custom', path: ['rate'], message: REQ });
+    if (r.method === 'REVENUE_SHARE' && !(r.basis === 'GROSS_REVENUE' || r.basis === 'NET_PROFIT'))
+      ctx.addIssue({ code: 'custom', path: ['basis'], message: 'ส่วนแบ่งรายได้ต้องเลือกฐานเป็นยอดขายหรือกำไร' });
+    if (r.method === 'REVENUE_SHARE' && r.rate != null && r.rate > 100) ctx.addIssue({ code: 'custom', path: ['rate'], message: 'เปอร์เซ็นต์ต้องไม่เกิน 100' });
+    if (r.method === 'CATCH_BASED' && !(r.basis === 'CAUGHT_KG' || r.basis === 'SOLD_KG'))
+      ctx.addIssue({ code: 'custom', path: ['basis'], message: 'ค่าจ้างตามปริมาณต้องเลือกฐานเป็นน้ำหนักจับหรือขาย' });
+    if (r.effectiveTo && r.effectiveTo < r.effectiveFrom) ctx.addIssue({ code: 'custom', path: ['effectiveTo'], message: 'วันสิ้นสุดต้องหลังวันเริ่ม' });
+  });
+export const advanceSchema = z
+  .object({
+    employeeId: id,
+    kind: z.enum(E.ADVANCE_KIND),
+    advanceDate: isoDate,
+    amount: posNum(1e8),
+    installment: optNum(0.01, 1e8),
+    method: z.enum(E.PAYMENT_METHOD).default('CASH'),
+    reason: reqStr(500),
+  })
+  .refine((a) => a.kind === 'ADVANCE' || a.installment != null, { path: ['installment'], message: 'เงินกู้ต้องกำหนดยอดผ่อนต่องวด' });
+export const payrollPeriodSchema = z
+  .object({
+    name: reqStr(120),
+    startDate: isoDate,
+    endDate: isoDate,
+    payDate: optDate,
+    vesselId: optId,
+    notes: optStr(1000),
+  })
+  .refine((p) => p.endDate >= p.startDate, { path: ['endDate'], message: 'วันสิ้นสุดต้องไม่ก่อนวันเริ่ม' });
+export const payrollAdjustmentSchema = z.object({
+  employeeId: id,
+  code: z.enum(E.ADJUSTMENT_CODES),
+  description: reqStr(200),
+  amount: posNum(1e8),
+});
+export const payrollPaySchema = z.object({
+  paidAt: isoDateTime,
+  method: z.enum(E.PAYMENT_METHOD),
+  reference: optStr(100),
+});

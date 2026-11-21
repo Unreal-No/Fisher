@@ -23,7 +23,7 @@ interface Summary {
   catch: { totalKg: number; records: number; bySpecies: { name: string; weightKg: number }[]; monthly: { month: string; weightKg: number }[] };
   fuel: { liters: number; cost: number | null };
   expenses: { confirmed: number; estimated: number } | null;
-  sales: { revenue: number; soldKg: number; receivables: number; suppliesCost: number; estimatedProfit: number } | null;
+  sales: { revenue: number; soldKg: number; receivables: number; suppliesCost: number; payrollCost: number; estimatedProfit: number } | null;
   alerts: {
     maintenance: { id: string; name: string; vessel: { id: string; code: string; name: string }; state: 'OVERDUE' | 'DUE_SOON'; nextDueDate: string | null; hoursLeft: number | null }[];
     documents: { id: string; employeeId: string; employee: string; documentType: string; expiryDate: string }[];
@@ -98,7 +98,7 @@ export function DashboardPage() {
               {d.sales && <Stat label="ลูกหนี้ค้างรับ (บาท)" value={formatMoney(d.sales.receivables)} icon={<Receipt />} tone={d.sales.receivables > 0 ? 'warn' : undefined} sub="ทั้งหมด ณ ปัจจุบัน" />}
               {d.sales && (
                 <Stat label="กำไรจากการดำเนินงาน (ประมาณการ)" value={formatMoney(d.sales.estimatedProfit)} icon={<TrendingUp />} tone={d.sales.estimatedProfit < 0 ? 'bad' : 'ok'}
-                  sub="ยอดขาย − น้ำมัน − เสบียง − ค่าใช้จ่ายเที่ยว · ยังไม่รวมค่าแรง/ค่าเสื่อม" />
+                  sub={`ยอดขาย − น้ำมัน − เสบียง − ค่าใช้จ่ายเที่ยว − ค่าแรงงวดที่อนุมัติ (${formatMoney(d.sales.payrollCost)}) · ยังไม่รวมค่าเสื่อม`} />
               )}
               {d.expenses && (
                 <Stat

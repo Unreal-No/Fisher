@@ -28,6 +28,9 @@ const PurchaseOrder = L(() => import('./features/purchasing/po-detail-page'), 'P
 const Sales = L(() => import('./features/sales/sales-page'), 'SalesPage');
 const SalesInvoice = L(() => import('./features/sales/invoice-detail-page'), 'SalesInvoicePage');
 const Maintenance = L(() => import('./features/maintenance/maintenance-page'), 'MaintenancePage');
+const Payroll = L(() => import('./features/payroll/payroll-page'), 'PayrollPage');
+const PayrollPeriod = L(() => import('./features/payroll/period-detail-page'), 'PayrollPeriodPage');
+const Payslip = L(() => import('./features/payroll/payslip-page'), 'PayslipPage');
 const MaintenanceOrder = L(() => import('./features/maintenance/order-detail-page'), 'MaintenanceOrderPage');
 const Catch = L(() => import('./features/catch/catch-page'), 'CatchPage');
 const Species = L(() => import('./features/catch/species-page'), 'SpeciesPage');
@@ -88,6 +91,9 @@ export const router = createBrowserRouter([
           { path: 'purchasing/orders/:id', element: <P perm={['purchase.view']}><PurchaseOrder /></P> },
           { path: 'sales', element: <P perm={['sales.view']}><Sales /></P> },
           { path: 'sales/invoices/:id', element: <P perm={['sales.view']}><SalesInvoice /></P> },
+          { path: 'payroll', element: <P perm={['payroll.view']}><Payroll /></P> },
+          { path: 'payroll/periods/:id', element: <P perm={['payroll.view']}><PayrollPeriod /></P> },
+          { path: 'payroll/periods/:id/slips/:recordId', element: <P perm={['payroll.view']}><Payslip /></P> },
           { path: 'maintenance', element: <P perm={['maintenance.view']}><Maintenance /></P> },
           { path: 'maintenance/orders/:id', element: <P perm={['maintenance.view']}><MaintenanceOrder /></P> },
           { path: 'catch', element: <P perm={['catch.view']}><Catch /></P> },

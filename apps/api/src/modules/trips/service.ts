@@ -270,6 +270,15 @@ export async function arrive(req: FastifyRequest, id: string, b: z.output<typeof
     }).catch(mapDbConflict);
 }
 
+/** Trip-based crew pay (daily / per-trip / share / catch) from approved or paid payroll periods. Live — payroll may be approved after the trip closes. */
+export async function tripCrewCost(tripId: string) {
+  const crew = await prisma.payrollItem.aggregate({
+    where: { tripId, code: { in: ['DAILY_WAGE', 'TRIP_PAY', 'REVENUE_SHARE', 'CATCH_PAY'] }, record: { period: { status: { in: ['APPROVED', 'PAID'] } } } },
+    _sum: { amount: true },
+  });
+  return Math.round(num(crew._sum.amount) * 100) / 100;
+}
+
 export async function settlement(tripId: string): Promise<TripSettlement> {
   const [t, bySpecies, losses, fuel, supplies, expenses] = await Promise.all([
     prisma.fishingTrip.findUniqueOrThrow({ where: { id: tripId } }),
@@ -297,6 +306,7 @@ export async function settlement(tripId: string): Promise<TripSettlement> {
   const totalCost = fuelCost + suppliesCost + exp + estExp;
   const r2 = (v: number) => Math.round(v * 100) / 100;
   const sales = (await tripRevenue([tripId])).get(tripId) ?? { soldKg: 0, revenue: 0 };
+  const crewCost = await tripCrewCost(tripId);
   const engineHours =
     t.engineHoursAtDeparture !== null && t.engineHoursAtArrival !== null ? r2(num(t.engineHoursAtArrival) - num(t.engineHoursAtDeparture)) : null;
   return {
@@ -317,6 +327,8 @@ export async function settlement(tripId: string): Promise<TripSettlement> {
     soldKg: Math.round(sales.soldKg * 1000) / 1000,
     revenue: r2(sales.revenue),
     grossProfit: r2(sales.revenue - totalCost),
+    crewCost,
+    profitAfterCrew: r2(sales.revenue - totalCost - crewCost),
   };
 }
 

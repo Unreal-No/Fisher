@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { customerSchema, PAYMENT_STATUS, reasonSchema, SALES_STATUS, salesInvoiceSchema, salesPaymentSchema, salesReturnSchema, type SalesStatus } from '@fisher/shared';
+import { customerSchema, PAYMENT_STATUS, reasonSchema, SALES_STATUS, salesInvoiceSchema, salesPaymentSchema, salesReturnSchema, toISODate, type SalesStatus } from '@fisher/shared';
 import { audit } from '../../lib/audit';
 import { notFound } from '../../lib/errors';
 import { d, idParam, nextSeq, num, paged, paging, parse, parseList, scopeIds } from '../../lib/http';
@@ -115,7 +115,7 @@ export default async function salesRoutes(app: FastifyInstance) {
       include: { customer: { select: { id: true, code: true, name: true } } },
       orderBy: { invoiceDate: 'asc' },
     });
-    const today = d(new Date().toISOString().slice(0, 10)).getTime();
+    const today = d(toISODate()).getTime();
     const open = invs
       .map((i) => ({ ...i, outstanding: outstanding(i), overdueDays: Math.floor((today - (i.dueDate ?? i.invoiceDate).getTime()) / 86400_000) }))
       .filter((i) => i.outstanding > 0);
@@ -139,7 +139,7 @@ export default async function salesRoutes(app: FastifyInstance) {
   app.get('/report', { preHandler: app.can('sales.view') }, async (req) => {
     const f = req.query as { from?: string; to?: string; groupBy?: string };
     const from = d(f.from ?? `${new Date().toISOString().slice(0, 7)}-01`);
-    const to = d(f.to ?? new Date().toISOString().slice(0, 10));
+    const to = d(f.to ?? toISODate());
     const g = ['customer', 'species', 'vessel', 'trip', 'month'].includes(f.groupBy ?? '') ? f.groupBy! : 'species';
     const key = {
       customer: Prisma.sql`c.id::text, c.code || ' ' || c.name`,

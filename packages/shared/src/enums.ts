@@ -158,3 +158,23 @@ export type EngineHourSource = (typeof ENGINE_HOUR_SOURCE)[number];
 /** Derived */
 export const DUE_STATE = ['OK', 'DUE_SOON', 'OVERDUE', 'NO_BASELINE'] as const;
 export type DueState = (typeof DUE_STATE)[number];
+
+export const COMP_BASIS = ['GROSS_REVENUE', 'NET_PROFIT', 'CAUGHT_KG', 'SOLD_KG'] as const;
+export type CompBasis = (typeof COMP_BASIS)[number];
+
+export const PAYROLL_STATUS = ['DRAFT', 'CALCULATED', 'APPROVED', 'PAID', 'CANCELLED'] as const;
+export type PayrollStatus = (typeof PAYROLL_STATUS)[number];
+
+export const ADVANCE_KIND = ['ADVANCE', 'LOAN'] as const;
+export type AdvanceKind = (typeof ADVANCE_KIND)[number];
+
+export const ADVANCE_STATUS = ['OPEN', 'SETTLED', 'CANCELLED'] as const;
+export type AdvanceStatus = (typeof ADVANCE_STATUS)[number];
+
+export const PAY_ITEM_CODE = [
+  'SALARY', 'DAILY_WAGE', 'TRIP_PAY', 'REVENUE_SHARE', 'CATCH_PAY', 'BONUS', 'OTHER_EARNING',
+  'ADVANCE_RECOVERY', 'LOAN_REPAYMENT', 'OTHER_DEDUCTION',
+] as const;
+export type PayItemCode = (typeof PAY_ITEM_CODE)[number];
+export const EARNING_CODES: PayItemCode[] = ['SALARY', 'DAILY_WAGE', 'TRIP_PAY', 'REVENUE_SHARE', 'CATCH_PAY', 'BONUS', 'OTHER_EARNING'];
+export const ADJUSTMENT_CODES = ['BONUS', 'OTHER_EARNING', 'OTHER_DEDUCTION'] as const;

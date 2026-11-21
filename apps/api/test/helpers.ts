@@ -30,6 +30,8 @@ export interface Agent {
   patch: (url: string, body?: unknown) => Promise<Res>;
   put: (url: string, body?: unknown) => Promise<Res>;
   del: (url: string) => Promise<Res>;
+  /** raw response (headers + text body), e.g. for CSV downloads */
+  raw: (url: string) => Promise<{ status: number; headers: Record<string, unknown>; text: string }>;
 }
 export interface Res {
   status: number;
@@ -71,6 +73,10 @@ export async function login(app: FastifyInstance, username: string, password = P
     patch: (u, b) => call('PATCH', u, b ?? {}),
     put: (u, b) => call('PUT', u, b ?? {}),
     del: (u) => call('DELETE', u),
+    raw: async (u) => {
+      const res = await app.inject({ method: 'GET', url: `/api/v1${u}`, headers: { cookie: cookieHeader, 'x-csrf-token': cookies.fcsrf! } });
+      return { status: res.statusCode, headers: res.headers, text: res.body };
+    },
   };
 }
 

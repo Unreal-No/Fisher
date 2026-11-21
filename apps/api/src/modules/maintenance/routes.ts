@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import {
   attachmentSchema, engineHourSchema, MAINT_STATUS, maintenanceCompleteSchema, maintenanceOrderSchema, maintenancePartSchema,
-  maintenancePlanSchema, reasonSchema, type MaintStatus,
+  maintenancePlanSchema, reasonSchema, toISODate, type MaintStatus,
 } from '@fisher/shared';
 import { audit } from '../../lib/audit';
 import { badRequest, notFound } from '../../lib/errors';
@@ -112,8 +112,8 @@ export default async function maintenanceRoutes(app: FastifyInstance) {
   app.get('/report', { preHandler: app.can('maintenance.view') }, async (req) => {
     const f = req.query as { from?: string; to?: string; groupBy?: string };
     const scope = scopeIds(req);
-    const from = new Date(`${f.from ?? new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10)}T00:00:00+07:00`);
-    const to = new Date(`${f.to ?? new Date().toISOString().slice(0, 10)}T23:59:59.999+07:00`);
+    const from = new Date(`${f.from ?? toISODate(new Date(Date.now() - 365 * 86400_000))}T00:00:00+07:00`);
+    const to = new Date(`${f.to ?? toISODate()}T23:59:59.999+07:00`);
     const g = ['vessel', 'category', 'month'].includes(f.groupBy ?? '') ? f.groupBy! : 'vessel';
     const key = {
       vessel: Prisma.sql`v.id::text, v.code || ' ' || v.name`,

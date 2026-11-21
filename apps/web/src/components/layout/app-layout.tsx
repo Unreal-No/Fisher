@@ -60,7 +60,7 @@ function Breadcrumbs() {
         return (
           <span key={to} className="flex min-w-0 items-center gap-1">
             <ChevronRight className="size-3.5 shrink-0 text-slate-400" />
-            {last || ['admin', 'requests', 'orders', 'invoices'].includes(p) ? <span className={cn('truncate', last && 'font-medium text-ink')}>{label}</span> : <Link to={to} className="truncate text-muted hover:text-ink">{label}</Link>}
+            {last || ['admin', 'requests', 'orders', 'invoices', 'periods', 'slips'].includes(p) ? <span className={cn('truncate', last && 'font-medium text-ink')}>{label}</span> : <Link to={to} className="truncate text-muted hover:text-ink">{label}</Link>}
           </span>
         );
       })}

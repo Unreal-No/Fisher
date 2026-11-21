@@ -1,5 +1,5 @@
 import type { FastifyInstance } from 'fastify';
-import { goodsReceiptSchema, noteSchema, PO_STATUS, PR_STATUS, purchaseOrderSchema, purchaseRequestSchema, reasonSchema, supplierSchema, type PoStatus, type PrStatus } from '@fisher/shared';
+import { goodsReceiptSchema, noteSchema, PO_STATUS, PR_STATUS, purchaseOrderSchema, purchaseRequestSchema, reasonSchema, supplierSchema, toISODate, type PoStatus, type PrStatus } from '@fisher/shared';
 import { audit } from '../../lib/audit';
 import { notFound } from '../../lib/errors';
 import { d, idParam, nextSeq, num, paged, paging, parse, parseList } from '../../lib/http';
@@ -108,8 +108,8 @@ export default async function purchasingRoutes(app: FastifyInstance) {
   // ---------- summary (committed purchases, excl. draft/cancelled) ----------
   app.get('/summary', { preHandler: app.can('purchase.view') }, async (req) => {
     const f = req.query as { from?: string; to?: string };
-    const from = d(f.from ?? new Date(Date.now() - 365 * 86400_000).toISOString().slice(0, 10));
-    const to = d(f.to ?? new Date().toISOString().slice(0, 10));
+    const from = d(f.from ?? toISODate(new Date(Date.now() - 365 * 86400_000)));
+    const to = d(f.to ?? toISODate());
     const [bySupplier, monthly] = await Promise.all([
       prisma.$queryRaw<{ supplier_id: string; code: string; name: string; orders: bigint; total: string; vat: string }[]>`
         SELECT s.id AS supplier_id, s.code, s.name, COUNT(*) AS orders, SUM(po.total) AS total, SUM(po.vat_amount) AS vat

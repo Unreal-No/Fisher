@@ -276,6 +276,45 @@ enum EngineHourSource {
   MAINTENANCE
 }
 
+enum CompBasis {
+  GROSS_REVENUE
+  NET_PROFIT
+  CAUGHT_KG
+  SOLD_KG
+}
+
+enum PayrollStatus {
+  DRAFT
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum AdvanceKind {
+  ADVANCE
+  LOAN
+}
+
+enum AdvanceStatus {
+  OPEN
+  SETTLED
+  CANCELLED
+}
+
+enum PayItemCode {
+  SALARY
+  DAILY_WAGE
+  TRIP_PAY
+  REVENUE_SHARE
+  CATCH_PAY
+  BONUS
+  OTHER_EARNING
+  ADVANCE_RECOVERY
+  LOAN_REPAYMENT
+  OTHER_DEDUCTION
+}
+
 enum NotificationSeverity {
   INFO
   WARNING
@@ -455,6 +494,9 @@ model Vessel {
   maintenancePlans  MaintenancePlan[]
   engineHourLogs    EngineHourLog[]
   maintenanceOrders MaintenanceOrder[]
+  compensationRules CompensationRule[]
+  payrollPeriods    PayrollPeriod[]
+  payrollRecords    PayrollRecord[]
 
   @@index([status])
   @@index([deletedAt])
@@ -515,14 +557,18 @@ model Employee {
   updatedAt             DateTime         @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt             DateTime?        @map("deleted_at") @db.Timestamptz
 
-  currentVessel Vessel?             @relation("EmployeeCurrentVessel", fields: [currentVesselId], references: [id])
-  captainOf     Vessel[]            @relation("VesselCaptain")
-  documents     EmployeeDocument[]
-  history       EmploymentHistory[]
-  assignments   VesselAssignment[]
-  tripCrew      TripCrew[]
-  captainTrips  FishingTrip[]       @relation("TripCaptain")
-  user          User?
+  currentVessel      Vessel?             @relation("EmployeeCurrentVessel", fields: [currentVesselId], references: [id])
+  captainOf          Vessel[]            @relation("VesselCaptain")
+  documents          EmployeeDocument[]
+  history            EmploymentHistory[]
+  assignments        VesselAssignment[]
+  tripCrew           TripCrew[]
+  captainTrips       FishingTrip[]       @relation("TripCaptain")
+  user               User?
+  advances           EmployeeAdvance[]
+  payrollRecords     PayrollRecord[]
+  compensationRules  CompensationRule[]
+  payrollAdjustments PayrollAdjustment[]
 
   @@index([status])
   @@index([currentVesselId])
@@ -1543,4 +1589,146 @@ model MaintenanceAttachment {
 
   @@index([orderId])
   @@map("maintenance_attachments")
+}
+
+// ======================= PAYROLL =======================
+/// Configurable compensation rule. Most specific match wins: employee > vessel+position > vessel > position > global.
+model CompensationRule {
+  id            String            @id @default(uuid(7)) @db.Uuid
+  name          String
+  method        PayType
+  vesselId      String?           @map("vessel_id") @db.Uuid
+  position      EmployeePosition?
+  employeeId    String?           @map("employee_id") @db.Uuid
+  /// MONTHLY: baht/month · DAILY: baht/day at sea · PER_TRIP: baht/trip · REVENUE_SHARE: % per person · CATCH_BASED: baht/kg
+  rate          Decimal           @db.Decimal(14, 4)
+  basis         CompBasis?
+  effectiveFrom DateTime          @map("effective_from") @db.Date
+  effectiveTo   DateTime?         @map("effective_to") @db.Date
+  isActive      Boolean           @default(true) @map("is_active")
+  notes         String?
+  createdById   String?           @map("created_by_id") @db.Uuid
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  vessel        Vessel?           @relation(fields: [vesselId], references: [id])
+  employee      Employee?         @relation(fields: [employeeId], references: [id])
+
+  @@index([vesselId, position])
+  @@index([employeeId])
+  @@map("compensation_rules")
+}
+
+/// Advance (recovered in full from the next payroll) or loan (installments). Recovered only when a payroll is approved.
+model EmployeeAdvance {
+  id              String        @id @default(uuid(7)) @db.Uuid
+  advanceNo       String        @unique @map("advance_no")
+  employeeId      String        @map("employee_id") @db.Uuid
+  kind            AdvanceKind
+  advanceDate     DateTime      @map("advance_date") @db.Date
+  amount          Decimal       @db.Decimal(14, 2)
+  installment     Decimal?      @db.Decimal(14, 2)
+  recoveredAmount Decimal       @default(0) @map("recovered_amount") @db.Decimal(14, 2)
+  status          AdvanceStatus @default(OPEN)
+  method          PaymentMethod @default(CASH)
+  reason          String
+  cancelReason    String?       @map("cancel_reason")
+  createdById     String?       @map("created_by_id") @db.Uuid
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  employee        Employee      @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, status])
+  @@map("employee_advances")
+}
+
+model PayrollPeriod {
+  id             String              @id @default(uuid(7)) @db.Uuid
+  code           String              @unique
+  name           String
+  startDate      DateTime            @map("start_date") @db.Date
+  endDate        DateTime            @map("end_date") @db.Date
+  payDate        DateTime?           @map("pay_date") @db.Date
+  /// optional: payroll for one vessel's crew only
+  vesselId       String?             @map("vessel_id") @db.Uuid
+  status         PayrollStatus       @default(DRAFT)
+  totalGross     Decimal             @default(0) @map("total_gross") @db.Decimal(14, 2)
+  totalDeduction Decimal             @default(0) @map("total_deduction") @db.Decimal(14, 2)
+  totalNet       Decimal             @default(0) @map("total_net") @db.Decimal(14, 2)
+  notes          String?
+  calculatedAt   DateTime?           @map("calculated_at") @db.Timestamptz
+  calculatedById String?             @map("calculated_by_id") @db.Uuid
+  approvedAt     DateTime?           @map("approved_at") @db.Timestamptz
+  approvedById   String?             @map("approved_by_id") @db.Uuid
+  paidAt         DateTime?           @map("paid_at") @db.Timestamptz
+  payMethod      PaymentMethod?      @map("pay_method")
+  payReference   String?             @map("pay_reference")
+  cancelReason   String?             @map("cancel_reason")
+  createdById    String?             @map("created_by_id") @db.Uuid
+  createdAt      DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  vessel         Vessel?             @relation(fields: [vesselId], references: [id])
+  records        PayrollRecord[]
+  adjustments    PayrollAdjustment[]
+
+  @@index([status])
+  @@map("payroll_periods")
+}
+
+model PayrollRecord {
+  id         String           @id @default(uuid(7)) @db.Uuid
+  periodId   String           @map("period_id") @db.Uuid
+  employeeId String           @map("employee_id") @db.Uuid
+  vesselId   String?          @map("vessel_id") @db.Uuid
+  position   EmployeePosition
+  gross      Decimal          @db.Decimal(14, 2)
+  deduction  Decimal          @db.Decimal(14, 2)
+  net        Decimal          @db.Decimal(14, 2)
+  /// e.g. ["DEDUCTION_OVER_LIMIT"]
+  warnings   Json?
+  createdAt  DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  period     PayrollPeriod    @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  employee   Employee         @relation(fields: [employeeId], references: [id])
+  vessel     Vessel?          @relation(fields: [vesselId], references: [id])
+  items      PayrollItem[]
+
+  @@unique([periodId, employeeId])
+  @@index([employeeId])
+  @@map("payroll_records")
+}
+
+/// One earning/deduction line with its formula (calc) for review.
+model PayrollItem {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  recordId    String        @map("record_id") @db.Uuid
+  code        PayItemCode
+  description String
+  quantity    Decimal?      @db.Decimal(14, 3)
+  rate        Decimal?      @db.Decimal(14, 4)
+  /// positive for earnings and deductions alike; `code` decides the sign in net
+  amount      Decimal       @db.Decimal(14, 2)
+  tripId      String?       @map("trip_id") @db.Uuid
+  ruleId      String?       @map("rule_id") @db.Uuid
+  advanceId   String?       @map("advance_id") @db.Uuid
+  calc        Json?
+  record      PayrollRecord @relation(fields: [recordId], references: [id], onDelete: Cascade)
+
+  @@index([recordId])
+  @@index([tripId])
+  @@map("payroll_items")
+}
+
+model PayrollAdjustment {
+  id          String        @id @default(uuid(7)) @db.Uuid
+  periodId    String        @map("period_id") @db.Uuid
+  employeeId  String        @map("employee_id") @db.Uuid
+  code        PayItemCode
+  description String
+  amount      Decimal       @db.Decimal(14, 2)
+  createdById String?       @map("created_by_id") @db.Uuid
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  period      PayrollPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  employee    Employee      @relation(fields: [employeeId], references: [id])
+
+  @@index([periodId])
+  @@map("payroll_adjustments")
 }

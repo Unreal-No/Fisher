@@ -2,7 +2,7 @@
 import type { FastifyRequest } from 'fastify';
 import type { z } from 'zod';
 import {
-  AT_SEA_STATUSES, beYear, daysUntil, formatDate, type DueState, type maintenanceCompleteSchema, type maintenanceOrderSchema,
+  AT_SEA_STATUSES, beYear, daysUntil, formatDate, toISODate, type DueState, type maintenanceCompleteSchema, type maintenanceOrderSchema,
 } from '@fisher/shared';
 import { audit } from '../../lib/audit';
 import { badRequest, conflict, notFound } from '../../lib/errors';
@@ -232,7 +232,7 @@ export async function completeOrder(req: FastifyRequest, id: string, b: z.output
       const hours = b.engineHours ?? (await currentEngineHours(tx, o.vesselId, completedAt));
       await tx.maintenancePlan.update({
         where: { id: o.planId },
-        data: { lastDoneAt: new Date(`${completedAt.toISOString().slice(0, 10)}T00:00:00.000Z`), ...(hours !== null ? { lastDoneEngineHours: hours } : {}) },
+        data: { lastDoneAt: new Date(`${toISODate(completedAt)}T00:00:00.000Z`), ...(hours !== null ? { lastDoneEngineHours: hours } : {}) },
       });
     }
     if (o.takesOutOfService) await releaseVessel(tx, o.vesselId, id);

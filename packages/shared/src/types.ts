@@ -58,4 +58,7 @@ export interface TripSettlement {
   soldKg: number;
   revenue: number;
   grossProfit: number;
+  /** crew pay booked to this trip in approved/paid payroll */
+  crewCost: number;
+  profitAfterCrew: number;
 }

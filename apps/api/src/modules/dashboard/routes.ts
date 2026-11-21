@@ -71,25 +71,35 @@ export default async function dashboardRoutes(app: FastifyInstance) {
     ]);
     const byStatus = Object.fromEntries(vesselStatus.map((v) => [v.status, v._count]));
     const finance = has(req, 'dashboard.finance');
-    let sales: { revenue: number; soldKg: number; receivables: number; suppliesCost: number; estimatedProfit: number } | null = null;
+    let sales: { revenue: number; soldKg: number; receivables: number; suppliesCost: number; payrollCost: number; estimatedProfit: number } | null = null;
     if (finance) {
-      const [lines, open, supplies] = await Promise.all([
+      const [lines, open, supplies, payroll] = await Promise.all([
         prisma.salesItem.findMany({
           where: { invoice: { status: 'CONFIRMED', invoiceDate: { gte: d(from), lte: d(to) } }, ...(vesselIds ? { vesselId: { in: vesselIds } } : {}) },
           select: { lineTotal: true, discountShare: true, returnedAmount: true, weightKg: true, returnedKg: true },
         }),
         prisma.salesInvoice.aggregate({ where: { status: 'CONFIRMED' }, _sum: { total: true, paidAmount: true, creditedAmount: true } }),
         prisma.tripSupply.aggregate({ where: { trip: vWhere, createdAt: { gte: rangeStart, lte: rangeEnd } }, _sum: { totalCost: true } }),
+        // gross pay of approved/paid payroll periods ending in the range (company-wide periods count only when unscoped)
+        prisma.payrollRecord.aggregate({
+          where: {
+            period: { status: { in: ['APPROVED', 'PAID'] }, endDate: { gte: d(from), lte: d(to) } },
+            ...(vesselIds ? { vesselId: { in: vesselIds } } : {}),
+          },
+          _sum: { gross: true },
+        }),
       ]);
       const revenue = lines.reduce((a, l) => a + num(l.lineTotal) - num(l.discountShare) - num(l.returnedAmount), 0);
       const exp = num(expenses.find((e) => !e.isEstimate)?._sum.amount) + num(expenses.find((e) => e.isEstimate)?._sum.amount);
       const suppliesCost = num(supplies._sum.totalCost);
+      const payrollCost = Math.round(num(payroll._sum.gross) * 100) / 100;
       sales = {
         revenue: Math.round(revenue * 100) / 100,
         soldKg: Math.round(lines.reduce((a, l) => a + num(l.weightKg) - num(l.returnedKg), 0) * 1000) / 1000,
         receivables: Math.round((num(open._sum.total) - num(open._sum.paidAmount) - num(open._sum.creditedAmount)) * 100) / 100,
         suppliesCost,
-        estimatedProfit: Math.round((revenue - num(fuel._sum.totalCost) - exp - suppliesCost) * 100) / 100,
+        payrollCost,
+        estimatedProfit: Math.round((revenue - num(fuel._sum.totalCost) - exp - suppliesCost - payrollCost) * 100) / 100,
       };
     }
     return {

@@ -6,6 +6,8 @@ export const DEFAULT_SETTINGS = {
   gpsSignalLostMinutes: 60,
   maintenanceReminderDays: 14,
   maintenanceReminderHours: 50,
+  /** warn when payroll deductions exceed this % of gross (Labour Protection Act s.76 caps many deductions) */
+  payrollDeductionWarnPercent: 20,
 };
 export type Settings = typeof DEFAULT_SETTINGS;
 
