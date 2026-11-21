@@ -210,6 +210,7 @@ export async function depart(req: FastifyRequest, id: string, b: z.output<typeof
         departureLng: b.departureLng,
         fuelAtDepartureL: b.fuelAtDepartureL,
         fuelAtDepartureMeasurement: b.fuelAtDepartureMeasurement,
+        engineHoursAtDeparture: b.engineHoursAtDeparture,
         conditionNote: b.conditionNote,
         departureOverrideReason: blocking.length ? b.overrideReason : null,
         version: { increment: 1 },
@@ -237,6 +238,8 @@ export async function arrive(req: FastifyRequest, id: string, b: z.output<typeof
   const arrivedAt = new Date(b.arrivedAt);
   if (t.departedAt && arrivedAt < t.departedAt) throw badRequest('เวลาเข้าท่าต้องหลังเวลาออกเรือ');
   if (arrivedAt.getTime() > Date.now() + 3600_000) throw badRequest('เวลาเข้าท่าต้องไม่เกินเวลาปัจจุบัน');
+  if (b.engineHoursAtArrival != null && t.engineHoursAtDeparture !== null && b.engineHoursAtArrival < Number(t.engineHoursAtDeparture))
+    throw badRequest('ชั่วโมงเครื่องตอนเข้าท่าต้องไม่น้อยกว่าตอนออกเรือ');
   return prisma.$transaction(async (tx) => {
     const u = await tx.fishingTrip.update({
       where: { id, version: t.version },
@@ -248,6 +251,7 @@ export async function arrive(req: FastifyRequest, id: string, b: z.output<typeof
         arrivalLng: b.arrivalLng,
         fuelAtArrivalL: b.fuelAtArrivalL,
         fuelAtArrivalMeasurement: b.fuelAtArrivalMeasurement,
+        engineHoursAtArrival: b.engineHoursAtArrival,
         notes: b.notes ?? t.notes,
         version: { increment: 1 },
       },
@@ -286,6 +290,8 @@ export async function settlement(tripId: string): Promise<TripSettlement> {
   const suppliesCost = num(supplies._sum.totalCost);
   const totalCost = fuelCost + suppliesCost + exp + estExp;
   const r2 = (v: number) => Math.round(v * 100) / 100;
+  const engineHours =
+    t.engineHoursAtDeparture !== null && t.engineHoursAtArrival !== null ? r2(num(t.engineHoursAtArrival) - num(t.engineHoursAtDeparture)) : null;
   return {
     tripId,
     days: t.departedAt && t.arrivedAt ? r2((t.arrivedAt.getTime() - t.departedAt.getTime()) / 86400_000) : null,
@@ -293,6 +299,8 @@ export async function settlement(tripId: string): Promise<TripSettlement> {
     catchBySpecies,
     lossKg: num(losses._sum.weightKg),
     fuel: { atDepartureL: dep, loadedL: r2(loadedL), atArrivalL: arr, consumedL: consumed, isEstimated, cost: r2(fuelCost) },
+    engineHours,
+    litersPerEngineHour: consumed !== null && engineHours ? r2(consumed / engineHours) : null,
     suppliesCost: r2(suppliesCost),
     expenses: r2(exp),
     estimatedExpenses: r2(estExp),

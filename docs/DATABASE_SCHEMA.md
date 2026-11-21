@@ -26,17 +26,19 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | catch_records | น้ำหนักจับ (ไม่ใช่ขาย), vessel_id denormalised, client_request_id (idempotency), void | idx (vessel,date),(species,date); CHECK weight>0 |
 | catch_adjustments | ประวัติแก้ไข {field:{from,to}} + เหตุผล | idx record |
 | catch_losses | เน่าเสีย/เสียหาย/ส่วนต่าง | CHECK weight>0 |
-| gps_devices / gps_positions | โครงสำหรับ Phase 2 (is_demo แยกข้อมูลสาธิต) | unique (device, recorded_at); idx (vessel, time) |
+| gps_devices / gps_positions | อุปกรณ์ (api_key_hash unique) / ตำแหน่ง (is_demo แยกข้อมูลสาธิต) | unique (vessel, device, recorded_at); idx (vessel, time) |
+| geofences / geofence_events | เขต CIRCLE/POLYGON + เหตุการณ์ ENTER/EXIT | CHECK radius>0 |
+| fuel_tanks | ถังน้ำมันบริษัท: balance_l, avg_cost (คำนวณจาก ledger, row lock) | code unique |
+| fuel_transactions | ledger รับ/จ่าย/ปรับยอด (liters/total_cost แบบมีเครื่องหมาย), ผูก trip_fuel เมื่อจ่ายเข้าเที่ยว | **append-only trigger**; trip_fuel FK RESTRICT |
+| fishing_trips.engine_hours_at_departure/arrival | ชั่วโมงเครื่องยนต์ | CHECK arrival ≥ departure |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |
 | doc_sequences | เลขรันต่อ key/period | PK (key, period) |
 
 ## แผนตารางเฟสถัดไป
-- Fuel: `fuel_tanks`, `fuel_transactions` (รับเข้า/จ่ายเรือ/ปรับ, measured vs estimated), `engine_hour_logs`
 - Purchasing/Inventory: `suppliers`, `purchase_requests`, `purchase_orders`, `purchase_items`, `goods_receipts`, `warehouses`, `inventory_items`, `stock_movements` (ledger, ห้ามติดลบเว้นอนุมัติ), `stock_balances` (view/materialized)
 - Sales: `customers`, `catch_lots` (catch→lot), `sales_orders`, `sales_items` (lot_id), `sales_invoices`, `sales_payments`, `sales_returns`
 - Maintenance: `maintenance_plans`, `maintenance_orders`, `service_providers`
 - Payroll: `compensation_rules` (ต่อเรือ/ตำแหน่ง, JSON formula versioned), `payroll_periods`, `payroll_records`, `payroll_items`, `employee_advances`, `loans`, `deductions`, `payment_vouchers`
 - Accounting: `chart_of_accounts`, `fiscal_periods` (closing), `journal_entries` (DRAFT/POSTED/REVERSED), `journal_lines` (Σdr=Σcr ตรวจด้วย deferred constraint trigger), `bank_accounts`, `cost_allocations` (vessel/trip/department)
-- GPS: `geofences`, `geofence_events`

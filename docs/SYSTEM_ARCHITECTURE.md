@@ -35,8 +35,14 @@ PostgreSQL 16 (constraints, partial unique idx, triggers)   Private file storage
 - คิว IndexedDB (`lib/offline-queue.ts`) สำหรับบันทึกสัตว์น้ำ: retry อัตโนมัติเมื่อ online/ทุก 60 วิ; network error = รอ, 4xx = FAILED ให้ผู้ใช้ตรวจ (ไม่เขียนทับ)
 - การเงิน/ข้อมูลอ่อนไหว ต้องออนไลน์เสมอ
 
-## GPS (ออกแบบ Phase 2)
-`GpsAdapter { source: DEDICATED|MOBILE|AIS; parse(raw) → Position[] }` → `POST /api/v1/gps/ingest` (device API key hash) หรือ MQTT bridge → `gps_positions` (unique device+time, index vessel+time). ไม่มีอุปกรณ์ = โหมดสาธิตที่ติดป้ายชัดเจน (`is_demo`). ตาราง `gps_devices`, `gps_positions` มีแล้ว
+## GPS
+`modules/gps/adapters.ts`: `GpsAdapter.parse(raw) → ParsedPosition[]` — generic JSON, OsmAnd/Traccar Client (มือถือ/เครื่องติดตาม), AIS push (จับคู่ด้วย MMSI). เพิ่มผู้ให้บริการ = เพิ่ม adapter
+→ `service.ingest()` ตรวจพิกัด/เวลา → `gps_positions` (createMany skipDuplicates) → ประเมิน geofence (ก่อน/หลัง) → event + แจ้งเตือน
+ขาดสัญญาณ: job ทุก 5 นาที (เรือในทะเลไม่มีตำแหน่งจริงเกิน N นาที) · โหมดสาธิต `is_demo` ไม่ถูกใช้คำนวณสัญญาณ/แจ้งเตือน · แผนที่ Leaflet + OSM tiles (production ควรใช้ tile provider ของตนเอง)
+MQTT: ยังไม่ทำ — bridge จะเรียก `ingest()` เดิม
+
+## Fuel
+ถังบริษัท = ledger `fuel_transactions` (append-only) + ยอด/ต้นทุนเฉลี่ยใน `fuel_tanks` อัปเดตใน transaction เดียวกันด้วย `SELECT … FOR UPDATE`; จ่ายเข้าเที่ยวสร้าง `trip_fuel` ผูกกลับ (ลบจากเที่ยวไม่ได้ ต้องปรับยอด)
 
 ## Background jobs
 `server.ts`: สแกนเอกสารหมดอายุ + ล้าง session ทุก 6 ชม. (single instance; หลาย instance → ใช้ scheduler/advisory lock)

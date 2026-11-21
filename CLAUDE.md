@@ -2,13 +2,14 @@
 
 ## Map
 - `packages/shared/src` — **single source**: enums.ts (must match Prisma enums), labels.ts (Thai), permissions.ts (RBAC + ROLE_DEFS), schemas.ts (Zod for web+api), trip-state.ts, format.ts (พ.ศ./Asia/Bangkok)
-- `apps/api/src` — app.ts (plugins/routes), plugins/auth.ts (session, CSRF, `app.can`), lib/{errors,audit,http,storage,settings,seed-core}.ts, modules/<m>/routes.ts (+service.ts when logic is non-trivial)
+- `apps/api/src` — app.ts (plugins/routes), plugins/auth.ts (session, CSRF, `app.can`), lib/{errors,audit,http,storage,settings,seed-core}.ts, modules/<m>/routes.ts (+service.ts when logic is non-trivial); gps/{adapters,geo,service}.ts, fuel/service.ts (tank ledger, FOR UPDATE)
 - `apps/api/prisma` — schema.prisma, migrations (custom SQL appended: partial unique idx, CHECKs, audit trigger), seed.ts
 - `apps/web/src` — router.tsx, lib/{api,auth,hooks,lookups,offline-queue,export}.ts, components/ui/*, features/<m>/*
 - `docs/` — PRD, architecture, schema, API, UI, security, roadmap
 
 ## Commands
 `pnpm dev` · `pnpm check` (typecheck+lint+test+build) · `pnpm db:migrate` · `pnpm db:seed` · API tests need `TEST_DATABASE_URL` (db name must end `_test`)
+New migration non-interactively: `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script > prisma/migrations/<ts>_<name>/migration.sql` then `npx prisma migrate deploy`
 Never run `prisma migrate reset` against non-test DBs.
 
 ## Conventions

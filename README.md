@@ -1,6 +1,6 @@
 # Fisher ERP — ระบบบริหารจัดการประมง
 
-ERP สำหรับธุรกิจประมงไทย (Phase 1): ทะเบียนเรือ · เที่ยวเรือ (ออก/เข้า/สรุป/ปิด) · บันทึกสัตว์น้ำ (ใช้งานออฟไลน์ได้) · พนักงาน/แรงงานต่างด้าว + เอกสารและแจ้งเตือนหมดอายุ · RBAC · Audit log · แดชบอร์ด
+ERP สำหรับธุรกิจประมงไทย: ทะเบียนเรือ · เที่ยวเรือ (ออก/เข้า/สรุป/ปิด) · บันทึกสัตว์น้ำ (ใช้งานออฟไลน์ได้) · พนักงาน/แรงงานต่างด้าว + เอกสารและแจ้งเตือนหมดอายุ · ติดตามเรือ GPS (แผนที่/เส้นทาง/geofence/ขาดสัญญาณ) · น้ำมัน (ถังบริษัท, ประสิทธิภาพการใช้) · RBAC · Audit log · แดชบอร์ด
 
 Stack: React 19 + Vite + Tailwind v4 + TanStack Query/Table + RHF/Zod · Fastify 5 + Prisma 7 + PostgreSQL 16 · PWA (Workbox) · pnpm monorepo
 เอกสาร: [docs/](docs) (PRD, Architecture, DB schema, ER, API, UI, Security, Roadmap)
@@ -63,7 +63,10 @@ DATABASE_URL=postgresql://... ./scripts/restore.sh backups/db-YYYYmmdd-HHMMSS.du
 แนะนำ cron รายวัน + เก็บสำเนานอกเครื่อง + ทดสอบ restore รายเดือน
 
 ## Known limitations (Phase 1)
-- โมดูล GPS, น้ำมัน(เต็ม), จัดซื้อ, คลัง, ขาย, ซ่อมบำรุง, เงินเดือน, บัญชี, รายงาน PDF/Excel — ยังไม่ทำ (ซ่อนจากเมนู, ดู Roadmap)
+- จัดซื้อ, คลัง, ขาย, ซ่อมบำรุง, เงินเดือน, บัญชี, รายงาน PDF/Excel — ยังไม่ทำ (ซ่อนจากเมนู, ดู Roadmap)
+- GPS: รับข้อมูลผ่าน HTTP (generic/OsmAnd-Traccar/AIS push) และมือถือ; ยังไม่มี MQTT bridge และการดึงข้อมูลจากผู้ให้บริการ AIS/VMS (ต้องมี credential); แผนที่ใช้ tile ของ OpenStreetMap (production ควรใช้ผู้ให้บริการ tile ของตนเอง)
+- มือถือส่งตำแหน่งได้เฉพาะตอนเปิดหน้าเว็บค้างไว้ (ติดตามต่อเนื่องแนะนำแอป Traccar Client)
+- หลังอัปเกรดให้รัน `pnpm db:deploy && pnpm db:seed` (seed เพิ่มสิทธิ์ใหม่ให้บทบาทเดิมโดยไม่ทับที่แก้ไว้)
 - ช่องกรอกวันที่ใช้ date picker ของเบราว์เซอร์ (ปี ค.ศ.); การแสดงผลเป็น พ.ศ.
 - Offline: รองรับบันทึกสัตว์น้ำ; ฟอร์มอื่นต้องออนไลน์
 - Background job เป็น single-instance (setInterval)

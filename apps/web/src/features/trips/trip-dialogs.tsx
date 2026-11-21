@@ -96,7 +96,7 @@ export function DepartDialog({ trip, onClose }: { trip: Trip; onClose: () => voi
     resolver: zodResolver(departSchema),
     defaultValues: {
       departedAt: toLocalInput(), departurePort: trip.departurePort ?? trip.vessel.homePort ?? '', departureLat: '', departureLng: '',
-      fuelAtDepartureL: '', fuelAtDepartureMeasurement: 'MEASURED' as const, conditionNote: '', override: false, overrideReason: '',
+      fuelAtDepartureL: '', fuelAtDepartureMeasurement: 'MEASURED' as const, engineHoursAtDeparture: '', conditionNote: '', override: false, overrideReason: '',
     },
   });
   const save = useAction((v: Record<string, unknown>) => api.post(`/trips/${trip.id}/depart`, v), {
@@ -129,6 +129,7 @@ export function DepartDialog({ trip, onClose }: { trip: Trip; onClose: () => voi
             <Input inputMode="decimal" {...f.register('fuelAtDepartureL')} />
           </Field>
           <Field label="วิธีได้ค่า"><Select options={toOptions(MEASUREMENT_TH)} {...f.register('fuelAtDepartureMeasurement')} /></Field>
+          <Field label="ชั่วโมงเครื่องยนต์ (มิเตอร์)" error={e.engineHoursAtDeparture?.message} hint="ถ้ามี — ใช้คำนวณลิตร/ชั่วโมง"><Input inputMode="decimal" {...f.register('engineHoursAtDeparture')} /></Field>
           <Field label="สภาพเรือก่อนออก" className="sm:col-span-2"><Textarea rows={2} {...f.register('conditionNote')} placeholder="เครื่องยนต์ อุปกรณ์ความปลอดภัย ฯลฯ" /></Field>
         </FormGrid>
         {blocking && (
@@ -150,7 +151,7 @@ export function DepartDialog({ trip, onClose }: { trip: Trip; onClose: () => voi
 export function ArriveDialog({ trip, onClose }: { trip: Trip; onClose: () => void }) {
   const f = useForm({
     resolver: zodResolver(arriveSchema),
-    defaultValues: { arrivedAt: toLocalInput(), arrivalPort: trip.departurePort ?? '', arrivalLat: '', arrivalLng: '', fuelAtArrivalL: '', fuelAtArrivalMeasurement: 'MEASURED' as const, notes: trip.notes ?? '' },
+    defaultValues: { arrivedAt: toLocalInput(), arrivalPort: trip.departurePort ?? '', arrivalLat: '', arrivalLng: '', fuelAtArrivalL: '', fuelAtArrivalMeasurement: 'MEASURED' as const, engineHoursAtArrival: '', notes: trip.notes ?? '' },
   });
   const save = useAction((v: Record<string, unknown>) => api.post(`/trips/${trip.id}/arrive`, v), { success: 'บันทึกเข้าท่าแล้ว', invalidate: INV, onSuccess: onClose });
   const e = f.formState.errors;
@@ -164,6 +165,7 @@ export function ArriveDialog({ trip, onClose }: { trip: Trip; onClose: () => voi
         <Field label="ลองจิจูดสุดท้าย" error={e.arrivalLng?.message}><Input inputMode="decimal" {...f.register('arrivalLng')} /></Field>
         <Field label="น้ำมันคงเหลือ (ลิตร)" required error={e.fuelAtArrivalL?.message}><Input inputMode="decimal" {...f.register('fuelAtArrivalL')} /></Field>
         <Field label="วิธีได้ค่า"><Select options={toOptions(MEASUREMENT_TH)} {...f.register('fuelAtArrivalMeasurement')} /></Field>
+        <Field label="ชั่วโมงเครื่องยนต์ (มิเตอร์)" error={e.engineHoursAtArrival?.message}><Input inputMode="decimal" {...f.register('engineHoursAtArrival')} /></Field>
         <Field label="หมายเหตุ" className="sm:col-span-2"><Textarea rows={2} {...f.register('notes')} /></Field>
       </FormGrid>
     </Dialog>

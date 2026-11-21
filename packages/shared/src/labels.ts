@@ -160,3 +160,9 @@ export const NATIONALITY_TH: Record<E.Nationality, string> = {
 /** Options helper for <select>. */
 export const toOptions = <K extends string>(m: Record<K, string>) =>
   (Object.keys(m) as K[]).map((value) => ({ value, label: m[value] }));
+
+export const GPS_SOURCE_TH: Record<E.GpsSource, string> = { DEDICATED: 'อุปกรณ์ GPS', MOBILE: 'มือถือ', AIS: 'AIS' };
+export const GEOFENCE_TYPE_TH: Record<E.GeofenceType, string> = { CIRCLE: 'วงกลม', POLYGON: 'รูปหลายเหลี่ยม' };
+export const GEOFENCE_ALERT_TH: Record<E.GeofenceAlert, string> = { ENTER: 'เมื่อเข้าเขต', EXIT: 'เมื่อออกนอกเขต', BOTH: 'ทั้งเข้าและออก' };
+export const FUEL_TXN_TYPE_TH: Record<E.FuelTxnType, string> = { RECEIPT: 'รับเข้าถัง', ISSUE: 'จ่ายเข้าเรือ', ADJUSTMENT: 'ปรับยอด' };
+export const GPS_LINK_TH: Record<E.GpsLink, string> = { ONLINE: 'ออนไลน์', LOST: 'ขาดสัญญาณ', NO_DATA: 'ไม่มีข้อมูล' };

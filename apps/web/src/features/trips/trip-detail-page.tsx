@@ -223,6 +223,7 @@ export function TripDetailPage() {
                           ['ค่าใช้จ่ายยืนยันแล้ว', `${formatMoney(s.expenses)} บาท`], ['ค่าใช้จ่ายประมาณการ', `${formatMoney(s.estimatedExpenses)} บาท`],
                           ['ต้นทุนรวม', <b>{formatMoney(s.totalCost)} บาท</b>], ['ค่าน้ำมันต่อ กก.', s.fuelCostPerKg === null ? '-' : `${formatMoney(s.fuelCostPerKg)} บาท`],
                           ['ต้นทุนต่อ กก.', s.costPerKg === null ? '-' : `${formatMoney(s.costPerKg)} บาท`], ['สัตว์น้ำสูญเสีย', `${formatKg(s.lossKg)} กก.`],
+                          ['ชั่วโมงเครื่องยนต์', s.engineHours === null || s.engineHours === undefined ? '-' : formatNumber(s.engineHours, 1)], ['ลิตร/ชั่วโมงเครื่อง', s.litersPerEngineHour == null ? '-' : formatNumber(s.litersPerEngineHour, 1)],
                         ]} />
                         <p className="mt-3 text-xs text-muted">ตัวเลขเชิงปฏิบัติการ ยังไม่ใช่รายการบัญชี รายได้จากการขายจะเชื่อมในโมดูลขาย (Phase 2)</p>
                       </Panel>

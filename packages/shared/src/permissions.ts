@@ -28,6 +28,7 @@ export const PERMISSIONS = {
   // GPS
   'gps.view': 'ดูแผนที่ติดตามเรือ',
   'gps.manage': 'จัดการอุปกรณ์ GPS/Geofence',
+  'gps.report': 'ส่งตำแหน่งเรือจากมือถือ',
   // HR
   'employee.view': 'ดูข้อมูลพนักงาน',
   'employee.create': 'เพิ่มพนักงาน',
@@ -47,6 +48,7 @@ export const PERMISSIONS = {
   'inventory.edit': 'เคลื่อนไหวสต็อก',
   'fuel.view': 'ดูน้ำมัน',
   'fuel.edit': 'บันทึกน้ำมัน',
+  'fuel.approve': 'อนุมัติจ่ายน้ำมันเกินยอดคงเหลือ',
   'payroll.view': 'ดูเงินเดือน',
   'payroll.edit': 'คำนวณเงินเดือน',
   'payroll.approve': 'อนุมัติเงินเดือน',
@@ -90,7 +92,7 @@ export const ROLE_DEFS: Record<string, { name: string; description: string; perm
   CAPTAIN: {
     name: 'ไต้ก๋ง/นายเรือ',
     description: 'บันทึกเที่ยวเรือและสัตว์น้ำของเรือตนเอง',
-    permissions: pick('dashboard.view', 'vessel.view', 'trip.view', 'trip.edit', 'catch.view', 'catch.create', 'gps.view', 'employee.view'),
+    permissions: pick('dashboard.view', 'vessel.view', 'trip.view', 'trip.edit', 'catch.view', 'catch.create', 'gps.view', 'gps.report', 'employee.view'),
   },
   HR_OFFICER: {
     name: 'เจ้าหน้าที่บุคคล',
@@ -105,7 +107,7 @@ export const ROLE_DEFS: Record<string, { name: string; description: string; perm
   PURCHASING_OFFICER: {
     name: 'เจ้าหน้าที่จัดซื้อ',
     description: 'ใบขอซื้อ ใบสั่งซื้อ ผู้ขาย',
-    permissions: pick('dashboard.view', 'purchase.view', 'purchase.create', 'inventory.view', 'fuel.', 'vessel.view', 'trip.view'),
+    permissions: pick('dashboard.view', 'purchase.view', 'purchase.create', 'inventory.view', 'fuel.view', 'fuel.edit', 'vessel.view', 'trip.view'),
   },
   WAREHOUSE_OFFICER: {
     name: 'เจ้าหน้าที่คลังสินค้า',

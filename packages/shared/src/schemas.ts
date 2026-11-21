@@ -218,6 +218,7 @@ export const departSchema = z.object({
   departureLng: lng,
   fuelAtDepartureL: reqNum(0, 1e7),
   fuelAtDepartureMeasurement: z.enum(E.MEASUREMENT).default('MEASURED'),
+  engineHoursAtDeparture: optNum(0, 1e6),
   conditionNote: optStr(2000),
   override: z.boolean().optional(),
   overrideReason: optStr(500),
@@ -235,6 +236,7 @@ export const arriveSchema = z.object({
   arrivalLng: lng,
   fuelAtArrivalL: reqNum(0, 1e7),
   fuelAtArrivalMeasurement: z.enum(E.MEASUREMENT).default('MEASURED'),
+  engineHoursAtArrival: optNum(0, 1e6),
   notes: optStr(2000),
 });
 
@@ -308,4 +310,83 @@ export const settingsSchema = z.object({
   companyName: optStr(200),
   docReminderDays: z.array(z.number().int().min(1).max(365)).min(1).max(10).optional(),
   gpsSignalLostMinutes: z.number().int().min(5).max(1440).optional(),
+});
+
+// ---------- GPS ----------
+export const gpsPositionSchema = z.object({
+  recordedAt: isoDateTime,
+  lat: reqNum(-90, 90),
+  lng: reqNum(-180, 180),
+  speedKnots: optNum(0, 100),
+  headingDeg: optNum(0, 360),
+  signalQuality: optInt(0, 100),
+});
+export const gpsIngestSchema = z.object({ positions: z.array(gpsPositionSchema).min(1).max(1000) });
+export const gpsMobileSchema = z.object({ vesselId: id, positions: z.array(gpsPositionSchema).min(1).max(200) });
+export const gpsDeviceSchema = z.object({
+  vesselId: optId,
+  source: z.enum(E.GPS_SOURCE),
+  identifier: reqStr(80),
+  name: optStr(120),
+  isActive: z.boolean().default(true),
+  notes: optStr(500),
+});
+const latLng = z.tuple([reqNum(-90, 90), reqNum(-180, 180)]);
+export const geofenceSchema = z
+  .object({
+    name: reqStr(120),
+    type: z.enum(E.GEOFENCE_TYPE),
+    centerLat: lat,
+    centerLng: lng,
+    radiusKm: optNum(0.01, 2000),
+    polygon: z.array(latLng).min(3, 'อย่างน้อย 3 จุด').max(500).nullish(),
+    alertOn: z.enum(E.GEOFENCE_ALERT).default('BOTH'),
+    isActive: z.boolean().default(true),
+    notes: optStr(500),
+  })
+  .superRefine((g, ctx) => {
+    if (g.type === 'CIRCLE') {
+      if (g.centerLat == null) ctx.addIssue({ code: 'custom', path: ['centerLat'], message: REQ });
+      if (g.centerLng == null) ctx.addIssue({ code: 'custom', path: ['centerLng'], message: REQ });
+      if (g.radiusKm == null) ctx.addIssue({ code: 'custom', path: ['radiusKm'], message: REQ });
+    } else if (!g.polygon) ctx.addIssue({ code: 'custom', path: ['polygon'], message: 'อย่างน้อย 3 จุด' });
+  });
+export const gpsDemoSchema = z.object({ vesselId: id, hours: z.coerce.number().int().min(1).max(72).default(24) });
+
+// ---------- fuel ----------
+export const fuelTankSchema = z.object({
+  code: reqStr(20),
+  name: reqStr(120),
+  location: optStr(200),
+  fuelType: z.enum(E.FUEL_TYPE),
+  capacityL: optNum(0, 1e8),
+  isActive: z.boolean().default(true),
+  notes: optStr(500),
+});
+export const fuelReceiptSchema = z.object({
+  tankId: id,
+  txnDate: isoDateTime,
+  liters: posNum(1e8),
+  unitPrice: reqNum(0, 1000),
+  supplierName: optStr(150),
+  docNo: optStr(60),
+  fileId: optId,
+  notes: optStr(500),
+});
+export const fuelIssueSchema = z.object({
+  tankId: id,
+  txnDate: isoDateTime,
+  liters: posNum(1e8),
+  vesselId: id,
+  tripId: optId,
+  measurement: z.enum(E.MEASUREMENT).default('MEASURED'),
+  notes: optStr(500),
+  override: z.boolean().optional(),
+  overrideReason: optStr(500),
+});
+export const fuelAdjustSchema = z.object({
+  tankId: id,
+  txnDate: isoDateTime,
+  measuredBalanceL: reqNum(0, 1e8),
+  reason: reqStr(500),
 });

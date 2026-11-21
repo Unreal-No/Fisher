@@ -12,7 +12,8 @@ SUPER_ADMIN, OWNER, OPERATIONS_MANAGER, FLEET_MANAGER, CAPTAIN, HR_OFFICER, ACCO
 | เฟส | โมดูล | สถานะ |
 |---|---|---|
 | 1 | Auth, RBAC, Audit, Dashboard, เรือ, พนักงาน+เอกสาร, เที่ยวเรือ (ออก/เข้า/สรุป/ปิด), สัตว์น้ำ, แจ้งเตือนเอกสาร, PWA+offline catch | ✅ เสร็จ |
-| 2 | GPS (adapter HTTP/MQTT/AIS, แผนที่, geofence), น้ำมัน (โมดูลเต็ม), จัดซื้อ, คลัง | ⏳ |
+| 2 | GPS (HTTP adapters: generic/OsmAnd-Traccar/AIS, มือถือ, แผนที่, เส้นทาง, geofence, ขาดสัญญาณ), น้ำมัน (ถัง ledger, รายงานประสิทธิภาพ) | ✅ |
+| 2.1 | MQTT bridge, ดึงข้อมูล AIS/VMS จากผู้ให้บริการ, จัดซื้อ, คลัง | ⏳ |
 | 3 | ขาย/ลูกค้า/ลูกหนี้, ซ่อมบำรุง | ⏳ |
 | 4 | เงินเดือน/ค่าตอบแทนลูกเรือ, บัญชีคู่ (GL/AR/AP/งบ) | ⏳ |
 | 5 | รายงาน PDF/Excel, Hardening, Production | ⏳ |

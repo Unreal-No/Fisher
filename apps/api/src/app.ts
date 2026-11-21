@@ -13,6 +13,8 @@ import catchRoutes from './modules/catch/routes';
 import dashboardRoutes from './modules/dashboard/routes';
 import employeeRoutes from './modules/employees/routes';
 import fileRoutes from './modules/files/routes';
+import fuelRoutes from './modules/fuel/routes';
+import gpsRoutes from './modules/gps/routes';
 import notificationRoutes from './modules/notifications/routes';
 import tripRoutes from './modules/trips/routes';
 import vesselRoutes from './modules/vessels/routes';
@@ -57,6 +59,8 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
       await api.register(tripRoutes, { prefix: '/trips' });
       await api.register(catchRoutes, { prefix: '/catch' });
       await api.register(notificationRoutes, { prefix: '/notifications' });
+      await api.register(gpsRoutes, { prefix: '/gps' });
+      await api.register(fuelRoutes, { prefix: '/fuel' });
     },
     { prefix: '/api/v1' },
   );

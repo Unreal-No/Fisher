@@ -22,12 +22,14 @@ export function SettingsPage() {
   const types = useDocTypes();
   const [company, setCompany] = useState('');
   const [days, setDays] = useState('');
+  const [lost, setLost] = useState('60');
   const [edit, setEdit] = useState<DocType | 'new' | null>(null);
   useEffect(() => {
-    if (s.data) { setCompany(s.data.companyName); setDays(s.data.docReminderDays.join(', ')); }
+    if (s.data) { setCompany(s.data.companyName); setDays(s.data.docReminderDays.join(', ')); setLost(String(s.data.gpsSignalLostMinutes)); }
   }, [s.data]);
   const save = useAction((v: unknown) => api.patch('/settings', v), { success: 'บันทึกการตั้งค่าแล้ว', invalidate: ['settings'] });
   const parsedDays = days.split(/[,\s]+/).filter(Boolean).map(Number);
+  const lostValid = Number.isInteger(Number(lost)) && Number(lost) >= 5 && Number(lost) <= 1440;
   const daysValid = parsedDays.length > 0 && parsedDays.every((d) => Number.isInteger(d) && d > 0 && d <= 365);
   return (
     <>
@@ -39,7 +41,10 @@ export function SettingsPage() {
             <Field label="แจ้งเตือนเอกสารล่วงหน้า (วัน)" hint="คั่นด้วยจุลภาค เช่น 90, 60, 30, 7 · เป็นการเตือนทางธุรกิจ ไม่ใช่ข้อสรุปทางกฎหมาย" error={daysValid ? undefined : 'ตัวเลข 1–365'}>
               <Input value={days} onChange={(e) => setDays(e.target.value)} />
             </Field>
-            <Button loading={save.isPending} disabled={!daysValid} onClick={() => save.mutate({ companyName: company, docReminderDays: parsedDays })}>บันทึก</Button>
+            <Field label="แจ้งเตือนขาดสัญญาณ GPS เมื่อเรือในทะเลไม่ส่งตำแหน่งเกิน (นาที)" error={lostValid ? undefined : 'ตัวเลข 5–1440'}>
+              <Input inputMode="numeric" value={lost} onChange={(e) => setLost(e.target.value)} />
+            </Field>
+            <Button loading={save.isPending} disabled={!daysValid || !lostValid} onClick={() => save.mutate({ companyName: company, docReminderDays: parsedDays, gpsSignalLostMinutes: Number(lost) })}>บันทึก</Button>
           </div>
         </Panel>
         <Panel title="ประเภทเอกสารพนักงาน (Checklist)" bodyClass="p-0" actions={<Button size="sm" onClick={() => setEdit('new')}><Plus /> เพิ่มประเภท</Button>}>

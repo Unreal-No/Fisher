@@ -44,7 +44,8 @@ export const SPECIES = [
 ] as const;
 
 export async function seedCore(db: Db) {
-  // permissions
+  // permissions (remember which are new so existing roles receive their default grants once)
+  const existingCodes = new Set((await db.permission.findMany({ select: { code: true } })).map((p) => p.code));
   for (const [code, description] of Object.entries(PERMISSIONS)) {
     const [module, action] = code.split('.') as [string, string];
     await db.permission.upsert({ where: { code }, create: { code, module, action, description }, update: { description } });
@@ -57,9 +58,11 @@ export async function seedCore(db: Db) {
   for (const [code, def] of Object.entries(ROLE_DEFS)) {
     const existing = await db.role.findUnique({ where: { code } });
     const role = existing ?? (await db.role.create({ data: { code, name: def.name, description: def.description, isSystem: true } }));
-    if (!existing || code === 'SUPER_ADMIN') {
+    // new role / SUPER_ADMIN: full default set; existing role: only permissions introduced by this release
+    const grant = !existing || code === 'SUPER_ADMIN' ? def.permissions : def.permissions.filter((p) => !existingCodes.has(p));
+    if (grant.length) {
       await db.rolePermission.createMany({
-        data: def.permissions.map((p) => ({ roleId: role.id, permissionId: permId.get(p)! })),
+        data: grant.map((p) => ({ roleId: role.id, permissionId: permId.get(p)! })),
         skipDuplicates: true,
       });
     }

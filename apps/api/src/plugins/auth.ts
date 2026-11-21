@@ -129,7 +129,7 @@ export const authPlugin = fp(async (app: FastifyInstance) => {
     const url = req.url.split('?')[0]!;
     if (!url.startsWith('/api/')) return;
     req.user = await loadUser(req);
-    if (PUBLIC.has(url)) return;
+    if (PUBLIC.has(url) || url.startsWith('/api/v1/gps/ingest/')) return; // device-key auth in route
     if (!req.user) throw unauthorized();
     if (MUTATING.has(req.method)) {
       const h = req.headers[CSRF_HEADER];

@@ -4,7 +4,7 @@ import {
   tripFuelSchema, tripIncidentSchema, tripStatusSchema, tripSupplySchema, tripUpdateSchema, type TripStatus,
 } from '@fisher/shared';
 import { audit } from '../../lib/audit';
-import { notFound } from '../../lib/errors';
+import { conflict, notFound } from '../../lib/errors';
 import { d, dt, idParam, paged, paging, parse, parseList, vesselWhere } from '../../lib/http';
 import { prisma, type Prisma } from '../../lib/prisma';
 import {
@@ -118,6 +118,7 @@ export default async function tripRoutes(app: FastifyInstance) {
 
   for (const item of Object.keys(cfg) as Item[]) {
     const c = cfg[item];
+    const kind = item;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const model = () => (prisma as any)[c.model];
     app.post(`/:id/${item}`, { preHandler: app.can('trip.edit') }, async (req, reply) => {
@@ -137,8 +138,9 @@ export default async function tripRoutes(app: FastifyInstance) {
       const { id: tripId, itemId } = req.params as { id: string; itemId: string };
       const t = await getTrip(req, tripId);
       assertStatus(t, c.statuses, 'ลบรายการ');
-      const row = await model().findFirst({ where: { id: itemId, tripId } });
+      const row = await model().findFirst({ where: { id: itemId, tripId }, ...(kind === 'fuel' ? { include: { fuelTxn: true } } : {}) });
       if (!row) throw notFound('รายการ');
+      if (row.fuelTxn) throw conflict('FUEL_LEDGER_LINKED', `รายการนี้จ่ายจากถังบริษัท (${row.fuelTxn.txnNo}) ให้แก้ด้วยการปรับยอดที่โมดูลน้ำมัน`);
       await prisma.$transaction(async (tx) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         await (tx as any)[c.model].delete({ where: { id: itemId } });

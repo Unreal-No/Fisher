@@ -19,6 +19,8 @@ const EmployeeForm = L(() => import('./features/employees/employee-form-page'), 
 const DocumentsReport = L(() => import('./features/employees/documents-report-page'), 'DocumentsReportPage');
 const TripList = L(() => import('./features/trips/trip-list-page'), 'TripListPage');
 const TripDetail = L(() => import('./features/trips/trip-detail-page'), 'TripDetailPage');
+const Gps = L(() => import('./features/gps/gps-page'), 'GpsPage');
+const Fuel = L(() => import('./features/fuel/fuel-page'), 'FuelPage');
 const Catch = L(() => import('./features/catch/catch-page'), 'CatchPage');
 const Species = L(() => import('./features/catch/species-page'), 'SpeciesPage');
 const Notifications = L(() => import('./features/notifications/notifications-page'), 'NotificationsPage');
@@ -70,6 +72,8 @@ export const router = createBrowserRouter([
           { path: 'documents', element: <P perm={['employee.view']}><DocumentsReport /></P> },
           { path: 'trips', element: <P perm={['trip.view']}><TripList /></P> },
           { path: 'trips/:id', element: <P perm={['trip.view']}><TripDetail /></P> },
+          { path: 'gps', element: <P perm={['gps.view']}><Gps /></P> },
+          { path: 'fuel', element: <P perm={['fuel.view']}><Fuel /></P> },
           { path: 'catch', element: <P perm={['catch.view']}><Catch /></P> },
           { path: 'species', element: <P perm={['catch.view']}><Species /></P> },
           { path: 'notifications', element: <P><Notifications /></P> },

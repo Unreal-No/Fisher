@@ -46,6 +46,8 @@ export interface TripSettlement {
     isEstimated: boolean;
     cost: number;
   };
+  engineHours: number | null;
+  litersPerEngineHour: number | null;
   suppliesCost: number;
   expenses: number;
   estimatedExpenses: number;

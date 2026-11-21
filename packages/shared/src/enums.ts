@@ -107,3 +107,16 @@ export type FileSensitivity = (typeof FILE_SENSITIVITY)[number];
 
 export const NATIONALITIES = ['TH', 'MM', 'KH', 'LA', 'VN', 'OTHER'] as const;
 export type Nationality = (typeof NATIONALITIES)[number];
+
+export const GEOFENCE_TYPE = ['CIRCLE', 'POLYGON'] as const;
+export type GeofenceType = (typeof GEOFENCE_TYPE)[number];
+
+export const GEOFENCE_ALERT = ['ENTER', 'EXIT', 'BOTH'] as const;
+export type GeofenceAlert = (typeof GEOFENCE_ALERT)[number];
+
+export const FUEL_TXN_TYPE = ['RECEIPT', 'ISSUE', 'ADJUSTMENT'] as const;
+export type FuelTxnType = (typeof FUEL_TXN_TYPE)[number];
+
+/** Derived (not stored): GPS connection state of a vessel */
+export const GPS_LINK = ['ONLINE', 'LOST', 'NO_DATA'] as const;
+export type GpsLink = (typeof GPS_LINK)[number];
