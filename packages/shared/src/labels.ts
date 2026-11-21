@@ -166,3 +166,12 @@ export const GEOFENCE_TYPE_TH: Record<E.GeofenceType, string> = { CIRCLE: 'ว�
 export const GEOFENCE_ALERT_TH: Record<E.GeofenceAlert, string> = { ENTER: 'เมื่อเข้าเขต', EXIT: 'เมื่อออกนอกเขต', BOTH: 'ทั้งเข้าและออก' };
 export const FUEL_TXN_TYPE_TH: Record<E.FuelTxnType, string> = { RECEIPT: 'รับเข้าถัง', ISSUE: 'จ่ายเข้าเรือ', ADJUSTMENT: 'ปรับยอด' };
 export const GPS_LINK_TH: Record<E.GpsLink, string> = { ONLINE: 'ออนไลน์', LOST: 'ขาดสัญญาณ', NO_DATA: 'ไม่มีข้อมูล' };
+export const PR_STATUS_TH: Record<E.PrStatus, string> = {
+  DRAFT: 'ร่าง', SUBMITTED: 'รออนุมัติ', APPROVED: 'อนุมัติแล้ว', REJECTED: 'ไม่อนุมัติ', CANCELLED: 'ยกเลิก', ORDERED: 'ออกใบสั่งซื้อแล้ว',
+};
+export const PO_STATUS_TH: Record<E.PoStatus, string> = {
+  DRAFT: 'ร่าง', APPROVED: 'อนุมัติแล้ว', PARTIALLY_RECEIVED: 'รับบางส่วน', RECEIVED: 'รับครบ', CLOSED: 'ปิด', CANCELLED: 'ยกเลิก',
+};
+export const STOCK_MOVE_TYPE_TH: Record<E.StockMoveType, string> = {
+  RECEIPT: 'รับเข้า', ISSUE: 'เบิกจ่าย', TRANSFER_OUT: 'โอนออก', TRANSFER_IN: 'โอนเข้า', ADJUSTMENT: 'ปรับยอด',
+};

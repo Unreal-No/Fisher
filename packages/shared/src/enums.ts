@@ -120,3 +120,12 @@ export type FuelTxnType = (typeof FUEL_TXN_TYPE)[number];
 /** Derived (not stored): GPS connection state of a vessel */
 export const GPS_LINK = ['ONLINE', 'LOST', 'NO_DATA'] as const;
 export type GpsLink = (typeof GPS_LINK)[number];
+
+export const PR_STATUS = ['DRAFT', 'SUBMITTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'ORDERED'] as const;
+export type PrStatus = (typeof PR_STATUS)[number];
+
+export const PO_STATUS = ['DRAFT', 'APPROVED', 'PARTIALLY_RECEIVED', 'RECEIVED', 'CLOSED', 'CANCELLED'] as const;
+export type PoStatus = (typeof PO_STATUS)[number];
+
+export const STOCK_MOVE_TYPE = ['RECEIPT', 'ISSUE', 'TRANSFER_OUT', 'TRANSFER_IN', 'ADJUSTMENT'] as const;
+export type StockMoveType = (typeof STOCK_MOVE_TYPE)[number];

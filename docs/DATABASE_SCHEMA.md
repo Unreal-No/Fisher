@@ -31,13 +31,19 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | fuel_tanks | ถังน้ำมันบริษัท: balance_l, avg_cost (คำนวณจาก ledger, row lock) | code unique |
 | fuel_transactions | ledger รับ/จ่าย/ปรับยอด (liters/total_cost แบบมีเครื่องหมาย), ผูก trip_fuel เมื่อจ่ายเข้าเที่ยว | **append-only trigger**; trip_fuel FK RESTRICT |
 | fishing_trips.engine_hours_at_departure/arrival | ชั่วโมงเครื่องยนต์ | CHECK arrival ≥ departure |
+| suppliers | ผู้ขาย (เลขผู้เสียภาษี 13 หลัก, เครดิตเทอม) | code unique, soft delete |
+| warehouses / inventory_items | คลัง / สินค้า (หมวด = supply category, จุดสั่งซื้อ min_stock) | code unique |
+| stock_balances | ยอดคงเหลือ + ต้นทุนเฉลี่ยต่อคลัง×สินค้า (row lock) | PK (warehouse, item) |
+| stock_movements | ledger รับ/เบิก/โอนออก-เข้า (transfer_pair_id)/ปรับยอด; ผูก trip_supply เมื่อเบิกเข้าเที่ยว | **append-only trigger**; CHECK qty≠0; trip_supply FK RESTRICT |
+| purchase_requests / _items | ใบขอซื้อ DRAFT→SUBMITTED→APPROVED/REJECTED→ORDERED | |
+| purchase_orders / _items | ใบสั่งซื้อ (ส่วนลด, VAT, ยอดรวม), received_qty ต่อรายการ | CHECK received ≤ ordered |
+| goods_receipts / _items | ใบรับสินค้า: ต้นทุนสุทธิ (หลังส่วนลด ไม่รวม VAT), ผูก stock_movement หรือ trip_supply | |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |
 | doc_sequences | เลขรันต่อ key/period | PK (key, period) |
 
 ## แผนตารางเฟสถัดไป
-- Purchasing/Inventory: `suppliers`, `purchase_requests`, `purchase_orders`, `purchase_items`, `goods_receipts`, `warehouses`, `inventory_items`, `stock_movements` (ledger, ห้ามติดลบเว้นอนุมัติ), `stock_balances` (view/materialized)
 - Sales: `customers`, `catch_lots` (catch→lot), `sales_orders`, `sales_items` (lot_id), `sales_invoices`, `sales_payments`, `sales_returns`
 - Maintenance: `maintenance_plans`, `maintenance_orders`, `service_providers`
 - Payroll: `compensation_rules` (ต่อเรือ/ตำแหน่ง, JSON formula versioned), `payroll_periods`, `payroll_records`, `payroll_items`, `employee_advances`, `loans`, `deductions`, `payment_vouchers`

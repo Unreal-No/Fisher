@@ -138,8 +138,11 @@ export default async function tripRoutes(app: FastifyInstance) {
       const { id: tripId, itemId } = req.params as { id: string; itemId: string };
       const t = await getTrip(req, tripId);
       assertStatus(t, c.statuses, 'ลบรายการ');
-      const row = await model().findFirst({ where: { id: itemId, tripId }, ...(kind === 'fuel' ? { include: { fuelTxn: true } } : {}) });
+      const row = await model().findFirst({ where: { id: itemId, tripId }, ...(kind === 'fuel' ? { include: { fuelTxn: true } } : kind === 'supplies' ? { include: { stockMove: true } } : {}) });
       if (!row) throw notFound('รายการ');
+      if (kind === 'supplies' && (await prisma.goodsReceiptItem.findFirst({ where: { tripSupplyId: itemId } })))
+        throw conflict('PURCHASE_LINKED', 'รายการนี้มาจากการรับสินค้าตามใบสั่งซื้อ ไม่สามารถลบจากเที่ยวเรือได้');
+      if (row.stockMove) throw conflict('STOCK_LEDGER_LINKED', `รายการนี้เบิกจากคลัง (${row.stockMove.moveNo}) ให้แก้ด้วยการรับคืน/ปรับยอดที่คลังสินค้า`);
       if (row.fuelTxn) throw conflict('FUEL_LEDGER_LINKED', `รายการนี้จ่ายจากถังบริษัท (${row.fuelTxn.txnNo}) ให้แก้ด้วยการปรับยอดที่โมดูลน้ำมัน`);
       await prisma.$transaction(async (tx) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

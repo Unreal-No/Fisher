@@ -36,6 +36,15 @@ Codes: 400 VALIDATION_ERROR/BAD_REQUEST · 401 · 403 FORBIDDEN/CSRF/MUST_CHANGE
 | GET/POST /fuel/tanks · PATCH /fuel/tanks/:id | fuel.view / fuel.edit | ยอด/ต้นทุนแก้ไม่ได้ (มาจาก ledger) |
 | POST /fuel/receipts · /fuel/issues · /fuel/adjustments | fuel.edit (+fuel.approve เมื่อจ่ายเกินยอด) | 422 INSUFFICIENT_FUEL |
 | GET /fuel/transactions · /fuel/entries · /fuel/report?from&to&vesselId | fuel.view | |
+| GET/POST /inventory/warehouses · PATCH …/:id | inventory.view∨purchase.view / inventory.edit | |
+| GET/POST /inventory/items · GET/PATCH/DELETE …/:id | inventory.view / inventory.edit | delete = ปิดใช้งานถ้ามีความเคลื่อนไหว |
+| GET /inventory/balances?warehouseId&belowMin · /inventory/movements | inventory.view | |
+| POST /inventory/receipts · /issues · /transfers · /adjustments | inventory.edit (+inventory.approve เมื่อเบิกเกิน) | 422 INSUFFICIENT_STOCK · 409 NO_DIFFERENCE |
+| GET/POST /purchasing/suppliers · PATCH …/:id | purchase.view / purchase.create | |
+| GET/POST /purchasing/requests · GET/PUT …/:id · POST …/:id/{submit,approve,reject,cancel} | purchase.view/create/approve | ผู้สร้างอนุมัติเองไม่ได้ (403) |
+| GET/POST /purchasing/orders · GET/PUT …/:id · POST …/:id/{approve,cancel,close} | purchase.view/create/approve | ยกเลิกได้ก่อนรับของ; ปิดเมื่อรับบางส่วน |
+| POST /purchasing/orders/:id/receive | inventory.edit | 409 OVER_RECEIPT; ล็อกใบสั่งซื้อ FOR UPDATE |
+| GET /purchasing/summary?from&to | purchase.view | ตามผู้ขาย/เดือน (ไม่รวมร่าง/ยกเลิก) |
 | GET/POST /users · PATCH /users/:id · POST /users/:id/reset-password | user.manage | |
 | GET /roles · /permissions · PUT /roles/:id/permissions | role.manage∨user.manage / role.manage | SUPER_ADMIN แก้ไม่ได้ |
 | GET /audit-logs | audit.view | |

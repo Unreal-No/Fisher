@@ -390,3 +390,96 @@ export const fuelAdjustSchema = z.object({
   measuredBalanceL: reqNum(0, 1e8),
   reason: reqStr(500),
 });
+
+// ---------- suppliers / inventory ----------
+export const supplierSchema = z.object({
+  code: optStr(20),
+  name: reqStr(200),
+  taxId: z.preprocess(blankToNull, z.string().regex(/^\d{13}$/, 'เลขผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก').nullish()),
+  branch: optStr(60),
+  contactName: optStr(120),
+  phone: optStr(40),
+  email: z.preprocess(blankToNull, z.email('อีเมลไม่ถูกต้อง').nullish()),
+  address: optStr(500),
+  paymentTermDays: optInt(0, 365),
+  bankName: optStr(80),
+  bankAccountNo: optStr(30),
+  isActive: z.boolean().default(true),
+  notes: optStr(1000),
+});
+export const warehouseSchema = z.object({
+  code: reqStr(20),
+  name: reqStr(120),
+  location: optStr(200),
+  isActive: z.boolean().default(true),
+  notes: optStr(500),
+});
+export const inventoryItemSchema = z.object({
+  code: optStr(30),
+  name: reqStr(200),
+  category: z.enum(E.SUPPLY_CATEGORY),
+  unit: reqStr(20),
+  minStock: optNum(0, 1e9),
+  isActive: z.boolean().default(true),
+  notes: optStr(500),
+});
+const qty = posNum(1e9);
+export const stockReceiptSchema = z.object({
+  warehouseId: id, itemId: id, quantity: qty, unitCost: reqNum(0, 1e9), movedAt: isoDateTime, notes: reqStr(500),
+});
+export const stockIssueSchema = z.object({
+  warehouseId: id, itemId: id, quantity: qty, movedAt: isoDateTime, vesselId: id, tripId: optId, notes: optStr(500),
+  override: z.boolean().optional(), overrideReason: optStr(500),
+});
+export const stockTransferSchema = z
+  .object({ fromWarehouseId: id, toWarehouseId: id, itemId: id, quantity: qty, movedAt: isoDateTime, notes: optStr(500) })
+  .refine((v) => v.fromWarehouseId !== v.toWarehouseId, { path: ['toWarehouseId'], message: 'คลังปลายทางต้องไม่ซ้ำคลังต้นทาง' });
+export const stockAdjustSchema = z.object({
+  warehouseId: id, itemId: id, countedQty: reqNum(0, 1e9), movedAt: isoDateTime, reason: reqStr(500),
+});
+
+// ---------- purchasing ----------
+const prLine = z.object({
+  itemId: optId,
+  description: reqStr(200),
+  quantity: qty,
+  unit: reqStr(20),
+  estUnitCost: optNum(0, 1e9),
+  notes: optStr(300),
+});
+export const purchaseRequestSchema = z.object({
+  neededBy: optDate,
+  vesselId: optId,
+  tripId: optId,
+  notes: optStr(1000),
+  items: z.array(prLine).min(1, 'เพิ่มรายการอย่างน้อย 1 รายการ').max(200),
+});
+const poLine = z.object({
+  itemId: optId,
+  category: z.enum(E.SUPPLY_CATEGORY).default('OTHER'),
+  description: reqStr(200),
+  quantity: qty,
+  unit: reqStr(20),
+  unitPrice: reqNum(0, 1e9),
+});
+export const purchaseOrderSchema = z.object({
+  supplierId: id,
+  prId: optId,
+  orderDate: isoDate,
+  expectedDate: optDate,
+  warehouseId: id,
+  vesselId: optId,
+  tripId: optId,
+  discount: optNum(0, 1e10),
+  vatRate: z.preprocess((v) => (v === '' || v == null ? 7 : Number(v)), z.number().min(0).max(20)),
+  notes: optStr(1000),
+  items: z.array(poLine).min(1, 'เพิ่มรายการอย่างน้อย 1 รายการ').max(200),
+});
+export const goodsReceiptSchema = z.object({
+  receivedAt: isoDateTime,
+  warehouseId: optId,
+  supplierInvoiceNo: optStr(60),
+  fileId: optId,
+  notes: optStr(1000),
+  lines: z.array(z.object({ poItemId: id, quantity: qty })).min(1, 'ระบุจำนวนที่รับอย่างน้อย 1 รายการ'),
+});

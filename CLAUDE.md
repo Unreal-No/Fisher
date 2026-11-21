@@ -2,7 +2,7 @@
 
 ## Map
 - `packages/shared/src` — **single source**: enums.ts (must match Prisma enums), labels.ts (Thai), permissions.ts (RBAC + ROLE_DEFS), schemas.ts (Zod for web+api), trip-state.ts, format.ts (พ.ศ./Asia/Bangkok)
-- `apps/api/src` — app.ts (plugins/routes), plugins/auth.ts (session, CSRF, `app.can`), lib/{errors,audit,http,storage,settings,seed-core}.ts, modules/<m>/routes.ts (+service.ts when logic is non-trivial); gps/{adapters,geo,service}.ts, fuel/service.ts (tank ledger, FOR UPDATE)
+- `apps/api/src` — app.ts (plugins/routes), plugins/auth.ts (session, CSRF, `app.can`), lib/{errors,audit,http,storage,settings,seed-core}.ts, modules/<m>/routes.ts (+service.ts when logic is non-trivial); gps/{adapters,geo,service}.ts, fuel/service.ts (tank ledger, FOR UPDATE), inventory/stock.ts (`postMovement` = only way to change stock), purchasing/service.ts (PR→PO→GR)
 - `apps/api/prisma` — schema.prisma, migrations (custom SQL appended: partial unique idx, CHECKs, audit trigger), seed.ts
 - `apps/web/src` — router.tsx, lib/{api,auth,hooks,lookups,offline-queue,export}.ts, components/ui/*, features/<m>/*
 - `docs/` — PRD, architecture, schema, API, UI, security, roadmap

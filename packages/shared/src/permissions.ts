@@ -46,6 +46,7 @@ export const PERMISSIONS = {
   'purchase.approve': 'อนุมัติการจัดซื้อ',
   'inventory.view': 'ดูคลังสินค้า',
   'inventory.edit': 'เคลื่อนไหวสต็อก',
+  'inventory.approve': 'อนุมัติจ่ายเกินสต็อก',
   'fuel.view': 'ดูน้ำมัน',
   'fuel.edit': 'บันทึกน้ำมัน',
   'fuel.approve': 'อนุมัติจ่ายน้ำมันเกินยอดคงเหลือ',
@@ -82,7 +83,7 @@ export const ROLE_DEFS: Record<string, { name: string; description: string; perm
   OPERATIONS_MANAGER: {
     name: 'ผู้จัดการฝ่ายปฏิบัติการ',
     description: 'ควบคุมเรือ เที่ยวเรือ สัตว์น้ำ',
-    permissions: pick('dashboard.view', 'vessel.', 'trip.', 'catch.', 'species.manage', 'gps.', 'employee.view', 'fuel.', 'inventory.view', 'report.'),
+    permissions: pick('dashboard.view', 'vessel.', 'trip.', 'catch.', 'species.manage', 'gps.', 'employee.view', 'fuel.', 'inventory.', 'purchase.view', 'purchase.approve', 'report.'),
   },
   FLEET_MANAGER: {
     name: 'ผู้จัดการกองเรือ',
@@ -107,12 +108,12 @@ export const ROLE_DEFS: Record<string, { name: string; description: string; perm
   PURCHASING_OFFICER: {
     name: 'เจ้าหน้าที่จัดซื้อ',
     description: 'ใบขอซื้อ ใบสั่งซื้อ ผู้ขาย',
-    permissions: pick('dashboard.view', 'purchase.view', 'purchase.create', 'inventory.view', 'fuel.view', 'fuel.edit', 'vessel.view', 'trip.view'),
+    permissions: pick('dashboard.view', 'purchase.view', 'purchase.create', 'inventory.view', 'inventory.edit', 'fuel.view', 'fuel.edit', 'vessel.view', 'trip.view'),
   },
   WAREHOUSE_OFFICER: {
     name: 'เจ้าหน้าที่คลังสินค้า',
     description: 'รับ-จ่าย-โอนสต็อก',
-    permissions: pick('dashboard.view', 'inventory.', 'purchase.view', 'vessel.view', 'trip.view', 'catch.view'),
+    permissions: pick('dashboard.view', 'inventory.view', 'inventory.edit', 'purchase.view', 'vessel.view', 'trip.view', 'catch.view'),
   },
   SALES_OFFICER: {
     name: 'เจ้าหน้าที่ขาย',

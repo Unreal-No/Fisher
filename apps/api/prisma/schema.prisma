@@ -197,6 +197,32 @@ enum FuelTxnType {
   ADJUSTMENT
 }
 
+enum PrStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CANCELLED
+  ORDERED
+}
+
+enum PoStatus {
+  DRAFT
+  APPROVED
+  PARTIALLY_RECEIVED
+  RECEIVED
+  CLOSED
+  CANCELLED
+}
+
+enum StockMoveType {
+  RECEIPT
+  ISSUE
+  TRANSFER_OUT
+  TRANSFER_IN
+  ADJUSTMENT
+}
+
 enum NotificationSeverity {
   INFO
   WARNING
@@ -372,6 +398,7 @@ model Vessel {
   userScopes     UserVessel[]
   geofenceEvents GeofenceEvent[]
   fuelTxns       FuelTransaction[]
+  stockMovements StockMovement[]
 
   @@index([status])
   @@index([deletedAt])
@@ -650,6 +677,8 @@ model TripSupply {
   createdById String?        @map("created_by_id") @db.Uuid
   createdAt   DateTime       @default(now()) @map("created_at") @db.Timestamptz
   trip        FishingTrip    @relation(fields: [tripId], references: [id])
+  /// set when issued from company stock (ledger-linked; cannot be deleted from the trip)
+  stockMove   StockMovement?
 
   @@index([tripId])
   @@map("trip_supplies")
@@ -987,4 +1016,238 @@ model DocSequence {
 
   @@id([key, period])
   @@map("doc_sequences")
+}
+
+// ======================= PURCHASING / INVENTORY =======================
+model Supplier {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  code            String          @unique
+  name            String
+  taxId           String?         @map("tax_id")
+  branch          String?
+  contactName     String?         @map("contact_name")
+  phone           String?
+  email           String?
+  address         String?
+  paymentTermDays Int?            @map("payment_term_days")
+  bankName        String?         @map("bank_name")
+  bankAccountNo   String?         @map("bank_account_no")
+  isActive        Boolean         @default(true) @map("is_active")
+  notes           String?
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt       DateTime?       @map("deleted_at") @db.Timestamptz
+  orders          PurchaseOrder[]
+
+  @@map("suppliers")
+}
+
+model Warehouse {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  code      String          @unique
+  name      String
+  location  String?
+  isActive  Boolean         @default(true) @map("is_active")
+  notes     String?
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  balances  StockBalance[]
+  movements StockMovement[]
+
+  @@map("warehouses")
+}
+
+model InventoryItem {
+  id        String          @id @default(uuid(7)) @db.Uuid
+  code      String          @unique
+  name      String
+  category  SupplyCategory
+  unit      String
+  minStock  Decimal?        @map("min_stock") @db.Decimal(14, 3)
+  isActive  Boolean         @default(true) @map("is_active")
+  notes     String?
+  createdAt DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt DateTime?       @map("deleted_at") @db.Timestamptz
+  balances  StockBalance[]
+  movements StockMovement[]
+
+  @@index([category])
+  @@map("inventory_items")
+}
+
+/// Maintained in the same transaction as stock_movements (row locked FOR UPDATE). Moving-average cost per warehouse+item.
+model StockBalance {
+  warehouseId String        @map("warehouse_id") @db.Uuid
+  itemId      String        @map("item_id") @db.Uuid
+  quantity    Decimal       @default(0) @db.Decimal(14, 3)
+  avgCost     Decimal       @default(0) @map("avg_cost") @db.Decimal(14, 4)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  warehouse   Warehouse     @relation(fields: [warehouseId], references: [id])
+  item        InventoryItem @relation(fields: [itemId], references: [id])
+
+  @@id([warehouseId, itemId])
+  @@index([itemId])
+  @@map("stock_balances")
+}
+
+/// Immutable stock ledger. Corrections are ADJUSTMENT rows.
+model StockMovement {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  moveNo         String        @unique @map("move_no")
+  type           StockMoveType
+  movedAt        DateTime      @map("moved_at") @db.Timestamptz
+  warehouseId    String        @map("warehouse_id") @db.Uuid
+  itemId         String        @map("item_id") @db.Uuid
+  /// signed: + in, - out
+  quantity       Decimal       @db.Decimal(14, 3)
+  unitCost       Decimal       @map("unit_cost") @db.Decimal(14, 4)
+  totalCost      Decimal       @map("total_cost") @db.Decimal(14, 2)
+  balanceAfter   Decimal       @map("balance_after") @db.Decimal(14, 3)
+  avgCostAfter   Decimal       @map("avg_cost_after") @db.Decimal(14, 4)
+  /// GR | ISSUE | TRANSFER | ADJUSTMENT | MANUAL
+  refType        String        @map("ref_type")
+  refId          String?       @map("ref_id") @db.Uuid
+  transferPairId String?       @map("transfer_pair_id") @db.Uuid
+  vesselId       String?       @map("vessel_id") @db.Uuid
+  tripId         String?       @map("trip_id") @db.Uuid
+  tripSupplyId   String?       @unique @map("trip_supply_id") @db.Uuid
+  overrideReason String?       @map("override_reason")
+  notes          String?
+  createdById    String?       @map("created_by_id") @db.Uuid
+  createdAt      DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  warehouse      Warehouse     @relation(fields: [warehouseId], references: [id])
+  item           InventoryItem @relation(fields: [itemId], references: [id])
+  vessel         Vessel?       @relation(fields: [vesselId], references: [id])
+  tripSupply     TripSupply?   @relation(fields: [tripSupplyId], references: [id], onDelete: Restrict)
+
+  @@index([itemId, movedAt])
+  @@index([warehouseId, movedAt])
+  @@index([refType, refId])
+  @@map("stock_movements")
+}
+
+model PurchaseRequest {
+  id            String                @id @default(uuid(7)) @db.Uuid
+  prNo          String                @unique @map("pr_no")
+  status        PrStatus              @default(DRAFT)
+  neededBy      DateTime?             @map("needed_by") @db.Date
+  vesselId      String?               @map("vessel_id") @db.Uuid
+  tripId        String?               @map("trip_id") @db.Uuid
+  notes         String?
+  requestedById String?               @map("requested_by_id") @db.Uuid
+  submittedAt   DateTime?             @map("submitted_at") @db.Timestamptz
+  decidedById   String?               @map("decided_by_id") @db.Uuid
+  decidedAt     DateTime?             @map("decided_at") @db.Timestamptz
+  decisionNote  String?               @map("decision_note")
+  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+  items         PurchaseRequestItem[]
+  orders        PurchaseOrder[]
+
+  @@index([status])
+  @@map("purchase_requests")
+}
+
+model PurchaseRequestItem {
+  id          String          @id @default(uuid(7)) @db.Uuid
+  prId        String          @map("pr_id") @db.Uuid
+  itemId      String?         @map("item_id") @db.Uuid
+  description String
+  quantity    Decimal         @db.Decimal(14, 3)
+  unit        String
+  estUnitCost Decimal?        @map("est_unit_cost") @db.Decimal(14, 4)
+  notes       String?
+  pr          PurchaseRequest @relation(fields: [prId], references: [id], onDelete: Cascade)
+
+  @@index([prId])
+  @@map("purchase_request_items")
+}
+
+model PurchaseOrder {
+  id           String              @id @default(uuid(7)) @db.Uuid
+  poNo         String              @unique @map("po_no")
+  status       PoStatus            @default(DRAFT)
+  supplierId   String              @map("supplier_id") @db.Uuid
+  prId         String?             @map("pr_id") @db.Uuid
+  orderDate    DateTime            @map("order_date") @db.Date
+  expectedDate DateTime?           @map("expected_date") @db.Date
+  /// default receiving warehouse for stock lines
+  warehouseId  String              @map("warehouse_id") @db.Uuid
+  /// direct-to-vessel purchase: non-stock lines are booked as trip supplies on receipt
+  vesselId     String?             @map("vessel_id") @db.Uuid
+  tripId       String?             @map("trip_id") @db.Uuid
+  subtotal     Decimal             @db.Decimal(14, 2)
+  discount     Decimal             @default(0) @db.Decimal(14, 2)
+  vatRate      Decimal             @default(7) @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount    Decimal             @map("vat_amount") @db.Decimal(14, 2)
+  total        Decimal             @db.Decimal(14, 2)
+  notes        String?
+  approvedById String?             @map("approved_by_id") @db.Uuid
+  approvedAt   DateTime?           @map("approved_at") @db.Timestamptz
+  closedAt     DateTime?           @map("closed_at") @db.Timestamptz
+  closeReason  String?             @map("close_reason")
+  version      Int                 @default(1)
+  createdById  String?             @map("created_by_id") @db.Uuid
+  createdAt    DateTime            @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime            @updatedAt @map("updated_at") @db.Timestamptz
+  supplier     Supplier            @relation(fields: [supplierId], references: [id])
+  pr           PurchaseRequest?    @relation(fields: [prId], references: [id])
+  items        PurchaseOrderItem[]
+  receipts     GoodsReceipt[]
+
+  @@index([status])
+  @@index([supplierId, orderDate])
+  @@map("purchase_orders")
+}
+
+model PurchaseOrderItem {
+  id          String             @id @default(uuid(7)) @db.Uuid
+  poId        String             @map("po_id") @db.Uuid
+  itemId      String?            @map("item_id") @db.Uuid
+  category    SupplyCategory     @default(OTHER)
+  description String
+  quantity    Decimal            @db.Decimal(14, 3)
+  unit        String
+  unitPrice   Decimal            @map("unit_price") @db.Decimal(14, 4)
+  lineTotal   Decimal            @map("line_total") @db.Decimal(14, 2)
+  receivedQty Decimal            @default(0) @map("received_qty") @db.Decimal(14, 3)
+  po          PurchaseOrder      @relation(fields: [poId], references: [id], onDelete: Cascade)
+  receipts    GoodsReceiptItem[]
+
+  @@index([poId])
+  @@map("purchase_order_items")
+}
+
+model GoodsReceipt {
+  id                String             @id @default(uuid(7)) @db.Uuid
+  grNo              String             @unique @map("gr_no")
+  poId              String             @map("po_id") @db.Uuid
+  warehouseId       String             @map("warehouse_id") @db.Uuid
+  receivedAt        DateTime           @map("received_at") @db.Timestamptz
+  supplierInvoiceNo String?            @map("supplier_invoice_no")
+  fileId            String?            @map("file_id") @db.Uuid
+  notes             String?
+  createdById       String?            @map("created_by_id") @db.Uuid
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  po                PurchaseOrder      @relation(fields: [poId], references: [id])
+  items             GoodsReceiptItem[]
+
+  @@index([poId])
+  @@map("goods_receipts")
+}
+
+model GoodsReceiptItem {
+  id              String            @id @default(uuid(7)) @db.Uuid
+  grId            String            @map("gr_id") @db.Uuid
+  poItemId        String            @map("po_item_id") @db.Uuid
+  quantity        Decimal           @db.Decimal(14, 3)
+  unitCost        Decimal           @map("unit_cost") @db.Decimal(14, 4)
+  lineTotal       Decimal           @map("line_total") @db.Decimal(14, 2)
+  stockMovementId String?           @unique @map("stock_movement_id") @db.Uuid
+  tripSupplyId    String?           @unique @map("trip_supply_id") @db.Uuid
+  gr              GoodsReceipt      @relation(fields: [grId], references: [id], onDelete: Cascade)
+  poItem          PurchaseOrderItem @relation(fields: [poItemId], references: [id])
+
+  @@map("goods_receipt_items")
 }
