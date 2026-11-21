@@ -18,7 +18,7 @@ export interface PostInput {
   /** required for inbound RECEIPT/TRANSFER_IN; outbound uses current average */
   unitCost?: number;
   movedAt: Date;
-  refType: 'GR' | 'ISSUE' | 'TRANSFER' | 'ADJUSTMENT' | 'MANUAL';
+  refType: 'GR' | 'ISSUE' | 'TRANSFER' | 'ADJUSTMENT' | 'MANUAL' | 'MAINTENANCE';
   refId?: string | null;
   transferPairId?: string | null;
   vesselId?: string | null;

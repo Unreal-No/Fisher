@@ -43,12 +43,15 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | sales_items | ขายจากล็อต trip×species×grade; discount_share, returned_kg/amount | CHECK returned ≤ sold |
 | sales_payments | ใบเสร็จ RC (ยกเลิกด้วยเหตุผล ไม่ลบ) | CHECK amount > 0 |
 | sales_returns / _items | ใบลดหนี้ CN (ไม่คืนสต็อก) | |
+| maintenance_plans | แผนบำรุงรักษาต่อเรือ: รอบวัน/ชั่วโมงเครื่อง, ครั้งล่าสุด | CHECK มีรอบอย่างน้อย 1 |
+| engine_hour_logs | มิเตอร์ชั่วโมงเครื่อง (MANUAL/TRIP_DEPARTURE/TRIP_ARRIVAL/MAINTENANCE), is_reset | ห้ามถอยหลัง (ตรวจค่าก่อน/หลัง) |
+| maintenance_orders | ใบสั่งซ่อม MO: OPEN→IN_PROGRESS→COMPLETED/CANCELLED, takes_out_of_service, ค่าแรง/ภายนอก/อะไหล่ (parts_cost จาก stock_movements ref MAINTENANCE) | CHECK ต้นทุน ≥ 0 |
+| maintenance_attachments | ไฟล์แนบใบสั่งซ่อม | |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |
 | doc_sequences | เลขรันต่อ key/period | PK (key, period) |
 
 ## แผนตารางเฟสถัดไป
-- Maintenance: `maintenance_plans`, `maintenance_orders`, `service_providers`
 - Payroll: `compensation_rules` (ต่อเรือ/ตำแหน่ง, JSON formula versioned), `payroll_periods`, `payroll_records`, `payroll_items`, `employee_advances`, `loans`, `deductions`, `payment_vouchers`
 - Accounting: `chart_of_accounts`, `fiscal_periods` (closing), `journal_entries` (DRAFT/POSTED/REVERSED), `journal_lines` (Σdr=Σcr ตรวจด้วย deferred constraint trigger), `bank_accounts`, `cost_allocations` (vessel/trip/department)

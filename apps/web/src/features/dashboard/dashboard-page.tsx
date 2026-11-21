@@ -25,6 +25,7 @@ interface Summary {
   expenses: { confirmed: number; estimated: number } | null;
   sales: { revenue: number; soldKg: number; receivables: number; suppliesCost: number; estimatedProfit: number } | null;
   alerts: {
+    maintenance: { id: string; name: string; vessel: { id: string; code: string; name: string }; state: 'OVERDUE' | 'DUE_SOON'; nextDueDate: string | null; hoursLeft: number | null }[];
     documents: { id: string; employeeId: string; employee: string; documentType: string; expiryDate: string }[];
     vessels: { id: string; code: string; name: string; licenseExpiry: string }[];
   };
@@ -169,8 +170,16 @@ export function DashboardPage() {
                 )}
               </Panel>
               <Panel title="แจ้งเตือนสำคัญ" bodyClass="p-0" actions={<Link className="text-sm text-accent" to="/documents">รายงานเอกสาร</Link>}>
-                {d.alerts.documents.length + d.alerts.vessels.length ? (
+                {d.alerts.documents.length + d.alerts.vessels.length + d.alerts.maintenance.length ? (
                   <ul className="divide-y divide-line text-sm">
+                    {d.alerts.maintenance.map((m) => (
+                      <li key={m.id} className="px-4 py-2">
+                        <Link to={`/maintenance?tab=plans&vesselId=${m.vessel.id}`} className="font-medium hover:underline">{m.vessel.code} {m.vessel.name}</Link>
+                        <div className={m.state === 'OVERDUE' ? 'text-xs text-bad' : 'text-xs text-warn'}>
+                          ซ่อมบำรุง: {m.name} · {m.state === 'OVERDUE' ? 'เกินกำหนด' : 'ใกล้ถึงกำหนด'}{m.nextDueDate ? ` (${formatDate(m.nextDueDate)})` : ''}{m.hoursLeft !== null ? ` · เหลือ ${formatNumber(m.hoursLeft)} ชม.เครื่อง` : ''}
+                        </div>
+                      </li>
+                    ))}
                     {d.alerts.vessels.map((v) => (
                       <li key={v.id} className="px-4 py-2">
                         <Link to={`/vessels/${v.id}`} className="font-medium hover:underline">{v.code} {v.name}</Link>

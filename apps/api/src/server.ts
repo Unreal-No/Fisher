@@ -3,6 +3,7 @@ import { config } from './config';
 import { prisma } from './lib/prisma';
 import { scanSignalLost } from './modules/gps/service';
 import { scanLowStock } from './modules/inventory/alerts';
+import { scanMaintenanceDue } from './modules/maintenance/service';
 import { scanExpirations } from './modules/notifications/service';
 
 const app = await buildApp();
@@ -11,7 +12,7 @@ await app.listen({ port: config.PORT, host: '0.0.0.0' });
 // Background jobs (single-instance). For multi-instance deploys move to a scheduler / advisory lock.
 const job = async () => {
   try {
-    const r = { ...(await scanExpirations()), lowStock: (await scanLowStock()).low };
+    const r = { ...(await scanExpirations()), lowStock: (await scanLowStock()).low, maintenanceDue: (await scanMaintenanceDue()).due };
     await prisma.session.deleteMany({ where: { expiresAt: { lt: new Date() } } });
     app.log.info(r, 'expiry scan done');
   } catch (err) {

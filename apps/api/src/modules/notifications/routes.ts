@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { idParam, paged, paging, parseList } from '../../lib/http';
 import { prisma } from '../../lib/prisma';
 import { scanLowStock } from '../inventory/alerts';
+import { scanMaintenanceDue } from '../maintenance/service';
 import { scanExpirations } from './service';
 
 export default async function notificationRoutes(app: FastifyInstance) {
@@ -27,6 +28,7 @@ export default async function notificationRoutes(app: FastifyInstance) {
   app.post('/scan', { preHandler: app.canAny('settings.manage', 'employee_doc.manage') }, async () => {
     const r = await scanExpirations();
     const s = await scanLowStock();
-    return { alerts: r.alerts + s.low, created: r.created + s.created };
+    const m = await scanMaintenanceDue();
+    return { alerts: r.alerts + s.low + m.due, created: r.created + s.created + m.created };
   });
 }

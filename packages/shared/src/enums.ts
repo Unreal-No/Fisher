@@ -139,3 +139,22 @@ export type PaymentMethod = (typeof PAYMENT_METHOD)[number];
 /** Derived from paid/credited vs total */
 export const PAYMENT_STATUS = ['UNPAID', 'PARTIAL', 'PAID'] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUS)[number];
+
+export const MAINT_CATEGORY = ['ENGINE', 'HULL', 'ELECTRICAL', 'HYDRAULIC', 'SAFETY', 'FISHING_GEAR', 'REFRIGERATION', 'DOCKING', 'OTHER'] as const;
+export type MaintCategory = (typeof MAINT_CATEGORY)[number];
+
+export const MAINT_TYPE = ['PREVENTIVE', 'CORRECTIVE', 'INSPECTION', 'DOCKING'] as const;
+export type MaintType = (typeof MAINT_TYPE)[number];
+
+export const MAINT_STATUS = ['OPEN', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED'] as const;
+export type MaintStatus = (typeof MAINT_STATUS)[number];
+
+export const PRIORITY = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'] as const;
+export type Priority = (typeof PRIORITY)[number];
+
+export const ENGINE_HOUR_SOURCE = ['MANUAL', 'TRIP_DEPARTURE', 'TRIP_ARRIVAL', 'MAINTENANCE'] as const;
+export type EngineHourSource = (typeof ENGINE_HOUR_SOURCE)[number];
+
+/** Derived */
+export const DUE_STATE = ['OK', 'DUE_SOON', 'OVERDUE', 'NO_BASELINE'] as const;
+export type DueState = (typeof DUE_STATE)[number];

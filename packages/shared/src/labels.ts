@@ -178,3 +178,12 @@ export const STOCK_MOVE_TYPE_TH: Record<E.StockMoveType, string> = {
 export const SALES_STATUS_TH: Record<E.SalesStatus, string> = { DRAFT: 'ร่าง (ใบสั่งขาย)', CONFIRMED: 'ออกใบแจ้งหนี้แล้ว', VOID: 'ยกเลิก' };
 export const PAYMENT_METHOD_TH: Record<E.PaymentMethod, string> = { CASH: 'เงินสด', TRANSFER: 'โอนเงิน', CHEQUE: 'เช็ค', OTHER: 'อื่นๆ' };
 export const PAYMENT_STATUS_TH: Record<E.PaymentStatus, string> = { UNPAID: 'ยังไม่ชำระ', PARTIAL: 'ชำระบางส่วน', PAID: 'ชำระครบ' };
+export const MAINT_CATEGORY_TH: Record<E.MaintCategory, string> = {
+  ENGINE: 'เครื่องยนต์', HULL: 'ตัวเรือ', ELECTRICAL: 'ไฟฟ้า', HYDRAULIC: 'ระบบไฮดรอลิก/กว้าน', SAFETY: 'อุปกรณ์ความปลอดภัย',
+  FISHING_GEAR: 'เครื่องมือประมง', REFRIGERATION: 'ระบบทำความเย็น/ห้องเย็น', DOCKING: 'ขึ้นคาน', OTHER: 'อื่นๆ',
+};
+export const MAINT_TYPE_TH: Record<E.MaintType, string> = { PREVENTIVE: 'บำรุงรักษาตามแผน', CORRECTIVE: 'ซ่อมแก้ไข', INSPECTION: 'ตรวจสภาพ', DOCKING: 'ขึ้นคาน' };
+export const MAINT_STATUS_TH: Record<E.MaintStatus, string> = { OPEN: 'รอดำเนินการ', IN_PROGRESS: 'กำลังซ่อม', COMPLETED: 'เสร็จแล้ว', CANCELLED: 'ยกเลิก' };
+export const PRIORITY_TH: Record<E.Priority, string> = { LOW: 'ต่ำ', MEDIUM: 'ปานกลาง', HIGH: 'สูง', CRITICAL: 'วิกฤต' };
+export const ENGINE_HOUR_SOURCE_TH: Record<E.EngineHourSource, string> = { MANUAL: 'บันทึกเอง', TRIP_DEPARTURE: 'ออกเรือ', TRIP_ARRIVAL: 'เข้าท่า', MAINTENANCE: 'ซ่อมบำรุง' };
+export const DUE_STATE_TH: Record<E.DueState, string> = { OK: 'ปกติ', DUE_SOON: 'ใกล้ถึงกำหนด', OVERDUE: 'เกินกำหนด', NO_BASELINE: 'ยังไม่มีข้อมูลครั้งล่าสุด' };

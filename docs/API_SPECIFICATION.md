@@ -52,6 +52,10 @@ Codes: 400 VALIDATION_ERROR/BAD_REQUEST · 401 · 403 FORBIDDEN/CSRF/MUST_CHANGE
 | POST /sales/invoices/:id/payments · /sales/payments/:id/void | sales.create∨finance.edit / sales.approve∨finance.approve | 409 OVERPAYMENT |
 | POST /sales/invoices/:id/returns | sales.approve | ใบลดหนี้ (ยอด ex-VAT × (1+VAT)); 409 OVER_RETURN / CREDIT_EXCEEDS_OUTSTANDING |
 | GET /sales/receivables · /sales/report?from&to&groupBy | sales.view(∨finance.view) / sales.view | aging ตามวันครบกำหนด; ยอดขายสุทธิ ex-VAT |
+| GET/POST /maintenance/plans · PUT …/:id | maintenance.view / maintenance.edit | due คำนวณจากวัน/ชั่วโมงเครื่อง |
+| GET/POST /maintenance/engine-hours | maintenance.view / maintenance.create | 409 ENGINE_HOURS_DECREASE (รีเซ็ตต้องมีเหตุผล) |
+| GET/POST /maintenance/orders · GET/PATCH …/:id · POST …/:id/{start,parts,complete,cancel,attachments} | maintenance.view/create/edit | 409 VESSEL_AT_SEA / HAS_PARTS · 422 INSUFFICIENT_STOCK |
+| GET /maintenance/report?from&to&groupBy=vessel\|category\|month | maintenance.view | ใบสั่งซ่อมที่เสร็จแล้ว |
 | GET/POST /users · PATCH /users/:id · POST /users/:id/reset-password | user.manage | |
 | GET /roles · /permissions · PUT /roles/:id/permissions | role.manage∨user.manage / role.manage | SUPER_ADMIN แก้ไม่ได้ |
 | GET /audit-logs | audit.view | |

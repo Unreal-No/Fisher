@@ -14,6 +14,7 @@ import { has } from '../../plugins/auth';
 import { checklist } from '../employees/docs';
 import { fullName } from '../employees/service';
 import { tripRevenue } from '../sales/service';
+import { logEngineHours } from '../maintenance/service';
 
 export async function getTrip(req: FastifyRequest, id: string, db: Tx | typeof prisma = prisma) {
   const t = await db.fishingTrip.findUnique({ where: { id } });
@@ -225,6 +226,8 @@ export async function depart(req: FastifyRequest, id: string, b: z.output<typeof
       });
     }
     await tx.vessel.update({ where: { id: t.vesselId }, data: { status: 'AT_SEA' } });
+    if (b.engineHoursAtDeparture != null)
+      await logEngineHours(tx, req.user!.id, { vesselId: t.vesselId, recordedAt: departedAt, hours: b.engineHoursAtDeparture, source: 'TRIP_DEPARTURE', tripId: id, notes: t.tripNo });
     await logStatus(tx, req, id, t.status, 'DEPARTED');
     await audit(tx, req, { action: 'DEPART', entityType: 'FishingTrip', entityId: id, before: t, after: u });
     if (blocking.length)
@@ -259,6 +262,8 @@ export async function arrive(req: FastifyRequest, id: string, b: z.output<typeof
     });
     const stillAtSea = await tx.fishingTrip.count({ where: { vesselId: t.vesselId, id: { not: id }, status: { in: AT_SEA_STATUSES } } });
     if (!stillAtSea) await tx.vessel.update({ where: { id: t.vesselId }, data: { status: 'AT_PORT' } });
+    if (b.engineHoursAtArrival != null)
+      await logEngineHours(tx, req.user!.id, { vesselId: t.vesselId, recordedAt: arrivedAt, hours: b.engineHoursAtArrival, source: 'TRIP_ARRIVAL', tripId: id, notes: t.tripNo });
     await logStatus(tx, req, id, t.status, 'ARRIVED');
     await audit(tx, req, { action: 'ARRIVE', entityType: 'FishingTrip', entityId: id, before: t, after: u });
     return u;

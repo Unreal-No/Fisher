@@ -310,6 +310,8 @@ export const settingsSchema = z.object({
   companyName: optStr(200),
   docReminderDays: z.array(z.number().int().min(1).max(365)).min(1).max(10).optional(),
   gpsSignalLostMinutes: z.number().int().min(5).max(1440).optional(),
+  maintenanceReminderDays: z.number().int().min(1).max(180).optional(),
+  maintenanceReminderHours: z.number().int().min(1).max(5000).optional(),
 });
 
 // ---------- GPS ----------
@@ -529,3 +531,48 @@ export const salesReturnSchema = z.object({
   reason: reqStr(500),
   items: z.array(z.object({ salesItemId: id, weightKg: posNum(1e7), amount: posNum(1e10) })).min(1, 'ระบุรายการคืนอย่างน้อย 1 รายการ'),
 });
+
+// ---------- maintenance ----------
+export const maintenancePlanSchema = z
+  .object({
+    vesselId: id,
+    name: reqStr(150),
+    category: z.enum(E.MAINT_CATEGORY),
+    intervalDays: optInt(1, 3650),
+    intervalEngineHours: optInt(1, 100000),
+    lastDoneAt: optDate,
+    lastDoneEngineHours: optNum(0, 1e6),
+    isActive: z.boolean().default(true),
+    notes: optStr(1000),
+  })
+  .refine((p) => p.intervalDays != null || p.intervalEngineHours != null, { path: ['intervalDays'], message: 'กำหนดรอบเป็นวันหรือชั่วโมงเครื่องอย่างน้อยหนึ่งอย่าง' });
+export const engineHourSchema = z.object({
+  vesselId: id,
+  recordedAt: isoDateTime,
+  hours: reqNum(0, 1e6),
+  isReset: z.boolean().default(false),
+  notes: optStr(500),
+});
+export const maintenanceOrderSchema = z.object({
+  vesselId: id,
+  planId: optId,
+  title: reqStr(200),
+  category: z.enum(E.MAINT_CATEGORY),
+  type: z.enum(E.MAINT_TYPE),
+  priority: z.enum(E.PRIORITY).default('MEDIUM'),
+  reportedAt: isoDateTime,
+  takesOutOfService: z.boolean().default(false),
+  providerId: optId,
+  description: optStr(2000),
+});
+export const maintenanceCompleteSchema = z.object({
+  completedAt: isoDateTime,
+  engineHours: optNum(0, 1e6),
+  findings: optStr(2000),
+  laborCost: optNum(0, 1e10),
+  externalCost: optNum(0, 1e10),
+  providerId: optId,
+  invoiceNo: optStr(60),
+});
+export const maintenancePartSchema = z.object({ warehouseId: id, itemId: id, quantity: posNum(1e9), notes: optStr(300) });
+export const attachmentSchema = z.object({ fileId: id, note: optStr(300) });

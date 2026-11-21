@@ -15,7 +15,7 @@ import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
 import { useDocTypes, type DocType } from '@/lib/lookups';
 
-interface Settings { companyName: string; docReminderDays: number[]; gpsSignalLostMinutes: number }
+interface Settings { companyName: string; docReminderDays: number[]; gpsSignalLostMinutes: number; maintenanceReminderDays: number; maintenanceReminderHours: number }
 
 export function SettingsPage() {
   const s = useQuery({ queryKey: ['settings'], queryFn: () => api.get<Settings>('/settings') });
@@ -23,12 +23,15 @@ export function SettingsPage() {
   const [company, setCompany] = useState('');
   const [days, setDays] = useState('');
   const [lost, setLost] = useState('60');
+  const [mDays, setMDays] = useState('14');
+  const [mHours, setMHours] = useState('50');
   const [edit, setEdit] = useState<DocType | 'new' | null>(null);
   useEffect(() => {
-    if (s.data) { setCompany(s.data.companyName); setDays(s.data.docReminderDays.join(', ')); setLost(String(s.data.gpsSignalLostMinutes)); }
+    if (s.data) { setCompany(s.data.companyName); setDays(s.data.docReminderDays.join(', ')); setLost(String(s.data.gpsSignalLostMinutes)); setMDays(String(s.data.maintenanceReminderDays)); setMHours(String(s.data.maintenanceReminderHours)); }
   }, [s.data]);
   const save = useAction((v: unknown) => api.patch('/settings', v), { success: 'บันทึกการตั้งค่าแล้ว', invalidate: ['settings'] });
   const parsedDays = days.split(/[,\s]+/).filter(Boolean).map(Number);
+  const mValid = Number.isInteger(Number(mDays)) && Number(mDays) >= 1 && Number(mDays) <= 180 && Number.isInteger(Number(mHours)) && Number(mHours) >= 1 && Number(mHours) <= 5000;
   const lostValid = Number.isInteger(Number(lost)) && Number(lost) >= 5 && Number(lost) <= 1440;
   const daysValid = parsedDays.length > 0 && parsedDays.every((d) => Number.isInteger(d) && d > 0 && d <= 365);
   return (
@@ -44,7 +47,11 @@ export function SettingsPage() {
             <Field label="แจ้งเตือนขาดสัญญาณ GPS เมื่อเรือในทะเลไม่ส่งตำแหน่งเกิน (นาที)" error={lostValid ? undefined : 'ตัวเลข 5–1440'}>
               <Input inputMode="numeric" value={lost} onChange={(e) => setLost(e.target.value)} />
             </Field>
-            <Button loading={save.isPending} disabled={!daysValid || !lostValid} onClick={() => save.mutate({ companyName: company, docReminderDays: parsedDays, gpsSignalLostMinutes: Number(lost) })}>บันทึก</Button>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="เตือนซ่อมบำรุงล่วงหน้า (วัน)" error={mValid ? undefined : '1–180 วัน / 1–5000 ชม.'}><Input inputMode="numeric" value={mDays} onChange={(e) => setMDays(e.target.value)} /></Field>
+              <Field label="หรือเหลือชั่วโมงเครื่อง ≤"><Input inputMode="numeric" value={mHours} onChange={(e) => setMHours(e.target.value)} /></Field>
+            </div>
+            <Button loading={save.isPending} disabled={!daysValid || !lostValid || !mValid} onClick={() => save.mutate({ companyName: company, docReminderDays: parsedDays, gpsSignalLostMinutes: Number(lost), maintenanceReminderDays: Number(mDays), maintenanceReminderHours: Number(mHours) })}>บันทึก</Button>
           </div>
         </Panel>
         <Panel title="ประเภทเอกสารพนักงาน (Checklist)" bodyClass="p-0" actions={<Button size="sm" onClick={() => setEdit('new')}><Plus /> เพิ่มประเภท</Button>}>

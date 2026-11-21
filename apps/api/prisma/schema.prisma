@@ -236,6 +236,46 @@ enum PaymentMethod {
   OTHER
 }
 
+enum MaintCategory {
+  ENGINE
+  HULL
+  ELECTRICAL
+  HYDRAULIC
+  SAFETY
+  FISHING_GEAR
+  REFRIGERATION
+  DOCKING
+  OTHER
+}
+
+enum MaintType {
+  PREVENTIVE
+  CORRECTIVE
+  INSPECTION
+  DOCKING
+}
+
+enum MaintStatus {
+  OPEN
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum EngineHourSource {
+  MANUAL
+  TRIP_DEPARTURE
+  TRIP_ARRIVAL
+  MAINTENANCE
+}
+
 enum NotificationSeverity {
   INFO
   WARNING
@@ -400,18 +440,21 @@ model Vessel {
   updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt          DateTime?    @map("deleted_at") @db.Timestamptz
 
-  captain        Employee?          @relation("VesselCaptain", fields: [captainId], references: [id])
-  documents      VesselDocument[]
-  trips          FishingTrip[]
-  catches        CatchRecord[]
-  assignments    VesselAssignment[]
-  crewEmployees  Employee[]         @relation("EmployeeCurrentVessel")
-  gpsDevices     GpsDevice[]
-  gpsPositions   GpsPosition[]
-  userScopes     UserVessel[]
-  geofenceEvents GeofenceEvent[]
-  fuelTxns       FuelTransaction[]
-  stockMovements StockMovement[]
+  captain           Employee?          @relation("VesselCaptain", fields: [captainId], references: [id])
+  documents         VesselDocument[]
+  trips             FishingTrip[]
+  catches           CatchRecord[]
+  assignments       VesselAssignment[]
+  crewEmployees     Employee[]         @relation("EmployeeCurrentVessel")
+  gpsDevices        GpsDevice[]
+  gpsPositions      GpsPosition[]
+  userScopes        UserVessel[]
+  geofenceEvents    GeofenceEvent[]
+  fuelTxns          FuelTransaction[]
+  stockMovements    StockMovement[]
+  maintenancePlans  MaintenancePlan[]
+  engineHourLogs    EngineHourLog[]
+  maintenanceOrders MaintenanceOrder[]
 
   @@index([status])
   @@index([deletedAt])
@@ -1036,24 +1079,25 @@ model DocSequence {
 
 // ======================= PURCHASING / INVENTORY =======================
 model Supplier {
-  id              String          @id @default(uuid(7)) @db.Uuid
-  code            String          @unique
-  name            String
-  taxId           String?         @map("tax_id")
-  branch          String?
-  contactName     String?         @map("contact_name")
-  phone           String?
-  email           String?
-  address         String?
-  paymentTermDays Int?            @map("payment_term_days")
-  bankName        String?         @map("bank_name")
-  bankAccountNo   String?         @map("bank_account_no")
-  isActive        Boolean         @default(true) @map("is_active")
-  notes           String?
-  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz
-  deletedAt       DateTime?       @map("deleted_at") @db.Timestamptz
-  orders          PurchaseOrder[]
+  id                String             @id @default(uuid(7)) @db.Uuid
+  code              String             @unique
+  name              String
+  taxId             String?            @map("tax_id")
+  branch            String?
+  contactName       String?            @map("contact_name")
+  phone             String?
+  email             String?
+  address           String?
+  paymentTermDays   Int?               @map("payment_term_days")
+  bankName          String?            @map("bank_name")
+  bankAccountNo     String?            @map("bank_account_no")
+  isActive          Boolean            @default(true) @map("is_active")
+  notes             String?
+  createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  deletedAt         DateTime?          @map("deleted_at") @db.Timestamptz
+  orders            PurchaseOrder[]
+  maintenanceOrders MaintenanceOrder[]
 
   @@map("suppliers")
 }
@@ -1407,4 +1451,96 @@ model SalesReturnItem {
   salesItem   SalesItem   @relation(fields: [salesItemId], references: [id])
 
   @@map("sales_return_items")
+}
+
+// ======================= MAINTENANCE =======================
+model MaintenancePlan {
+  id                  String             @id @default(uuid(7)) @db.Uuid
+  vesselId            String             @map("vessel_id") @db.Uuid
+  name                String
+  category            MaintCategory
+  intervalDays        Int?               @map("interval_days")
+  intervalEngineHours Int?               @map("interval_engine_hours")
+  lastDoneAt          DateTime?          @map("last_done_at") @db.Date
+  lastDoneEngineHours Decimal?           @map("last_done_engine_hours") @db.Decimal(10, 1)
+  isActive            Boolean            @default(true) @map("is_active")
+  notes               String?
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  vessel              Vessel             @relation(fields: [vesselId], references: [id])
+  orders              MaintenanceOrder[]
+
+  @@index([vesselId])
+  @@map("maintenance_plans")
+}
+
+/// Engine hour meter readings (manual, from trips, from maintenance). Readings must not go backwards unless marked as a meter reset.
+model EngineHourLog {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  vesselId    String           @map("vessel_id") @db.Uuid
+  recordedAt  DateTime         @map("recorded_at") @db.Timestamptz
+  hours       Decimal          @db.Decimal(10, 1)
+  source      EngineHourSource @default(MANUAL)
+  isReset     Boolean          @default(false) @map("is_reset")
+  tripId      String?          @map("trip_id") @db.Uuid
+  orderId     String?          @map("order_id") @db.Uuid
+  notes       String?
+  createdById String?          @map("created_by_id") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  vessel      Vessel           @relation(fields: [vesselId], references: [id])
+
+  @@index([vesselId, recordedAt])
+  @@map("engine_hour_logs")
+}
+
+model MaintenanceOrder {
+  id                String                  @id @default(uuid(7)) @db.Uuid
+  orderNo           String                  @unique @map("order_no")
+  vesselId          String                  @map("vessel_id") @db.Uuid
+  planId            String?                 @map("plan_id") @db.Uuid
+  title             String
+  category          MaintCategory
+  type              MaintType
+  priority          Priority                @default(MEDIUM)
+  status            MaintStatus             @default(OPEN)
+  /// while IN_PROGRESS the vessel is set to MAINTENANCE
+  takesOutOfService Boolean                 @default(false) @map("takes_out_of_service")
+  reportedAt        DateTime                @map("reported_at") @db.Timestamptz
+  startedAt         DateTime?               @map("started_at") @db.Timestamptz
+  completedAt       DateTime?               @map("completed_at") @db.Timestamptz
+  engineHours       Decimal?                @map("engine_hours") @db.Decimal(10, 1)
+  providerId        String?                 @map("provider_id") @db.Uuid
+  invoiceNo         String?                 @map("invoice_no")
+  description       String?
+  findings          String?
+  laborCost         Decimal                 @default(0) @map("labor_cost") @db.Decimal(14, 2)
+  externalCost      Decimal                 @default(0) @map("external_cost") @db.Decimal(14, 2)
+  /// sum of stock issued to this order (stock_movements ref MAINTENANCE)
+  partsCost         Decimal                 @default(0) @map("parts_cost") @db.Decimal(14, 2)
+  cancelReason      String?                 @map("cancel_reason")
+  version           Int                     @default(1)
+  createdById       String?                 @map("created_by_id") @db.Uuid
+  createdAt         DateTime                @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime                @updatedAt @map("updated_at") @db.Timestamptz
+  vessel            Vessel                  @relation(fields: [vesselId], references: [id])
+  plan              MaintenancePlan?        @relation(fields: [planId], references: [id])
+  provider          Supplier?               @relation(fields: [providerId], references: [id])
+  attachments       MaintenanceAttachment[]
+
+  @@index([vesselId, status])
+  @@index([status])
+  @@map("maintenance_orders")
+}
+
+model MaintenanceAttachment {
+  id          String           @id @default(uuid(7)) @db.Uuid
+  orderId     String           @map("order_id") @db.Uuid
+  fileId      String           @map("file_id") @db.Uuid
+  note        String?
+  createdById String?          @map("created_by_id") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  order       MaintenanceOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId])
+  @@map("maintenance_attachments")
 }

@@ -29,6 +29,10 @@ export const PERMISSIONS = {
   'gps.view': 'ดูแผนที่ติดตามเรือ',
   'gps.manage': 'จัดการอุปกรณ์ GPS/Geofence',
   'gps.report': 'ส่งตำแหน่งเรือจากมือถือ',
+  // Maintenance
+  'maintenance.view': 'ดูการซ่อมบำรุง',
+  'maintenance.create': 'แจ้งซ่อม/บันทึกชั่วโมงเครื่อง',
+  'maintenance.edit': 'จัดการใบสั่งซ่อมและแผนบำรุงรักษา',
   // HR
   'employee.view': 'ดูข้อมูลพนักงาน',
   'employee.create': 'เพิ่มพนักงาน',
@@ -83,17 +87,17 @@ export const ROLE_DEFS: Record<string, { name: string; description: string; perm
   OPERATIONS_MANAGER: {
     name: 'ผู้จัดการฝ่ายปฏิบัติการ',
     description: 'ควบคุมเรือ เที่ยวเรือ สัตว์น้ำ',
-    permissions: pick('dashboard.view', 'vessel.', 'trip.', 'catch.', 'species.manage', 'gps.', 'employee.view', 'fuel.', 'inventory.', 'purchase.view', 'purchase.approve', 'report.'),
+    permissions: pick('dashboard.view', 'vessel.', 'trip.', 'catch.', 'species.manage', 'gps.', 'employee.view', 'fuel.', 'inventory.', 'purchase.view', 'purchase.approve', 'maintenance.', 'report.'),
   },
   FLEET_MANAGER: {
     name: 'ผู้จัดการกองเรือ',
     description: 'ทะเบียนเรือ เที่ยวเรือ GPS',
-    permissions: pick('dashboard.view', 'vessel.', 'trip.view', 'trip.create', 'trip.edit', 'trip.export', 'catch.view', 'gps.', 'employee.view', 'fuel.', 'report.view'),
+    permissions: pick('dashboard.view', 'vessel.', 'trip.view', 'trip.create', 'trip.edit', 'trip.export', 'catch.view', 'gps.', 'employee.view', 'fuel.', 'maintenance.', 'report.view'),
   },
   CAPTAIN: {
     name: 'ไต้ก๋ง/นายเรือ',
     description: 'บันทึกเที่ยวเรือและสัตว์น้ำของเรือตนเอง',
-    permissions: pick('dashboard.view', 'vessel.view', 'trip.view', 'trip.edit', 'catch.view', 'catch.create', 'gps.view', 'gps.report', 'employee.view'),
+    permissions: pick('dashboard.view', 'vessel.view', 'trip.view', 'trip.edit', 'catch.view', 'catch.create', 'gps.view', 'gps.report', 'employee.view', 'maintenance.view', 'maintenance.create'),
   },
   HR_OFFICER: {
     name: 'เจ้าหน้าที่บุคคล',
@@ -103,7 +107,7 @@ export const ROLE_DEFS: Record<string, { name: string; description: string; perm
   ACCOUNTANT: {
     name: 'นักบัญชี',
     description: 'การเงิน บัญชี เงินเดือน',
-    permissions: pick('dashboard.', 'finance.', 'payroll.', 'sales.view', 'purchase.view', 'fuel.view', 'trip.view', 'catch.view', 'vessel.view', 'report.', 'employee.view'),
+    permissions: pick('dashboard.', 'finance.', 'payroll.', 'sales.view', 'purchase.view', 'fuel.view', 'trip.view', 'catch.view', 'vessel.view', 'maintenance.view', 'report.', 'employee.view'),
   },
   PURCHASING_OFFICER: {
     name: 'เจ้าหน้าที่จัดซื้อ',
@@ -113,7 +117,7 @@ export const ROLE_DEFS: Record<string, { name: string; description: string; perm
   WAREHOUSE_OFFICER: {
     name: 'เจ้าหน้าที่คลังสินค้า',
     description: 'รับ-จ่าย-โอนสต็อก',
-    permissions: pick('dashboard.view', 'inventory.view', 'inventory.edit', 'purchase.view', 'vessel.view', 'trip.view', 'catch.view'),
+    permissions: pick('dashboard.view', 'inventory.view', 'inventory.edit', 'purchase.view', 'vessel.view', 'trip.view', 'catch.view', 'maintenance.view'),
   },
   SALES_OFFICER: {
     name: 'เจ้าหน้าที่ขาย',

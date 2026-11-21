@@ -112,7 +112,7 @@ export function AppLayout() {
           );
         })}
       </nav>
-      <div className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-500">v0.4.0</div>
+      <div className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-500">v0.5.0</div>
     </div>
   );
 

@@ -4,6 +4,7 @@ import { AT_SEA_STATUSES, toISODate } from '@fisher/shared';
 import { d, num, scopeIds } from '../../lib/http';
 import { Prisma, prisma } from '../../lib/prisma';
 import { has } from '../../plugins/auth';
+import { plansWithDue } from '../maintenance/service';
 
 export default async function dashboardRoutes(app: FastifyInstance) {
   app.get('/summary', { preHandler: app.can('dashboard.view') }, async (req) => {
@@ -117,6 +118,12 @@ export default async function dashboardRoutes(app: FastifyInstance) {
         : null,
       sales,
       alerts: {
+        maintenance: has(req, 'maintenance.view')
+          ? (await plansWithDue({ vesselIds: vesselIds ?? undefined, activeOnly: true }))
+              .filter((p) => p.due.state === 'OVERDUE' || p.due.state === 'DUE_SOON')
+              .slice(0, 10)
+              .map((p) => ({ id: p.id, name: p.name, vessel: p.vessel, state: p.due.state, nextDueDate: p.due.nextDueDate, hoursLeft: p.due.hoursLeft }))
+          : [],
         documents: alerts.map((a) => ({
           id: a.id, employeeId: a.employee.id, employee: `${a.employee.code} ${a.employee.firstName} ${a.employee.lastName}`,
           documentType: a.documentType.nameTh, expiryDate: a.expiryDate,

@@ -4,6 +4,8 @@ export const DEFAULT_SETTINGS = {
   companyName: 'บริษัท ประมงตัวอย่าง จำกัด',
   docReminderDays: [90, 60, 30, 7],
   gpsSignalLostMinutes: 60,
+  maintenanceReminderDays: 14,
+  maintenanceReminderHours: 50,
 };
 export type Settings = typeof DEFAULT_SETTINGS;
 
