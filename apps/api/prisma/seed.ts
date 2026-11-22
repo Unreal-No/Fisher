@@ -43,6 +43,10 @@ async function main() {
   }
   await seedSupplyDemo();
   await seedPayrollDemo();
+  if (!(await prisma.bankAccount.count())) {
+    const gl = await prisma.account.findUnique({ where: { code: '1120' } });
+    if (gl) await prisma.bankAccount.create({ data: { code: 'BA-01', name: 'บัญชีกระแสรายวันหลัก', bankName: 'ธนาคารตัวอย่าง', accountNo: '000-0-00000-0', glAccountId: gl.id, notes: DEMO } });
+  }
   await mkUser('acc', 'เจ้าหน้าที่บัญชี (ตัวอย่าง)', 'ACCOUNTANT');
   if (await prisma.vessel.count()) {
     console.log('Demo data already present – skipped.');

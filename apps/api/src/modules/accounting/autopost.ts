@@ -10,6 +10,8 @@ import { createEntry, r2, reverseEntry } from './ledger';
 
 interface DraftLine {
   key: AccountMapKey;
+  /** explicit ledger account (bill expense lines, bank accounts); overrides `key` */
+  accountId?: string | null;
   debit?: number;
   credit?: number;
   vesselId?: string | null;
@@ -290,6 +292,53 @@ const COLLECTORS: Record<JournalSource, Collector> = {
     return out;
   },
 
+  async VENDOR_BILL(db, posted, to) {
+    const rows = await db.vendorBill.findMany({
+      where: { approvedAt: { not: null }, billDate: { lte: to } },
+      include: { lines: { include: { goodsReceipt: { select: { grNo: true } } } }, supplier: { select: { name: true } } },
+    });
+    const out: Draft[] = [];
+    for (const b of rows) {
+      const memo = `ตั้งหนี้ ${b.billNo} ${b.supplier.name} ใบกำกับ ${b.supplierInvoiceNo}`;
+      if (!posted.has(k(b.id, 'APPROVE')))
+        out.push({
+          type: 'VENDOR_BILL', id: b.id, event: 'APPROVE', date: dateCol(b.billDate), ref: b.billNo, amount: num(b.total), memo,
+          lines: [
+            ...b.lines.map((l) =>
+              l.kind === 'GR'
+                ? { key: 'GRNI' as const, debit: num(l.amount), description: `ล้าง ${l.goodsReceipt?.grNo ?? ''}` }
+                : { key: 'GRNI' as const, accountId: l.accountId, debit: num(l.amount), vesselId: l.vesselId, tripId: l.tripId, description: l.description },
+            ),
+            { key: 'VAT_INPUT', debit: num(b.vatAmount) },
+            { key: 'AP', credit: num(b.total), description: b.supplier.name },
+          ],
+        });
+      if (b.status === 'VOID' && b.voidedAt && b.voidedAt <= to && !posted.has(k(b.id, 'VOID')))
+        out.push({ type: 'VENDOR_BILL', id: b.id, event: 'VOID', date: day(b.voidedAt), ref: b.billNo, amount: num(b.total), memo: `ยกเลิก ${b.billNo}: ${b.voidReason ?? ''}`, reverses: 'APPROVE' });
+    }
+    return out;
+  },
+
+  async VENDOR_PAYMENT(db, posted, to) {
+    const rows = await db.vendorPayment.findMany({ where: { paidAt: { lte: to } }, include: { supplier: { select: { name: true } }, bankAccount: { select: { glAccountId: true } } } });
+    const out: Draft[] = [];
+    for (const p of rows) {
+      if (!posted.has(k(p.id, 'PAY')))
+        out.push({
+          type: 'VENDOR_PAYMENT', id: p.id, event: 'PAY', date: day(p.paidAt), ref: p.paymentNo, amount: num(p.grossAmount),
+          memo: `จ่ายชำระ ${p.paymentNo} ${p.supplier.name}${p.reference ? ` (${p.reference})` : ''}`,
+          lines: [
+            { key: 'AP', debit: num(p.grossAmount), description: p.supplier.name },
+            { key: cashKey(p.method), accountId: p.bankAccount?.glAccountId ?? null, credit: num(p.netAmount) },
+            { key: 'WHT_PAYABLE', credit: num(p.whtAmount), description: p.whtRate ? `หัก ณ ที่จ่าย ${num(p.whtRate)}%` : null },
+          ],
+        });
+      if (p.status === 'VOID' && p.voidedAt && p.voidedAt <= to && !posted.has(k(p.id, 'VOID')))
+        out.push({ type: 'VENDOR_PAYMENT', id: p.id, event: 'VOID', date: day(p.voidedAt), ref: p.paymentNo, amount: num(p.grossAmount), memo: `ยกเลิกการจ่าย ${p.paymentNo}: ${p.voidReason ?? ''}`, reverses: 'PAY' });
+    }
+    return out;
+  },
+
   async EMPLOYEE_ADVANCE(db, posted, to) {
     const rows = await db.employeeAdvance.findMany({ where: { advanceDate: { lte: to } }, include: { employee: { select: { code: true, firstName: true, lastName: true } } } });
     const out: Draft[] = [];
@@ -345,13 +394,13 @@ export async function runAutoPost(req: FastifyRequest, to?: Date) {
           if (!orig) throw new AppError(409, 'NO_ORIGINAL', 'ยังไม่มีรายการบัญชีของเอกสารต้นทาง');
           return reverseEntry(tx, userId, orig.id, d.date < dateCol(orig.entryDate) ? dateCol(orig.entryDate) : d.date, d.memo, { type: d.type, id: d.id, event: d.event, ref: d.ref });
         }
-        const missing = d.lines!.filter((l) => (l.debit ?? 0) + (l.credit ?? 0) !== 0 && !map.get(l.key)).map((l) => l.key);
+        const missing = d.lines!.filter((l) => (l.debit ?? 0) + (l.credit ?? 0) !== 0 && !l.accountId && !map.get(l.key)).map((l) => l.key);
         if (missing.length) throw new AppError(422, 'MAPPING_MISSING', `ยังไม่ได้กำหนดบัญชีสำหรับ: ${[...new Set(missing)].join(', ')}`);
         return createEntry(
           tx, userId,
           {
             entryDate: d.date, memo: d.memo, reference: d.ref, source: { type: d.type, id: d.id, event: d.event, ref: d.ref },
-            lines: d.lines!.map((l) => ({ accountId: map.get(l.key)!, debit: l.debit ?? 0, credit: l.credit ?? 0, vesselId: l.vesselId, tripId: l.tripId, description: l.description })),
+            lines: d.lines!.map((l) => ({ accountId: l.accountId ?? map.get(l.key)!, debit: l.debit ?? 0, credit: l.credit ?? 0, vesselId: l.vesselId, tripId: l.tripId, description: l.description })),
           },
           userId,
         );

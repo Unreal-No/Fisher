@@ -498,6 +498,7 @@ model Vessel {
   payrollPeriods    PayrollPeriod[]
   payrollRecords    PayrollRecord[]
   journalLines      JournalLine[]
+  billLines         VendorBillLine[]
 
   @@index([status])
   @@index([deletedAt])
@@ -701,6 +702,7 @@ model FishingTrip {
   captain       Employee?           @relation("TripCaptain", fields: [captainId], references: [id])
   crew          TripCrew[]
   journalLines  JournalLine[]
+  billLines     VendorBillLine[]
   fuel          TripFuel[]
   supplies      TripSupply[]
   expenses      TripExpense[]
@@ -1139,6 +1141,8 @@ model Supplier {
   paymentTermDays   Int?               @map("payment_term_days")
   bankName          String?            @map("bank_name")
   bankAccountNo     String?            @map("bank_account_no")
+  /// individual (ภ.ง.ด.3) vs company (ภ.ง.ด.53)
+  isIndividual      Boolean            @default(false) @map("is_individual")
   isActive          Boolean            @default(true) @map("is_active")
   notes             String?
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
@@ -1146,6 +1150,8 @@ model Supplier {
   deletedAt         DateTime?          @map("deleted_at") @db.Timestamptz
   orders            PurchaseOrder[]
   maintenanceOrders MaintenanceOrder[]
+  bills             VendorBill[]
+  payments          VendorPayment[]
 
   @@map("suppliers")
 }
@@ -1340,6 +1346,7 @@ model GoodsReceipt {
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamptz
   po                PurchaseOrder      @relation(fields: [poId], references: [id])
   items             GoodsReceiptItem[]
+  billLines         VendorBillLine[]
 
   @@index([poId])
   @@map("goods_receipts")
@@ -1781,6 +1788,8 @@ model Account {
   children      Account[]        @relation("AccountTree")
   lines         JournalLine[]
   mappings      AccountMapping[]
+  bankAccounts  BankAccount[]
+  billLines     VendorBillLine[]
 
   @@index([type])
   @@map("accounts")
@@ -1865,10 +1874,179 @@ model JournalLine {
   account     Account      @relation(fields: [accountId], references: [id])
   vessel      Vessel?      @relation(fields: [vesselId], references: [id])
   trip        FishingTrip? @relation(fields: [tripId], references: [id])
+  recItem     BankRecItem?
 
   @@index([entryId])
   @@index([accountId])
   @@index([vesselId])
   @@index([tripId])
   @@map("journal_lines")
+}
+
+// ======================= ACCOUNTS PAYABLE / BANK =======================
+enum VendorBillStatus {
+  DRAFT
+  APPROVED
+  VOID
+}
+
+enum BillLineKind {
+  GR
+  EXPENSE
+}
+
+enum VendorPaymentStatus {
+  POSTED
+  VOID
+}
+
+enum BankRecStatus {
+  DRAFT
+  COMPLETED
+}
+
+model BankAccount {
+  id              String               @id @default(uuid(7)) @db.Uuid
+  code            String               @unique
+  name            String
+  bankName        String               @map("bank_name")
+  accountNo       String               @map("account_no")
+  /// ledger account that represents this bank account
+  glAccountId     String               @map("gl_account_id") @db.Uuid
+  isActive        Boolean              @default(true) @map("is_active")
+  notes           String?
+  createdAt       DateTime             @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime             @updatedAt @map("updated_at") @db.Timestamptz
+  glAccount       Account              @relation(fields: [glAccountId], references: [id])
+  payments        VendorPayment[]
+  reconciliations BankReconciliation[]
+
+  @@map("bank_accounts")
+}
+
+/// Supplier invoice (AP). Lines clear goods receipts (GRNI) or post to an expense/accrual account.
+model VendorBill {
+  id                String                    @id @default(uuid(7)) @db.Uuid
+  billNo            String                    @unique @map("bill_no")
+  supplierId        String                    @map("supplier_id") @db.Uuid
+  supplierInvoiceNo String                    @map("supplier_invoice_no")
+  billDate          DateTime                  @map("bill_date") @db.Date
+  dueDate           DateTime?                 @map("due_date") @db.Date
+  status            VendorBillStatus          @default(DRAFT)
+  subtotal          Decimal                   @default(0) @db.Decimal(14, 2)
+  vatRate           Decimal                   @default(0) @map("vat_rate") @db.Decimal(5, 2)
+  vatAmount         Decimal                   @default(0) @map("vat_amount") @db.Decimal(14, 2)
+  total             Decimal                   @default(0) @db.Decimal(14, 2)
+  paidAmount        Decimal                   @default(0) @map("paid_amount") @db.Decimal(14, 2)
+  notes             String?
+  createdById       String?                   @map("created_by_id") @db.Uuid
+  approvedAt        DateTime?                 @map("approved_at") @db.Timestamptz
+  approvedById      String?                   @map("approved_by_id") @db.Uuid
+  voidedAt          DateTime?                 @map("voided_at") @db.Timestamptz
+  voidReason        String?                   @map("void_reason")
+  version           Int                       @default(0)
+  createdAt         DateTime                  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime                  @updatedAt @map("updated_at") @db.Timestamptz
+  supplier          Supplier                  @relation(fields: [supplierId], references: [id])
+  lines             VendorBillLine[]
+  allocations       VendorPaymentAllocation[]
+
+  @@index([supplierId, status])
+  @@map("vendor_bills")
+}
+
+model VendorBillLine {
+  id             String        @id @default(uuid(7)) @db.Uuid
+  billId         String        @map("bill_id") @db.Uuid
+  lineNo         Int           @map("line_no")
+  kind           BillLineKind
+  goodsReceiptId String?       @map("goods_receipt_id") @db.Uuid
+  accountId      String?       @map("account_id") @db.Uuid
+  description    String?
+  amount         Decimal       @db.Decimal(14, 2)
+  vesselId       String?       @map("vessel_id") @db.Uuid
+  tripId         String?       @map("trip_id") @db.Uuid
+  bill           VendorBill    @relation(fields: [billId], references: [id], onDelete: Cascade)
+  goodsReceipt   GoodsReceipt? @relation(fields: [goodsReceiptId], references: [id])
+  account        Account?      @relation(fields: [accountId], references: [id])
+  vessel         Vessel?       @relation(fields: [vesselId], references: [id])
+  trip           FishingTrip?  @relation(fields: [tripId], references: [id])
+
+  @@index([billId])
+  @@index([goodsReceiptId])
+  @@map("vendor_bill_lines")
+}
+
+model VendorPayment {
+  id            String                    @id @default(uuid(7)) @db.Uuid
+  paymentNo     String                    @unique @map("payment_no")
+  supplierId    String                    @map("supplier_id") @db.Uuid
+  paidAt        DateTime                  @map("paid_at") @db.Timestamptz
+  method        PaymentMethod
+  bankAccountId String?                   @map("bank_account_id") @db.Uuid
+  reference     String?
+  /// amount settled against bills (gross) = net paid + withholding tax
+  grossAmount   Decimal                   @map("gross_amount") @db.Decimal(14, 2)
+  whtRate       Decimal?                  @map("wht_rate") @db.Decimal(5, 2)
+  whtBase       Decimal?                  @map("wht_base") @db.Decimal(14, 2)
+  whtAmount     Decimal                   @default(0) @map("wht_amount") @db.Decimal(14, 2)
+  netAmount     Decimal                   @map("net_amount") @db.Decimal(14, 2)
+  status        VendorPaymentStatus       @default(POSTED)
+  notes         String?
+  createdById   String?                   @map("created_by_id") @db.Uuid
+  voidedAt      DateTime?                 @map("voided_at") @db.Timestamptz
+  voidReason    String?                   @map("void_reason")
+  voidedById    String?                   @map("voided_by_id") @db.Uuid
+  createdAt     DateTime                  @default(now()) @map("created_at") @db.Timestamptz
+  supplier      Supplier                  @relation(fields: [supplierId], references: [id])
+  bankAccount   BankAccount?              @relation(fields: [bankAccountId], references: [id])
+  allocations   VendorPaymentAllocation[]
+
+  @@index([supplierId])
+  @@index([paidAt])
+  @@map("vendor_payments")
+}
+
+model VendorPaymentAllocation {
+  id        String        @id @default(uuid(7)) @db.Uuid
+  paymentId String        @map("payment_id") @db.Uuid
+  billId    String        @map("bill_id") @db.Uuid
+  amount    Decimal       @db.Decimal(14, 2)
+  payment   VendorPayment @relation(fields: [paymentId], references: [id])
+  bill      VendorBill    @relation(fields: [billId], references: [id])
+
+  @@unique([paymentId, billId])
+  @@index([billId])
+  @@map("vendor_payment_allocations")
+}
+
+model BankReconciliation {
+  id               String        @id @default(uuid(7)) @db.Uuid
+  bankAccountId    String        @map("bank_account_id") @db.Uuid
+  statementDate    DateTime      @map("statement_date") @db.Date
+  statementBalance Decimal       @map("statement_balance") @db.Decimal(16, 2)
+  status           BankRecStatus @default(DRAFT)
+  notes            String?
+  createdById      String?       @map("created_by_id") @db.Uuid
+  completedAt      DateTime?     @map("completed_at") @db.Timestamptz
+  completedById    String?       @map("completed_by_id") @db.Uuid
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  bankAccount      BankAccount   @relation(fields: [bankAccountId], references: [id])
+  items            BankRecItem[]
+
+  @@index([bankAccountId, statementDate])
+  @@map("bank_reconciliations")
+}
+
+/// A ledger line cleared on a bank statement (once only).
+model BankRecItem {
+  id               String             @id @default(uuid(7)) @db.Uuid
+  reconciliationId String             @map("reconciliation_id") @db.Uuid
+  journalLineId    String             @unique @map("journal_line_id") @db.Uuid
+  reconciliation   BankReconciliation @relation(fields: [reconciliationId], references: [id], onDelete: Cascade)
+  journalLine      JournalLine        @relation(fields: [journalLineId], references: [id])
+
+  @@index([reconciliationId])
+  @@map("bank_rec_items")
 }

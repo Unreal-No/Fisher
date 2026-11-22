@@ -191,7 +191,7 @@ export type FiscalStatus = (typeof FISCAL_STATUS)[number];
 /** Keys of the account mapping used by automatic posting. */
 export const ACCOUNT_MAP_KEY = [
   'CASH', 'BANK', 'AR', 'EMPLOYEE_ADVANCES', 'INVENTORY', 'FUEL_INVENTORY',
-  'GRNI', 'ACCRUED_EXPENSES', 'ACCRUED_WAGES', 'VAT_OUTPUT',
+  'GRNI', 'ACCRUED_EXPENSES', 'ACCRUED_WAGES', 'VAT_OUTPUT', 'AP', 'VAT_INPUT', 'WHT_PAYABLE',
   'SALES_REVENUE', 'SALES_RETURNS', 'OTHER_INCOME',
   'FUEL_EXPENSE', 'SUPPLIES_EXPENSE', 'CREW_WAGES', 'TRIP_OTHER_EXPENSE', 'MAINTENANCE_EXPENSE', 'INVENTORY_VARIANCE',
 ] as const;
@@ -199,6 +199,18 @@ export type AccountMapKey = (typeof ACCOUNT_MAP_KEY)[number];
 /** Source documents that are posted automatically (sourceType on journal entries). */
 export const JOURNAL_SOURCE = [
   'SALES_INVOICE', 'SALES_PAYMENT', 'SALES_RETURN', 'GOODS_RECEIPT', 'STOCK_MOVEMENT', 'FUEL_TXN', 'TRIP_FUEL', 'TRIP_SUPPLY',
-  'TRIP_EXPENSE', 'MAINTENANCE_ORDER', 'PAYROLL_PERIOD', 'EMPLOYEE_ADVANCE',
+  'TRIP_EXPENSE', 'MAINTENANCE_ORDER', 'PAYROLL_PERIOD', 'EMPLOYEE_ADVANCE', 'VENDOR_BILL', 'VENDOR_PAYMENT',
 ] as const;
 export type JournalSource = (typeof JOURNAL_SOURCE)[number];
+
+// ---------- accounts payable / bank ----------
+export const VENDOR_BILL_STATUS = ['DRAFT', 'APPROVED', 'VOID'] as const;
+export type VendorBillStatus = (typeof VENDOR_BILL_STATUS)[number];
+export const BILL_LINE_KIND = ['GR', 'EXPENSE'] as const;
+export type BillLineKind = (typeof BILL_LINE_KIND)[number];
+export const VENDOR_PAYMENT_STATUS = ['POSTED', 'VOID'] as const;
+export type VendorPaymentStatus = (typeof VENDOR_PAYMENT_STATUS)[number];
+export const BANK_REC_STATUS = ['DRAFT', 'COMPLETED'] as const;
+export type BankRecStatus = (typeof BANK_REC_STATUS)[number];
+/** Common Thai withholding tax rates (%) on payments to suppliers. */
+export const WHT_RATES = [1, 2, 3, 5] as const;

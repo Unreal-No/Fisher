@@ -116,3 +116,68 @@ export async function generalLedger(accountId: string, from: string, to: string,
     totalDebit: r2(items.reduce((s, i) => s + i.debit, 0)), totalCredit: r2(items.reduce((s, i) => s + i.credit, 0)), items, truncated: lines.length === 5000,
   };
 }
+
+const monthBounds = (y: number, m: number) => {
+  const mm = String(m).padStart(2, '0');
+  const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const start = `${y}-${mm}-01`;
+  const end = `${y}-${mm}-${String(last).padStart(2, '0')}`;
+  return { start, end, startDate: new Date(`${start}T00:00:00Z`), endDate: new Date(`${end}T00:00:00Z`), startTs: new Date(`${start}T00:00:00+07:00`), endTs: new Date(`${end}T23:59:59.999+07:00`) };
+};
+
+/** Output/input VAT for a tax month (basis for ภ.พ.30). Exempt (0 %) sales are totalled separately. */
+export async function vatReport(y: number, m: number) {
+  const b = monthBounds(y, m);
+  const [invoices, returns, bills] = await Promise.all([
+    prisma.salesInvoice.findMany({
+      where: { status: 'CONFIRMED', invoiceDate: { gte: b.startDate, lte: b.endDate } },
+      include: { customer: { select: { name: true, taxId: true, branch: true } } }, orderBy: [{ invoiceDate: 'asc' }, { invoiceNo: 'asc' }],
+    }),
+    prisma.salesReturn.findMany({
+      where: { returnDate: { gte: b.startDate, lte: b.endDate }, invoice: { vatAmount: { gt: 0 } } },
+      include: { items: { select: { amount: true } }, invoice: { select: { invoiceNo: true, customer: { select: { name: true, taxId: true, branch: true } } } } }, orderBy: { returnDate: 'asc' },
+    }),
+    prisma.vendorBill.findMany({
+      where: { status: 'APPROVED', billDate: { gte: b.startDate, lte: b.endDate }, vatAmount: { gt: 0 } },
+      include: { supplier: { select: { name: true, taxId: true, branch: true } } }, orderBy: [{ billDate: 'asc' }, { billNo: 'asc' }],
+    }),
+  ]);
+  const base = (i: (typeof invoices)[number]) => r2(num(i.subtotal) - num(i.discount) + num(i.additionalCost));
+  const output = invoices.filter((i) => num(i.vatAmount) > 0).map((i) => ({
+    date: i.invoiceDate.toISOString().slice(0, 10), docNo: i.invoiceNo, name: i.customer.name, taxId: i.customer.taxId, branch: i.customer.branch, base: base(i), vat: num(i.vatAmount),
+  }));
+  const credits = returns.map((r) => {
+    const net = r2(r.items.reduce((s, x) => s + num(x.amount), 0));
+    return { date: r.returnDate.toISOString().slice(0, 10), docNo: r.creditNoteNo, refDocNo: r.invoice.invoiceNo, name: r.invoice.customer.name, taxId: r.invoice.customer.taxId, branch: r.invoice.customer.branch, base: net, vat: r2(num(r.amount) - net) };
+  });
+  const input = bills.map((x) => ({
+    date: x.billDate.toISOString().slice(0, 10), docNo: x.supplierInvoiceNo, billNo: x.billNo, name: x.supplier.name, taxId: x.supplier.taxId, branch: x.supplier.branch, base: num(x.subtotal), vat: num(x.vatAmount),
+  }));
+  const sum = (xs: { base: number; vat: number }[]) => ({ base: r2(xs.reduce((s, x) => s + x.base, 0)), vat: r2(xs.reduce((s, x) => s + x.vat, 0)) });
+  const exemptSales = r2(invoices.filter((i) => num(i.vatAmount) === 0).reduce((s, i) => s + base(i), 0));
+  const o = sum(output);
+  const c = sum(credits);
+  const inp = sum(input);
+  const outputVat = r2(o.vat - c.vat);
+  return {
+    year: y, month: m, output, credits, input, exemptSales,
+    totals: { outputBase: r2(o.base - c.base), outputVat, inputBase: inp.base, inputVat: inp.vat, netVat: r2(outputVat - inp.vat) },
+  };
+}
+
+/** Withholding tax on supplier payments for a month, split into ภ.ง.ด.3 (individuals) and ภ.ง.ด.53 (companies). */
+export async function whtReport(y: number, m: number) {
+  const b = monthBounds(y, m);
+  const rows = await prisma.vendorPayment.findMany({
+    where: { status: 'POSTED', whtAmount: { gt: 0 }, paidAt: { gte: b.startTs, lte: b.endTs } },
+    include: { supplier: { select: { name: true, taxId: true, branch: true, address: true, isIndividual: true } } }, orderBy: { paidAt: 'asc' },
+  });
+  const map = (x: (typeof rows)[number]) => ({
+    date: x.paidAt.toISOString(), paymentNo: x.paymentNo, name: x.supplier.name, taxId: x.supplier.taxId, branch: x.supplier.branch, address: x.supplier.address,
+    base: num(x.whtBase), rate: num(x.whtRate), wht: num(x.whtAmount),
+  });
+  const pnd3 = rows.filter((x) => x.supplier.isIndividual).map(map);
+  const pnd53 = rows.filter((x) => !x.supplier.isIndividual).map(map);
+  const t = (xs: { base: number; wht: number }[]) => ({ count: xs.length, base: r2(xs.reduce((s, x) => s + x.base, 0)), wht: r2(xs.reduce((s, x) => s + x.wht, 0)) });
+  return { year: y, month: m, pnd3, pnd53, totals: { pnd3: t(pnd3), pnd53: t(pnd53) }, missingTaxId: rows.filter((x) => !x.supplier.taxId).length };
+}

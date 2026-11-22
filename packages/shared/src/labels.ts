@@ -216,9 +216,15 @@ export const ACCOUNT_MAP_KEY_TH: Record<E.AccountMapKey, string> = {
   SALES_REVENUE: 'รายได้ขายสัตว์น้ำ', SALES_RETURNS: 'รับคืน/ลดหนี้จากการขาย', OTHER_INCOME: 'รายได้อื่น (ค่าขนส่งเรียกเก็บ/หักพนักงาน)',
   FUEL_EXPENSE: 'ค่าน้ำมันเชื้อเพลิง', SUPPLIES_EXPENSE: 'ค่าเสบียง/วัสดุสิ้นเปลืองเที่ยวเรือ', CREW_WAGES: 'ค่าแรงลูกเรือ/เงินเดือน',
   TRIP_OTHER_EXPENSE: 'ค่าใช้จ่ายเที่ยวเรืออื่น', MAINTENANCE_EXPENSE: 'ค่าซ่อมบำรุงเรือ', INVENTORY_VARIANCE: 'ผลต่างจากการตรวจนับ/ปรับยอด',
+  AP: 'เจ้าหนี้การค้า', VAT_INPUT: 'ภาษีซื้อ', WHT_PAYABLE: 'ภาษีหัก ณ ที่จ่ายค้างนำส่ง',
 };
 export const JOURNAL_SOURCE_TH: Record<E.JournalSource, string> = {
   SALES_INVOICE: 'ใบแจ้งหนี้ขาย', SALES_PAYMENT: 'รับชำระ', SALES_RETURN: 'ใบลดหนี้', GOODS_RECEIPT: 'รับสินค้า (ใบสั่งซื้อ)',
   STOCK_MOVEMENT: 'เคลื่อนไหวคลัง', FUEL_TXN: 'ถังน้ำมัน', TRIP_FUEL: 'น้ำมันซื้อตรงเข้าเที่ยว', TRIP_SUPPLY: 'เสบียงซื้อตรงเข้าเที่ยว',
   TRIP_EXPENSE: 'ค่าใช้จ่ายเที่ยวเรือ', MAINTENANCE_ORDER: 'ใบสั่งซ่อม', PAYROLL_PERIOD: 'งวดเงินเดือน', EMPLOYEE_ADVANCE: 'เงินเบิก/เงินกู้',
+  VENDOR_BILL: 'ใบแจ้งหนี้ผู้ขาย', VENDOR_PAYMENT: 'จ่ายชำระผู้ขาย',
 };
+export const VENDOR_BILL_STATUS_TH: Record<E.VendorBillStatus, string> = { DRAFT: 'ร่าง', APPROVED: 'อนุมัติแล้ว', VOID: 'ยกเลิก' };
+export const BILL_LINE_KIND_TH: Record<E.BillLineKind, string> = { GR: 'ใบรับสินค้า', EXPENSE: 'ค่าใช้จ่าย/ล้างค้างจ่าย' };
+export const VENDOR_PAYMENT_STATUS_TH: Record<E.VendorPaymentStatus, string> = { POSTED: 'จ่ายแล้ว', VOID: 'ยกเลิก' };
+export const BANK_REC_STATUS_TH: Record<E.BankRecStatus, string> = { DRAFT: 'กำลังกระทบยอด', COMPLETED: 'กระทบยอดแล้ว' };

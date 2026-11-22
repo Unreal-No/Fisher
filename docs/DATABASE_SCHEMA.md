@@ -58,6 +58,10 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | fiscal_periods | งวดบัญชีรายเดือน OPEN/CLOSED, ผู้ปิด, เหตุผลเปิดใหม่ | unique (year, month) |
 | journal_entries | สมุดรายวัน JV: DRAFT→POSTED→REVERSED / VOID; source_type/id/event ของเอกสารต้นทาง; reversal_of | partial unique (source_type, source_id, source_event); CHECK สมดุลเมื่อผ่านรายการ; trigger: สร้างเป็นร่างเท่านั้น, ผ่านรายการต้องสมดุล ≥2 บรรทัดและงวดไม่ปิด, ผ่านแล้วแก้/ลบไม่ได้ (ยกเว้นเปลี่ยนเป็น REVERSED) |
 | journal_lines | บรรทัดเดบิต/เครดิต + มิติ vessel/trip | CHECK ด้านเดียว ≥0; trigger: แก้ได้เฉพาะรายการร่าง |
+| bank_accounts | บัญชีธนาคารของบริษัท ผูกบัญชีแยกประเภท (สินทรัพย์) | code unique |
+| vendor_bills / vendor_bill_lines | ใบแจ้งหนี้ผู้ขาย AP: DRAFT→APPROVED / VOID; บรรทัด GR (มูลค่าใบรับสินค้า) หรือ EXPENSE (บัญชี + เรือ/เที่ยว); paid_amount ดูแลใน transaction | partial unique (supplier, supplier_invoice_no) ยกเว้น VOID; CHECK total = subtotal + vat, paid ≤ total; CHECK ชนิดบรรทัด |
+| vendor_payments / vendor_payment_allocations | จ่ายชำระ PV หลายใบ: gross = ตัดหนี้, WHT (อัตรา/ฐาน), net = gross − WHT; VOID คืนยอด | CHECK net = gross − wht, wht < gross |
+| bank_reconciliations / bank_rec_items | กระทบยอด: statement date/balance, รายการบัญชีที่ติ๊ก (ครั้งเดียวต่อรายการ) | unique journal_line_id |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |

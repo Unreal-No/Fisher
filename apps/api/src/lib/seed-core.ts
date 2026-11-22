@@ -92,6 +92,7 @@ export const DEFAULT_ACCOUNT_MAP: Record<AccountMapKey, string> = {
   GRNI: '2120', ACCRUED_EXPENSES: '2140', ACCRUED_WAGES: '2130', VAT_OUTPUT: '2150',
   SALES_REVENUE: '4100', SALES_RETURNS: '4110', OTHER_INCOME: '4200',
   FUEL_EXPENSE: '5110', SUPPLIES_EXPENSE: '5120', CREW_WAGES: '5130', TRIP_OTHER_EXPENSE: '5140', MAINTENANCE_EXPENSE: '5150', INVENTORY_VARIANCE: '5220',
+  AP: '2110', VAT_INPUT: '1150', WHT_PAYABLE: '2160',
 };
 
 /** Chart of accounts + mappings: created once; never overwrites accountant edits. */

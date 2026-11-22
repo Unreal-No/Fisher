@@ -406,6 +406,8 @@ export const supplierSchema = z.object({
   paymentTermDays: optInt(0, 365),
   bankName: optStr(80),
   bankAccountNo: optStr(30),
+  /** individual (ภ.ง.ด.3) vs juristic person (ภ.ง.ด.53) for withholding tax */
+  isIndividual: z.boolean().default(false),
   isActive: z.boolean().default(true),
   notes: optStr(1000),
 });
@@ -671,3 +673,58 @@ export const journalSchema = z
   });
 export const journalReverseSchema = z.object({ entryDate: isoDate, reason: reqStr(500) });
 export const accountMappingSchema = z.object({ mappings: z.partialRecord(z.enum(E.ACCOUNT_MAP_KEY), id) });
+
+// ---------- accounts payable / bank ----------
+export const bankAccountSchema = z.object({
+  code: z.string({ error: REQ }).trim().min(1, REQ).max(20),
+  name: reqStr(120),
+  bankName: reqStr(80),
+  accountNo: z.string({ error: REQ }).trim().regex(/^[0-9-]{6,20}$/, 'เลขบัญชีไม่ถูกต้อง'),
+  glAccountId: id,
+  isActive: z.boolean().default(true),
+  notes: optStr(500),
+});
+export const vendorBillLineSchema = z
+  .object({
+    kind: z.enum(E.BILL_LINE_KIND),
+    goodsReceiptId: optId,
+    accountId: optId,
+    description: optStr(300),
+    amount: optNum(0.01, 1e10),
+    vesselId: optId,
+    tripId: optId,
+  })
+  .superRefine((l, ctx) => {
+    if (l.kind === 'GR' && !l.goodsReceiptId) ctx.addIssue({ code: 'custom', path: ['goodsReceiptId'], message: 'เลือกใบรับสินค้า' });
+    if (l.kind === 'EXPENSE' && !l.accountId) ctx.addIssue({ code: 'custom', path: ['accountId'], message: 'เลือกบัญชี' });
+    if (l.kind === 'EXPENSE' && l.amount == null) ctx.addIssue({ code: 'custom', path: ['amount'], message: REQ });
+  });
+export const vendorBillSchema = z
+  .object({
+    supplierId: id,
+    supplierInvoiceNo: reqStr(60),
+    billDate: isoDate,
+    dueDate: optDate,
+    vatRate: z.preprocess((v) => (v === '' || v == null ? 0 : v), z.coerce.number({ error: 'กรุณากรอกตัวเลข' }).min(0).max(30)),
+    notes: optStr(1000),
+    lines: z.array(vendorBillLineSchema).min(1, 'ต้องมีอย่างน้อย 1 รายการ').max(200),
+  })
+  .refine((b) => !b.dueDate || b.dueDate >= b.billDate, { path: ['dueDate'], message: 'วันครบกำหนดต้องไม่ก่อนวันที่ใบแจ้งหนี้' });
+export const vendorPaymentSchema = z
+  .object({
+    supplierId: id,
+    paidAt: isoDateTime,
+    method: z.enum(E.PAYMENT_METHOD),
+    bankAccountId: optId,
+    reference: optStr(100),
+    whtRate: optNum(0, 15),
+    whtBase: optNum(0, 1e10),
+    notes: optStr(500),
+    allocations: z.array(z.object({ billId: id, amount: posNum(1e10) })).min(1, 'เลือกใบแจ้งหนี้อย่างน้อย 1 ใบ').max(100),
+  })
+  .superRefine((p, ctx) => {
+    if (p.method !== 'CASH' && !p.bankAccountId) ctx.addIssue({ code: 'custom', path: ['bankAccountId'], message: 'เลือกบัญชีธนาคารที่จ่าย' });
+    if ((p.whtRate ?? 0) > 0 && !(p.whtBase && p.whtBase > 0)) ctx.addIssue({ code: 'custom', path: ['whtBase'], message: 'ระบุฐานภาษีหัก ณ ที่จ่าย (ยอดก่อน VAT)' });
+  });
+export const bankRecSchema = z.object({ bankAccountId: id, statementDate: isoDate, statementBalance: reqNum(-1e12, 1e12), notes: optStr(500) });
+export const bankRecItemsSchema = z.object({ journalLineIds: z.array(id).max(5000) });

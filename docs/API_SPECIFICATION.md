@@ -71,6 +71,11 @@ Codes: 400 VALIDATION_ERROR/BAD_REQUEST · 401 · 403 FORBIDDEN/CSRF/MUST_CHANGE
 | GET/POST /accounting/journals · GET/PUT …/:id · POST …/:id/{post,void,reverse} | finance.view/edit/approve | ผู้บันทึกผ่านรายการเองไม่ได้ (403); 409 PERIOD_CLOSED / AUTO_ENTRY (รายการอัตโนมัติให้ยกเลิกที่เอกสาร) |
 | GET /accounting/auto-post/pending?to · POST /accounting/auto-post {to?} | finance.view / finance.approve | คืน {posted, byType, exceptions[]} |
 | GET /accounting/reports/{trial-balance,profit-loss,balance-sheet,general-ledger} | finance.view | from/to (asOf), vesselId, accountId |
+| GET/POST /accounting/ap/bills · GET/PUT …/:id · POST …/:id/{approve,void} · GET /accounting/ap/unbilled-receipts?supplierId | finance.view/edit/approve | 409 DUPLICATE_INVOICE / GR_NOT_BILLABLE / HAS_PAYMENTS; ผู้บันทึกอนุมัติเองไม่ได้ |
+| GET/POST /accounting/ap/payments · POST …/:id/void · GET /accounting/ap/aging?asOf | finance.view / finance.approve | 409 OVERPAY; WHT = ฐาน × อัตรา |
+| GET/POST /accounting/bank-accounts · PUT …/:id | finance.view / finance.approve | บัญชีแยกประเภทต้องเป็นสินทรัพย์ที่รับรายการ |
+| GET/POST /accounting/bank-recs · GET/DELETE …/:id · PUT …/:id/items · POST …/:id/complete | finance.view/edit/approve | 409 NOT_RECONCILED / ALREADY_CLEARED / DRAFT_EXISTS |
+| GET /accounting/tax/vat?year&month · GET /accounting/tax/wht?year&month | finance.view | ภาษีขาย/ซื้อ (ไม่รวมยอดขายยกเว้น VAT ในตาราง), ภ.ง.ด.3 (บุคคลธรรมดา) / ภ.ง.ด.53 |
 | GET/POST /users · PATCH /users/:id · POST /users/:id/reset-password | user.manage | |
 | GET /roles · /permissions · PUT /roles/:id/permissions | role.manage∨user.manage / role.manage | SUPER_ADMIN แก้ไม่ได้ |
 | GET /audit-logs | audit.view | |
