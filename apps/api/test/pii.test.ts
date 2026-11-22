@@ -66,3 +66,11 @@ describe('personal data encryption at rest', () => {
     expect((await encryptExistingPii(prisma)).employees).toBe(0); // idempotent
   });
 });
+
+describe('wrong key', () => {
+  it('fails with a clear error instead of returning garbage', async () => {
+    const { decrypt } = await import('../src/lib/crypto');
+    const tampered = 'v1:AAAAAAAAAAAAAAAA:AAAAAAAAAAAAAAAAAAAAAA==:AAAA';
+    expect(() => decrypt(tampered)).toThrow(/APP_ENCRYPTION_KEY/);
+  });
+});
