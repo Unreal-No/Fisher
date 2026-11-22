@@ -78,6 +78,8 @@ export function AppLayout() {
     queryKey: ['notifications', 'count'],
     queryFn: () => api.get<{ unreadCount: number }>('/notifications', { pageSize: 1 }),
     refetchInterval: 120_000,
+    // the API answers 403 until the first-login password change / required 2FA is done
+    enabled: !!me && !me.mustChangePassword && !me.mustEnable2fa,
   });
 
   const sidebar = (
@@ -112,7 +114,7 @@ export function AppLayout() {
           );
         })}
       </nav>
-      <div className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-500">v0.13.0</div>
+      <div className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-500">v0.14.0</div>
     </div>
   );
 

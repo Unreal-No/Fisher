@@ -37,10 +37,23 @@ async function main() {
   };
   await mkUser('admin', 'ผู้ดูแลระบบ', 'SUPER_ADMIN');
 
-  if (isProd || process.env.SEED_DEMO_DATA !== 'true') {
-    console.log('Seed done (core only).');
+  // Demo data: development, or a trial install that asked for it (SEED_DEMO_DATA=true). Loaded once — re-running the
+  // installer must not bring it back after "ล้างข้อมูลทั้งหมด" — and never once the system has gone live.
+  const flags = await prisma.appSetting.findMany({ where: { key: { in: ['goLiveAt', 'demoSeededAt'] } } });
+  const flag = (k: string) => flags.some((f) => f.key === k && f.value !== null);
+  if (process.env.SEED_DEMO_DATA !== 'true' || flag('goLiveAt') || flag('demoSeededAt')) {
+    console.log(process.env.SEED_DEMO_DATA === 'true' ? 'Seed done (core only; demo data was loaded before or the system is live).' : 'Seed done (core only).');
     return;
   }
+  await seedDemoData(mkUser);
+  await prisma.appSetting.create({ data: { key: 'demoSeededAt', value: new Date().toISOString() } });
+  console.log(`Seed done (core + demo${isProd ? ', trial install' : ''}).`);
+}
+
+type MkUser = (username: string, fullName: string, roleCode: string, vesselIds?: string[]) => Promise<unknown>;
+
+/** DEV/TRIAL: example vessels, crew, trips, catches, purchasing, payroll and users per role. */
+async function seedDemoData(mkUser: MkUser) {
   await seedSupplyDemo();
   await seedPayrollDemo();
   // demo installs show moving vessels (simulated AIS/VMS) until a real feed is connected
@@ -176,7 +189,6 @@ async function main() {
   await mkUser('viewer', 'ผู้ดูข้อมูล (ตัวอย่าง)', 'VIEWER');
   await mkUser('buyer', 'เจ้าหน้าที่จัดซื้อ (ตัวอย่าง)', 'PURCHASING_OFFICER');
   await mkUser('store', 'เจ้าหน้าที่คลัง (ตัวอย่าง)', 'WAREHOUSE_OFFICER');
-  console.log('Seed done (core + demo).');
 }
 
 /** DEV/DEMO: example compensation rules (idempotent; skipped once any rule exists). */

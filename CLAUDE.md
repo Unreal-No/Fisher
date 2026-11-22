@@ -8,7 +8,7 @@
 - `docs/` — PRD, architecture, schema, API, UI, security, roadmap
 
 ## Commands
-`pnpm dev` · `pnpm check` (typecheck+lint+test+build) · `pnpm e2e` (Playwright against running dev servers; never run `playwright install` locally) · `pnpm db:migrate` · `pnpm db:seed` · API tests need `TEST_DATABASE_URL` (db name must end `_test`)
+`./fisher.sh` / `fisher.cmd` (Docker install + backup/restore/update/reset-password, secrets in fisher.env; see INSTALL.md) · `pnpm dev` · `pnpm check` (typecheck+lint+test+build) · `pnpm e2e` (Playwright against running dev servers; never run `playwright install` locally) · `pnpm db:migrate` · `pnpm db:seed` · API tests need `TEST_DATABASE_URL` (db name must end `_test`)
 New migration non-interactively: `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script > prisma/migrations/<ts>_<name>/migration.sql` then `npx prisma migrate deploy`
 Never run `prisma migrate reset` against non-test DBs.
 

@@ -19,6 +19,7 @@
 | M8.1 | เข้ารหัสคอลัมน์ข้อมูลส่วนบุคคล (โปร่งใสผ่าน Prisma extension + เข้ารหัสข้อมูลเดิม), load test พร้อมข้อมูลปริมาณมาก (docs/PERFORMANCE.md), rate limit ตั้งค่าได้ | ✅ |
 | M8.2 | หมุนกุญแจเข้ารหัส (key id ใน ciphertext, กุญแจเก่าอ่านได้ระหว่างหมุน, seed เข้ารหัสใหม่), รับ GPS ผ่าน MQTT (ใช้ adapter + ingest เดิม, ทดสอบกับ broker จริง) | ✅ |
 | M8.3 | GPS สด (SSE) + ประวัติการเดินทาง (ช่วงแล่น/จุดพัก/ระยะเวลา/ระยะทาง), สัญญาณจำลอง AIS/VMS, อีเมลขาออก (โหมดจำลองเมื่อยังไม่มี SMTP) + สรุปแจ้งเตือนรายวัน, ล้างข้อมูลก่อนใช้งานจริง + ล็อก go-live | ✅ |
+| M8.5 | ติดตั้งคำสั่งเดียว (`fisher.sh` / `fisher.cmd`): สร้างความลับอัตโนมัติ, ข้อมูลตัวอย่างครั้งเดียว, backup/restore/update/reset-password; แก้ Dockerfile (tsconfig.base.json) — ทดสอบติดตั้งจริงด้วย Docker | ✅ |
 | M8.4 | เชื่อมผู้ให้บริการ AIS/VMS จริง (ต้องมี credential), SMTP จริง, PDF ฝั่งเซิร์ฟเวอร์, pen-test ภายนอก | ⏳ |
 
 แต่ละ milestone: typecheck → lint → unit/integration/API tests → build → อัปเดต docs

@@ -47,7 +47,11 @@ export function AccountPage() {
           <Button type="submit" loading={f.formState.isSubmitting}>บันทึก</Button>
         </form>
       </Panel>
-      <TwoFactorSection />
+      {me?.mustChangePassword ? (
+        <p className="max-w-lg text-sm text-muted">ตั้งค่าการยืนยันตัวตนสองขั้นตอน (2FA) ได้หลังเปลี่ยนรหัสผ่าน</p>
+      ) : (
+        <TwoFactorSection />
+      )}
       </div>
     </>
   );
