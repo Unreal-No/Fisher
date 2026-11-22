@@ -30,6 +30,7 @@ pnpm dev
 
 เปิด http://localhost:5173 — ผู้ใช้ทดลอง (เฉพาะ dev, รหัส = `SEED_ADMIN_PASSWORD` ค่าเริ่มต้น `Admin@12345`):
 `admin` (ผู้ดูแลระบบ) · `owner` · `ops` (อนุมัติจัดซื้อ) · `captain1` (เห็นเฉพาะเรือ V-001) · `hr` · `buyer` (จัดซื้อ) · `store` (คลัง) · `acc` (บัญชี/เงินเดือน — คำนวณได้ แต่อนุมัติงวดที่ตัวเองคำนวณไม่ได้) · `viewer`
+ผู้ใช้เปิด 2FA (แอป Authenticator) ได้ที่ "บัญชีของฉัน"; ผู้ดูแลกำหนดบทบาทที่ต้องใช้ 2FA ได้ที่ "ตั้งค่าระบบ"
 ข้อมูลตัวอย่างมีป้าย `[ข้อมูลตัวอย่าง]`; production seed สร้างเฉพาะข้อมูลอ้างอิง + `admin` (บังคับเปลี่ยนรหัส)
 
 ## ตรวจคุณภาพ
@@ -38,9 +39,14 @@ pnpm check
 ```
 (typecheck → ESLint → Vitest [shared, api integration กับ DB จริง, web] → production build)
 
+E2E (Playwright, ใช้ `pnpm dev` ที่รันอยู่และข้อมูลตัวอย่าง; ใน CI สร้าง DB + seed ให้เอง):
+```bash
+pnpm e2e
+```
+
 ## Production (Docker)
 ```bash
-cp .env.example .env   # ตั้ง DB_PASSWORD, PUBLIC_URL, COOKIE_SECURE=true, SEED_ADMIN_PASSWORD
+cp .env.example .env   # ตั้ง DB_PASSWORD, PUBLIC_URL, COOKIE_SECURE=true, SEED_ADMIN_PASSWORD, APP_ENCRYPTION_KEY (openssl rand -base64 32 — ต้องมี; อย่าเปลี่ยนภายหลังเพราะ 2FA ที่ตั้งไว้จะใช้ไม่ได้)
 ```
 
 ```bash
@@ -70,9 +76,11 @@ DATABASE_URL=postgresql://... ./scripts/restore.sh backups/db-YYYYmmdd-HHMMSS.du
 - GPS: รับข้อมูลผ่าน HTTP (generic/OsmAnd-Traccar/AIS push) และมือถือ; ยังไม่มี MQTT bridge และการดึงข้อมูลจากผู้ให้บริการ AIS/VMS (ต้องมี credential); แผนที่ใช้ tile ของ OpenStreetMap (production ควรใช้ผู้ให้บริการ tile ของตนเอง)
 - มือถือส่งตำแหน่งได้เฉพาะตอนเปิดหน้าเว็บค้างไว้ (ติดตามต่อเนื่องแนะนำแอป Traccar Client)
 - หลังอัปเกรดให้รัน `pnpm db:deploy && pnpm db:seed` (seed เพิ่มสิทธิ์ใหม่ให้บทบาทเดิมโดยไม่ทับที่แก้ไว้)
+- อัปเกรดเป็น 0.10.0 ขึ้นไป (Docker): ต้องตั้ง `APP_ENCRYPTION_KEY` ใน `.env` ก่อน `docker compose up` (ใช้เข้ารหัส secret ของ 2FA)
 - อัปเกรดจากเวอร์ชันก่อน 0.3.0: ค่าเริ่มต้นบทบาทที่เปลี่ยนสำหรับสิทธิ์ที่มีอยู่แล้ว ต้องเพิ่มเองที่หน้า "บทบาทและสิทธิ์" — ผู้จัดการฝ่ายปฏิบัติการ: `purchase.view`, `purchase.approve`, `inventory.edit`; เจ้าหน้าที่จัดซื้อ: `inventory.edit`
 - ช่องกรอกวันที่ใช้ date picker ของเบราว์เซอร์ (ปี ค.ศ.); การแสดงผลเป็น พ.ศ.
 - Offline: รองรับบันทึกสัตว์น้ำ; ฟอร์มอื่นต้องออนไลน์
 - Background job เป็น single-instance (setInterval)
-- ยังไม่มี 2FA / column encryption / malware scan — ดู docs/SECURITY_PLAN.md
+- ยังไม่มี column encryption / malware scan / load test — ดู docs/SECURITY_PLAN.md
+- รายงาน PDF ใช้การพิมพ์ของเบราว์เซอร์ (บันทึกเป็น PDF); ส่งออก Excel/CSV ได้ทุกตารางรายงาน
 - ไม่ได้รับรองการปฏิบัติตาม PDPA/กฎหมายแรงงาน — ต้องให้ผู้เชี่ยวชาญตรวจ

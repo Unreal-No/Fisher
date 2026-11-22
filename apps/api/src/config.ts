@@ -18,6 +18,10 @@ const schema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_FORCE_PATH_STYLE: bool.default(true),
   MAX_UPLOAD_MB: z.coerce.number().default(10),
+  /** base64 32-byte key for secrets at rest (2FA). Required in production: `openssl rand -base64 32` */
+  APP_ENCRYPTION_KEY: z.string().optional(),
+  /** login attempts per IP per minute (password and 2FA steps each) */
+  LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).default(10),
 });
 
 export type Config = z.infer<typeof schema>;

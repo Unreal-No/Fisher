@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Download, Printer } from 'lucide-react';
+import { Printer } from 'lucide-react';
 import { Link } from 'react-router';
 import { formatDate, formatMoney, toISODate, ACCOUNT_TYPE_TH } from '@fisher/shared';
 import { Badge } from '@/components/ui/badge';
@@ -8,7 +8,7 @@ import { Input, Select } from '@/components/ui/input';
 import { Panel } from '@/components/ui/panel';
 import { QueryView } from '@/components/ui/states';
 import { api } from '@/lib/api';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
 import type { useListParams } from '@/lib/hooks';
 import { useVessels, vesselOptions } from '@/lib/lookups';
 import { accountOptions, useAccounts } from './lookups';
@@ -61,7 +61,7 @@ export function ReportsTab({ lp }: { lp: LP }) {
 }
 
 const Csv = ({ name, rows }: { name: string; rows: (string | number | null)[][] }) => (
-  <Button size="sm" variant="outline" className="print:hidden" onClick={() => downloadCsv(name, rows)}><Download /> CSV</Button>
+  <ExportMenu size="sm" className="print:hidden" baseName={name.replace(/\.csv$/, '')} rows={() => rows} />
 );
 
 function TrialBalanceView({ from, to, range }: { from: string; to: string; range: string }) {

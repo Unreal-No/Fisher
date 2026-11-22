@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Download, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -16,7 +16,8 @@ import { Empty, QueryView } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
+import { num } from '@/lib/export';
 import { useListParams } from '@/lib/hooks';
 import { PoBadge, PrBadge } from './status';
 import { PoFormDialog, PrFormDialog, SupplierDialog, useSuppliers } from './purchasing-dialogs';
@@ -155,10 +156,10 @@ function SummaryTab({ lp, canExport }: { lp: LP; canExport: boolean }) {
         <span className="text-muted">–</span>
         <Input type="date" className="w-40" value={range.to} onChange={(e) => lp.set({ sTo: e.target.value })} aria-label="ถึง" />
         {canExport && (
-          <Button variant="outline" className="ml-auto" disabled={!q.data?.bySupplier.length} onClick={() => q.data && downloadCsv(`purchasing-summary-${toISODate()}.csv`, [
+          <ExportMenu className="ml-auto" disabled={!q.data?.bySupplier.length} baseName={`purchasing-summary-${toISODate()}`} rows={() => !q.data ? [] : [
             ['รหัสผู้ขาย', 'ผู้ขาย', 'จำนวนใบสั่งซื้อ', 'ยอดรวม (รวม VAT)', 'VAT'],
-            ...q.data.bySupplier.map((s) => [s.code, s.name, s.orders, s.total, s.vat]),
-          ])}><Download /> ส่งออก CSV</Button>
+            ...q.data.bySupplier.map((s) => [s.code, s.name, s.orders, num(s.total), num(s.vat)]),
+          ]} />
         )}
       </FilterBar>
       <QueryView q={q}>

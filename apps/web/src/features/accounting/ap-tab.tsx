@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Download, Plus } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { formatDate, formatDateTime, formatMoney, PAYMENT_METHOD_TH, toISODate, toOptions, VENDOR_BILL_STATUS_TH, VENDOR_PAYMENT_STATUS_TH } from '@fisher/shared';
@@ -12,7 +12,8 @@ import { Input, Select } from '@/components/ui/input';
 import { Panel } from '@/components/ui/panel';
 import { QueryView } from '@/components/ui/states';
 import { api } from '@/lib/api';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
+import { num } from '@/lib/export';
 import { useAction, type useListParams } from '@/lib/hooks';
 import { INV } from './lookups';
 import { BillStatusBadge, VPayStatusBadge } from './status';
@@ -126,7 +127,7 @@ function AgingView() {
           const sum = (k: 'current' | 'd30' | 'd60' | 'd90' | 'over90') => d.items.reduce((s, i) => s + i[k], 0);
           return (
             <Panel title={`อายุเจ้าหนี้ ณ ${formatDate(d.asOf)}`} bodyClass="p-0"
-              actions={<Button size="sm" variant="outline" onClick={() => downloadCsv(`ap-aging-${d.asOf}.csv`, [['รหัส', 'ผู้ขาย', 'ยังไม่ครบกำหนด', '1-30 วัน', '31-60 วัน', '61-90 วัน', 'เกิน 90 วัน', 'รวม'], ...d.items.map((i) => [i.code, i.name, i.current, i.d30, i.d60, i.d90, i.over90, i.total]), ['', 'รวม', sum('current'), sum('d30'), sum('d60'), sum('d90'), sum('over90'), d.total]])}><Download /> CSV</Button>}>
+              actions={<ExportMenu size="sm" baseName={`ap-aging-${d.asOf}`} rows={() => [['รหัส', 'ผู้ขาย', 'ยังไม่ครบกำหนด', '1-30 วัน', '31-60 วัน', '61-90 วัน', 'เกิน 90 วัน', 'รวม'], ...d.items.map((i) => [i.code, i.name, num(i.current), num(i.d30), num(i.d60), num(i.d90), num(i.over90), num(i.total)]), ['', 'รวม', num(sum('current')), num(sum('d30')), num(sum('d60')), num(sum('d90')), num(sum('over90')), num(d.total)]]} />}>
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[720px] text-sm">
                   <thead className="bg-slate-50 text-left text-xs text-slate-600">

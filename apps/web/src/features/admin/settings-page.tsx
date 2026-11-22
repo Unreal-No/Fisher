@@ -13,9 +13,10 @@ import { Checkbox, Input, Select } from '@/components/ui/input';
 import { Panel } from '@/components/ui/panel';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
+import { useRoles } from './users-page';
 import { useDocTypes, type DocType } from '@/lib/lookups';
 
-interface Settings { companyName: string; docReminderDays: number[]; gpsSignalLostMinutes: number; maintenanceReminderDays: number; maintenanceReminderHours: number }
+interface Settings { companyName: string; docReminderDays: number[]; gpsSignalLostMinutes: number; maintenanceReminderDays: number; maintenanceReminderHours: number; require2faRoles?: string[] }
 
 export function SettingsPage() {
   const s = useQuery({ queryKey: ['settings'], queryFn: () => api.get<Settings>('/settings') });
@@ -25,9 +26,11 @@ export function SettingsPage() {
   const [lost, setLost] = useState('60');
   const [mDays, setMDays] = useState('14');
   const [mHours, setMHours] = useState('50');
+  const roles = useRoles();
+  const [req2fa, setReq2fa] = useState<string[]>([]);
   const [edit, setEdit] = useState<DocType | 'new' | null>(null);
   useEffect(() => {
-    if (s.data) { setCompany(s.data.companyName); setDays(s.data.docReminderDays.join(', ')); setLost(String(s.data.gpsSignalLostMinutes)); setMDays(String(s.data.maintenanceReminderDays)); setMHours(String(s.data.maintenanceReminderHours)); }
+    if (s.data) { setCompany(s.data.companyName); setDays(s.data.docReminderDays.join(', ')); setLost(String(s.data.gpsSignalLostMinutes)); setMDays(String(s.data.maintenanceReminderDays)); setMHours(String(s.data.maintenanceReminderHours)); setReq2fa(s.data.require2faRoles ?? []); }
   }, [s.data]);
   const save = useAction((v: unknown) => api.patch('/settings', v), { success: 'บันทึกการตั้งค่าแล้ว', invalidate: ['settings'] });
   const parsedDays = days.split(/[,\s]+/).filter(Boolean).map(Number);
@@ -38,6 +41,7 @@ export function SettingsPage() {
     <>
       <PageHeader title="ตั้งค่าระบบ" />
       <div className="grid gap-4 xl:grid-cols-[400px_1fr]">
+        <div className="space-y-4">
         <Panel title="ทั่วไปและการแจ้งเตือน">
           <div className="space-y-3">
             <Field label="ชื่อบริษัท"><Input value={company} onChange={(e) => setCompany(e.target.value)} /></Field>
@@ -54,6 +58,19 @@ export function SettingsPage() {
             <Button loading={save.isPending} disabled={!daysValid || !lostValid || !mValid} onClick={() => save.mutate({ companyName: company, docReminderDays: parsedDays, gpsSignalLostMinutes: Number(lost), maintenanceReminderDays: Number(mDays), maintenanceReminderHours: Number(mHours) })}>บันทึก</Button>
           </div>
         </Panel>
+        <Panel title="ความปลอดภัย">
+          <div className="space-y-3">
+            <Field label="บทบาทที่ต้องใช้ 2FA" hint="ผู้ใช้ในบทบาทที่เลือกต้องตั้งค่า 2FA ก่อนใช้งานระบบ และปิด 2FA เองไม่ได้">
+              <div className="grid grid-cols-1 gap-1.5">
+                {roles.data?.map((r) => (
+                  <Checkbox key={r.id} label={r.name} checked={req2fa.includes(r.code)} onChange={() => setReq2fa((cur) => (cur.includes(r.code) ? cur.filter((x) => x !== r.code) : [...cur, r.code]))} />
+                ))}
+              </div>
+            </Field>
+            <Button loading={save.isPending} onClick={() => save.mutate({ require2faRoles: req2fa })}>บันทึก</Button>
+          </div>
+        </Panel>
+        </div>
         <Panel title="ประเภทเอกสารพนักงาน (Checklist)" bodyClass="p-0" actions={<Button size="sm" onClick={() => setEdit('new')}><Plus /> เพิ่มประเภท</Button>}>
           <table className="w-full text-sm">
             <thead className="bg-slate-50 text-left text-xs text-slate-600"><tr><th className="px-4 py-2">รหัส</th><th className="px-2">ชื่อ</th><th className="px-2">ใช้กับ</th><th className="px-2">บังคับ</th><th className="px-2">มีวันหมดอายุ</th><th className="px-2">สถานะ</th><th /></tr></thead>

@@ -7,17 +7,22 @@
 | CSRF | double-submit (`fcsrf` cookie ↔ `x-csrf-token`) ทุก POST/PUT/PATCH/DELETE |
 | RBAC | guard ทุก route (`app.can`) + ซ่อนเมนู/ปุ่มฝั่ง UI; vessel scope ต่อผู้ใช้ |
 | Input | Zod ทั้ง client/server; Prisma parameterized (กัน SQLi); React escape (กัน XSS); CSP ผ่าน helmet |
-| Rate limit | 600 req/นาที/IP, login 10/นาที |
+| 2FA (M8) | TOTP RFC 6238 (แอป Authenticator) เปิดใช้เองที่ "บัญชีของฉัน" (ยืนยันรหัสผ่าน + รหัสจากแอป); secret เข้ารหัส AES-256-GCM ด้วย `APP_ENCRYPTION_KEY`; กันใช้รหัสซ้ำ (เก็บ step ล่าสุด); รหัสกู้คืน 10 ชุดใช้ครั้งเดียว (เก็บ sha256); ขั้นที่ 2 ผ่าน challenge อายุ 5 นาที/5 ครั้ง และนับรวม lockout; ผู้ดูแลกำหนดบทบาทที่ต้องใช้ 2FA (ผู้ใช้ถูกจำกัดให้อยู่หน้า "บัญชีของฉัน" จนกว่าจะเปิดใช้) และรีเซ็ต 2FA ได้ (audit) |
+| Rate limit | 600 req/นาที/IP, login และขั้น 2FA อย่างละ 10/นาที (`LOGIN_RATE_LIMIT`) |
 | ไฟล์ | ตรวจ magic bytes (file-type), whitelist JPG/PNG/WEBP/PDF, ≤10MB, ชื่อไฟล์ sanitize, path traversal guard, ไฟล์ private เสิร์ฟผ่าน API + permission; S3 SSE-AES256 |
 | PDPA | national_id/bank/document_no mask ถ้าไม่มี `employee.sensitive`; ดูข้อมูล/ไฟล์ส่วนบุคคล = audit `VIEW_SENSITIVE`; audit snapshot redact ฟิลด์อ่อนไหว; VIEWER ไม่เห็นข้อมูลส่วนบุคคล |
 | Audit | append-only (DB trigger), เก็บ user/ip/ua/request-id |
 | Logging | redact cookie/csrf header |
 | Secrets | `.env` (ไม่ commit), `.env.example` |
 | Backup | `scripts/backup.sh` (pg_dump custom + ไฟล์, retention), `scripts/restore.sh` (ยืนยันก่อน) |
-| CSV export | BOM UTF-8 + กัน formula injection |
+| ส่งออก CSV/Excel | BOM UTF-8 + กัน formula injection (เฉพาะข้อความ ตัวเลขคงเป็นตัวเลข); .xlsx สร้างในเบราว์เซอร์ (ไม่ส่งข้อมูลออกนอกระบบ) |
+| Dependencies | `pnpm audit --prod` ไม่มีช่องโหว่ที่ทราบ (M8; override `effect` ที่ Prisma ตรึงไว้) |
+| ทดสอบ | API integration + E2E Playwright ใน CI (เข้าสู่ระบบ, 2FA, ทุกหน้าโมดูลไม่มี error, งบสมดุล, ส่งออก, มือถือ) |
 
 ## ยังต้องทำ / ข้อจำกัด
-- ยังไม่มี 2FA, ยังไม่เข้ารหัสระดับคอลัมน์ (เลขบัตร/บัญชี) — แนะนำ pgcrypto/KMS ก่อนใช้งานจริง
+- ยังไม่เข้ารหัสระดับคอลัมน์ข้อมูลส่วนบุคคล (เลขบัตร/บัญชี/เลขเอกสาร) — ใช้ mask + สิทธิ์ + audit; แนะนำเข้ารหัสดิสก์/ฐานข้อมูล (หรือย้ายฟิลด์ไปใช้ `lib/crypto`) ก่อนใช้งานจริง
+- 2FA เป็นแบบเลือกเปิด — แนะนำกำหนดให้บทบาทผู้ดูแลระบบ/เจ้าของ/บัญชีต้องใช้ ที่ "ตั้งค่าระบบ"
+- ยังไม่มี load test และ penetration test โดยบุคคลที่สาม
 - นโยบายระยะเก็บข้อมูล (retention) + กระบวนการคำขอเจ้าของข้อมูล (DSAR) — ต้องกำหนดโดยองค์กร
 - Malware scan ไฟล์อัปโหลด (ClamAV) — แนะนำใน production
 - ไม่อ้างว่าสอดคล้อง PDPA/กฎหมายแรงงานจนกว่าผู้เชี่ยวชาญตรวจสอบ

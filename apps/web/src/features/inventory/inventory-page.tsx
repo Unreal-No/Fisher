@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Download, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import {
@@ -17,7 +17,8 @@ import { Checkbox, Input, Select } from '@/components/ui/input';
 import { Tabs } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
+import { num } from '@/lib/export';
 import { useAction, useListParams } from '@/lib/hooks';
 import { ItemDialog, StockAdjustDialog, StockIssueDialog, StockReceiptDialog, StockTransferDialog, useWarehouses, WarehouseDialog } from './inventory-dialogs';
 import type { Balance, BalancesResult, InventoryItem, StockMovement, Warehouse } from './types';
@@ -92,10 +93,10 @@ function BalancesTab({ lp, canExport }: { lp: LP; canExport: boolean }) {
   const wh = useWarehouses();
   const params = { warehouseId: lp.get('warehouseId') || undefined, q: lp.get('q') || undefined, belowMin: lp.get('belowMin') === 'true' ? 'true' : undefined };
   const q = useQuery({ queryKey: ['inventory', 'balances', params], queryFn: () => api.get<BalancesResult>('/inventory/balances', params), placeholderData: keepPreviousData });
-  const exportCsv = () => downloadCsv(`inventory-balances-${toISODate()}.csv`, [
+  const exportRows = () => [
     ['รหัส', 'สินค้า', 'หมวดหมู่', 'คลัง', 'คงเหลือ', 'หน่วย', 'ต้นทุนเฉลี่ย', 'มูลค่า (บาท)', 'ต่ำกว่าขั้นต่ำ'],
-    ...(q.data?.items ?? []).map((r) => [r.item.code, r.item.name, SUPPLY_CATEGORY_TH[r.item.category], r.warehouse.name, r.quantity, r.item.unit, r.avgCost, r.value, r.belowMin ? 'ใช่' : '']),
-  ]);
+    ...(q.data?.items ?? []).map((r) => [r.item.code, r.item.name, SUPPLY_CATEGORY_TH[r.item.category], r.warehouse.name, num(r.quantity), r.item.unit, num(r.avgCost), num(r.value), r.belowMin ? 'ใช่' : '']),
+  ];
   const rows = q.data?.items;
   return (
     <div className="space-y-3">
@@ -103,7 +104,7 @@ function BalancesTab({ lp, canExport }: { lp: LP; canExport: boolean }) {
         <Select options={(wh.data ?? []).map((w) => ({ value: w.id, label: `${w.code} · ${w.name}` }))} placeholder="ทุกคลัง" value={lp.get('warehouseId')} onChange={(e) => lp.set({ warehouseId: e.target.value })} />
         <SearchInput value={lp.get('q')} onChange={(v) => lp.set({ q: v })} />
         <Checkbox label="เฉพาะต่ำกว่าจุดสั่งซื้อ" checked={lp.get('belowMin') === 'true'} onChange={(e) => lp.set({ belowMin: e.target.checked ? 'true' : undefined })} />
-        {canExport && <Button variant="outline" className="ml-auto" onClick={exportCsv} disabled={!rows?.length}><Download /> ส่งออก CSV</Button>}
+        {canExport && <ExportMenu className="ml-auto" baseName={`inventory-balances-${toISODate()}`} rows={exportRows} disabled={!rows?.length} />}
       </FilterBar>
       <DataTable
         columns={balanceCols} data={rows} total={rows?.length} pageSize={100000} loading={q.isFetching} error={q.error}

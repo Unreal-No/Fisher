@@ -20,6 +20,10 @@ export interface Me {
   permissions: Permission[];
   vesselScope: string[]; // empty = all vessels
   mustChangePassword: boolean;
+  /** TOTP second factor active */
+  twoFactorEnabled: boolean;
+  /** a role of the user requires 2FA and it is not enabled yet — only account pages are allowed */
+  mustEnable2fa: boolean;
 }
 
 /** Departure crew document check result (per crew member). */

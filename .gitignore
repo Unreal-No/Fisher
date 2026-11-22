@@ -10,3 +10,7 @@ apps/api/src/generated/
 dev-dist/
 .DS_Store
 backups/*.dump
+
+# Playwright
+apps/web/test-results/
+apps/web/playwright-report/

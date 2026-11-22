@@ -52,6 +52,7 @@ function RequireAuth() {
   if (loading) return <Spinner />;
   if (!me) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
   if (me.mustChangePassword && loc.pathname !== '/account') return <Navigate to="/account" replace />;
+  if (me.mustEnable2fa && loc.pathname !== '/account') return <Navigate to="/account" replace />;
   return <Outlet />;
 }
 

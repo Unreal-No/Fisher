@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Download, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -19,7 +19,8 @@ import { Empty, QueryView } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
+import { num } from '@/lib/export';
 import { useListParams } from '@/lib/hooks';
 import { useVessels, vesselOptions } from '@/lib/lookups';
 import { AdjustDialog, IssueDialog, ReceiptDialog, TankDialog } from './fuel-dialogs';
@@ -182,16 +183,16 @@ function EntriesTab({ lp, canExport }: { lp: LP; canExport: boolean }) {
   const params = { from: lp.get('from'), to: lp.get('to'), vesselId: lp.get('vesselId') || undefined, page: lp.page, pageSize: 20 };
   const list = usePagedFuel<FuelEntry>('entries', '/fuel/entries', params);
   const totals = list.data as { totalLiters?: number; totalCost?: number } | undefined;
-  const exportCsv = async () => {
+  const fetchRows = async () => {
     const all = await api.get<{ items: FuelEntry[] }>('/fuel/entries', { ...params, page: 1, pageSize: 200 });
-    downloadCsv(`fuel-entries-${toISODate()}.csv`, [
+    return [
       ['วันที่', 'เที่ยว', 'เรือ', 'ชนิด', 'ลิตร', 'บาท/ลิตร', 'รวม (บาท)', 'แหล่งที่มา', 'วิธีได้ค่า'],
-      ...all.items.map((r) => [r.recordedAt, r.trip.tripNo, r.trip.vessel.name, FUEL_TYPE_TH[r.fuelType], r.liters, r.pricePerLiter, r.totalCost, r.fuelTxn ? `ถังบริษัท ${r.fuelTxn.txnNo}` : r.supplierName, MEASUREMENT_TH[r.measurement]]),
-    ]);
+      ...all.items.map((r) => [r.recordedAt, r.trip.tripNo, r.trip.vessel.name, FUEL_TYPE_TH[r.fuelType], num(r.liters), num(r.pricePerLiter), num(r.totalCost), r.fuelTxn ? `ถังบริษัท ${r.fuelTxn.txnNo}` : r.supplierName, MEASUREMENT_TH[r.measurement]]),
+    ];
   };
   return (
     <div className="space-y-3">
-      {canExport && <div className="flex justify-end"><Button variant="outline" onClick={exportCsv}><Download /> ส่งออก CSV</Button></div>}
+      {canExport && <div className="flex justify-end"><ExportMenu baseName={`fuel-entries-${toISODate()}`} rows={fetchRows} /></div>}
       <DataTable
         columns={entryCols} data={list.data?.items} total={list.data?.total} page={lp.page} pageSize={20} onPageChange={(p) => lp.set({ page: p }, false)}
         loading={list.isFetching} error={list.error}

@@ -341,17 +341,41 @@ model User {
   lockedUntil        DateTime? @map("locked_until") @db.Timestamptz
   lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz
   employeeId         String?   @unique @map("employee_id") @db.Uuid
+  /// TOTP secret, encrypted (lib/crypto); set when 2FA is enabled
+  totpSecret         String?   @map("totp_secret")
+  /// secret being enrolled (not active until confirmed with a code)
+  totpPendingSecret  String?   @map("totp_pending_secret")
+  totpEnabledAt      DateTime? @map("totp_enabled_at") @db.Timestamptz
+  /// last accepted 30 s step (prevents code replay)
+  totpLastStep       Int?      @map("totp_last_step")
+  /// sha256 of unused recovery codes
+  recoveryCodes      String[]  @default([]) @map("recovery_codes")
   createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz
   deletedAt          DateTime? @map("deleted_at") @db.Timestamptz
 
-  employee      Employee?      @relation(fields: [employeeId], references: [id])
-  roles         UserRole[]
-  vessels       UserVessel[]
-  sessions      Session[]
-  notifications Notification[]
+  employee        Employee?        @relation(fields: [employeeId], references: [id])
+  roles           UserRole[]
+  vessels         UserVessel[]
+  sessions        Session[]
+  loginChallenges LoginChallenge[]
+  notifications   Notification[]
 
   @@map("users")
+}
+
+/// Password verified, waiting for the second factor (short-lived, limited attempts).
+model LoginChallenge {
+  id        String   @id
+  userId    String   @map("user_id") @db.Uuid
+  attempts  Int      @default(0)
+  ip        String?
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("login_challenges")
 }
 
 model Role {

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Field } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Panel } from '@/components/ui/panel';
+import { TwoFactorSection } from './two-factor-section';
 import { api, ApiError } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 
@@ -29,6 +30,12 @@ export function AccountPage() {
       {me?.mustChangePassword && (
         <div className="mb-4 rounded border border-amber-200 bg-warn-soft px-3 py-2 text-sm text-warn">กรุณาตั้งรหัสผ่านใหม่ก่อนเริ่มใช้งานระบบ</div>
       )}
+      {me?.mustEnable2fa && !me.mustChangePassword && (
+        <div role="alert" className="mb-4 rounded border border-amber-300 bg-warn-soft px-4 py-3 text-sm font-medium text-warn">
+          บทบาทของคุณกำหนดให้ต้องเปิดใช้งานการยืนยันตัวตนสองขั้นตอน (2FA) ก่อนใช้งานระบบ กรุณาตั้งค่า 2FA ด้านล่างเพื่อดำเนินการต่อ
+        </div>
+      )}
+      <div className="space-y-4">
       <Panel title="เปลี่ยนรหัสผ่าน" className="max-w-lg">
         <form onSubmit={submit} className="space-y-3" noValidate>
           <Field label="รหัสผ่านปัจจุบัน" error={f.formState.errors.currentPassword?.message} required>
@@ -40,6 +47,8 @@ export function AccountPage() {
           <Button type="submit" loading={f.formState.isSubmitting}>บันทึก</Button>
         </form>
       </Panel>
+      <TwoFactorSection />
+      </div>
     </>
   );
 }

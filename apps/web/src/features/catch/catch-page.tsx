@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Download, Pencil, Plus, RotateCw, Trash2, XCircle } from 'lucide-react';
+import { Pencil, Plus, RotateCw, Trash2, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
 import { toast } from 'sonner';
@@ -17,7 +17,8 @@ import { Empty } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
+import { num } from '@/lib/export';
 import { useAction, useListParams, usePaged } from '@/lib/hooks';
 import { useSpecies, useVessels, vesselOptions } from '@/lib/lookups';
 import * as queue from '@/lib/offline-queue';
@@ -83,12 +84,12 @@ export function CatchPage() {
   const actions = useCatchActions();
   const cols = catchColumns({ showTrip: true, onAdjust: can('catch.edit') ? actions.setAdjust : undefined, onVoid: can('catch.delete') ? actions.setVoidRow : undefined });
 
-  const exportCsv = async () => {
+  const fetchRows = async () => {
     const all = await api.get<{ items: CatchRow[] }>('/catch/records', { ...lp.params, pageSize: 200, page: 1 });
-    downloadCsv(`catch-${new Date().toISOString().slice(0, 10)}.csv`, [
+    return [
       ['วันที่', 'เที่ยว', 'เรือ', 'ชนิด', 'เกรด', 'น้ำหนัก (กก.)', 'เข่ง', 'การเก็บ'],
-      ...all.items.map((r) => [r.catchDate.slice(0, 10), r.trip.tripNo, r.vessel.name, r.species.nameTh, r.grade?.nameTh ?? '', r.weightKg, r.basketCount ?? '', r.storageType]),
-    ]);
+      ...all.items.map((r) => [r.catchDate.slice(0, 10), r.trip.tripNo, r.vessel.name, r.species.nameTh, r.grade?.nameTh ?? '', num(r.weightKg), r.basketCount ?? '', r.storageType]),
+    ];
   };
 
   return (
@@ -97,7 +98,7 @@ export function CatchPage() {
         title="สัตว์น้ำที่จับได้"
         subtitle="บันทึกน้ำหนักจากเที่ยวเรือ (ไม่ใช่น้ำหนักขาย) · ทุกการแก้ไขมีประวัติ"
         actions={<>
-          {can('catch.export') && <Button variant="outline" onClick={exportCsv}><Download /> ส่งออก CSV</Button>}
+          {can('catch.export') && <ExportMenu baseName={`catch-${new Date().toISOString().slice(0, 10)}`} rows={fetchRows} />}
           {can('catch.create') && <Button onClick={() => setOpen(true)}><Plus /> บันทึกสัตว์น้ำ</Button>}
         </>}
       />

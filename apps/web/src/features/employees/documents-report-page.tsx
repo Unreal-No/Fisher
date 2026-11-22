@@ -1,18 +1,17 @@
 import { useQuery } from '@tanstack/react-query';
-import { Download } from 'lucide-react';
 import { useNavigate } from 'react-router';
 import { daysUntil, formatDate, NATIONALITY_TH, type Nationality } from '@fisher/shared';
 import { FilterBar } from '@/components/filters';
+import { ExportMenu } from '@/components/ui/export-menu';
 import { PageHeader } from '@/components/layout/app-layout';
 import { ExpiryText } from '@/components/status';
-import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/input';
 import { Panel } from '@/components/ui/panel';
 import { Empty, QueryView } from '@/components/ui/states';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useListParams } from '@/lib/hooks';
-import { downloadCsv } from '@/lib/export';
+
 
 interface Row {
   id: string; documentNo: string | null; expiryDate: string;
@@ -25,12 +24,12 @@ export function DocumentsReportPage() {
   const { can } = useAuth();
   const lp = useListParams({ days: '90' });
   const q = useQuery({ queryKey: ['doc-report', lp.get('days')], queryFn: () => api.get<Row[]>('/employees/reports/documents', { days: lp.get('days') }) });
-  const exportCsv = (rows: Row[]) =>
-    downloadCsv(`worker-documents-${new Date().toISOString().slice(0, 10)}.csv`, [
+  const exportRows = (rows: Row[]) =>
+    [
       ['รหัส', 'ชื่อ-สกุล', 'สัญชาติ', 'เรือ', 'เอกสาร', 'เลขที่', 'วันหมดอายุ', 'คงเหลือ (วัน)'],
       ...rows.map((r) => [r.employee.code, `${r.employee.firstName} ${r.employee.lastName}`, NATIONALITY_TH[r.employee.nationality as Nationality] ?? r.employee.nationality,
-        r.employee.currentVessel?.name ?? '', r.documentType.nameTh, r.documentNo ?? '', formatDate(r.expiryDate), String(daysUntil(r.expiryDate))]),
-    ]);
+        r.employee.currentVessel?.name ?? '', r.documentType.nameTh, r.documentNo ?? '', formatDate(r.expiryDate), daysUntil(r.expiryDate)]),
+    ];
   return (
     <>
       <PageHeader title="รายงานเอกสารแรงงานใกล้หมดอายุ" subtitle="รวมเอกสารที่หมดอายุแล้วและจะหมดอายุภายในช่วงที่เลือก (เฉพาะพนักงานที่ยังปฏิบัติงาน)" />
@@ -43,7 +42,7 @@ export function DocumentsReportPage() {
                 value={lp.get('days')} onChange={(e) => lp.set({ days: e.target.value })}
               />
               <span className="text-sm text-muted">ทั้งหมด {rows.length} ฉบับ · หมดอายุแล้ว {rows.filter((r) => daysUntil(r.expiryDate)! < 0).length}</span>
-              {can('employee.export') && rows.length > 0 && <Button variant="outline" size="sm" className="ml-auto" onClick={() => exportCsv(rows)}><Download /> ส่งออก CSV</Button>}
+              {can('employee.export') && rows.length > 0 && <ExportMenu size="sm" className="ml-auto" baseName={`worker-documents-${new Date().toISOString().slice(0, 10)}`} rows={() => exportRows(rows)} />}
             </FilterBar>
             <Panel bodyClass="p-0">
               {rows.length ? (

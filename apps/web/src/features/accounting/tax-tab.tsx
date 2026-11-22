@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { AlertTriangle, Download, Printer } from 'lucide-react';
+import { AlertTriangle, Printer } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { formatDate, formatMoney, formatMonth, toISODate } from '@fisher/shared';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,8 @@ import { Select } from '@/components/ui/input';
 import { Panel } from '@/components/ui/panel';
 import { QueryView } from '@/components/ui/states';
 import { api } from '@/lib/api';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
+import type { Cell } from '@/lib/export';
 import type { useListParams } from '@/lib/hooks';
 import type { Pnd1Report, VatReport, WhtReport, WhtRow } from './types';
 
@@ -16,9 +17,9 @@ const th = 'px-3 py-2';
 const thr = `${th} text-right`;
 const MONTHS = Array.from({ length: 12 }, (_, i) => ({ value: String(i + 1), label: formatMonth(new Date(Date.UTC(2024, i, 15))).replace(/\s*\d+$/, '') }));
 
-const Actions = ({ csv }: { csv: () => void }) => (
+const Actions = ({ name, rows }: { name: string; rows: () => Cell[][] }) => (
   <>
-    <Button size="sm" variant="outline" className="print:hidden" onClick={csv}><Download /> CSV</Button>
+    <ExportMenu size="sm" className="print:hidden" baseName={name} rows={rows} />
     <Button size="sm" variant="outline" className="print:hidden" onClick={() => window.print()}><Printer /> พิมพ์</Button>
   </>
 );
@@ -71,7 +72,7 @@ function VatView({ year, month, label }: { year: number; month: number; label: s
               <p className="mt-2 text-xs text-muted">ภาษีขาย − ภาษีซื้อ = {t.netVat >= 0 ? 'ต้องชำระ' : 'ขอคืน'}</p>
             </Panel>
             <Panel title="รายงานภาษีขาย" bodyClass="p-0"
-              actions={<Actions csv={() => downloadCsv(`vat-output-${f}.csv`, [['วันที่', 'เลขที่เอกสาร', 'ชื่อลูกค้า', 'เลขผู้เสียภาษี', 'สาขา', 'มูลค่า', 'VAT'], ...d.output.map((r) => [r.date, r.docNo, r.name, r.taxId, r.branch, r.base, r.vat]), ...d.credits.map((r) => [r.date, `${r.docNo} (ลดหนี้ ${r.refDocNo ?? ''})`, r.name, r.taxId, r.branch, r.base, r.vat]), ['', 'รวม', '', '', '', t.outputBase, t.outputVat]])} />}>
+              actions={<Actions name={`vat-output-${f}`} rows={() => [['วันที่', 'เลขที่เอกสาร', 'ชื่อลูกค้า', 'เลขผู้เสียภาษี', 'สาขา', 'มูลค่า', 'VAT'], ...d.output.map((r) => [r.date, r.docNo, r.name, r.taxId, r.branch, r.base, r.vat]), ...d.credits.map((r) => [r.date, `${r.docNo} (ลดหนี้ ${r.refDocNo ?? ''})`, r.name, r.taxId, r.branch, r.base, r.vat]), ['', 'รวม', '', '', '', t.outputBase, t.outputVat]]} />}>
               <Wrap>
                 <thead className="bg-slate-50 text-left text-xs text-slate-600"><tr><th className={th}>วันที่</th><th className={th}>เลขที่เอกสาร</th><th className={th}>ชื่อลูกค้า</th><th className={th}>เลขผู้เสียภาษี</th><th className={th}>สาขา</th><th className={thr}>มูลค่า</th><th className={thr}>VAT</th></tr></thead>
                 <tbody>
@@ -87,7 +88,7 @@ function VatView({ year, month, label }: { year: number; month: number; label: s
               </Wrap>
             </Panel>
             <Panel title="รายงานภาษีซื้อ" bodyClass="p-0"
-              actions={<Actions csv={() => downloadCsv(`vat-input-${f}.csv`, [['วันที่', 'เลขที่ใบกำกับ', 'เลขที่ใบแจ้งหนี้', 'ชื่อผู้ขาย', 'เลขผู้เสียภาษี', 'สาขา', 'มูลค่า', 'VAT'], ...d.input.map((r) => [r.date, r.docNo, r.billNo, r.name, r.taxId, r.branch, r.base, r.vat]), ['', 'รวม', '', '', '', '', t.inputBase, t.inputVat]])} />}>
+              actions={<Actions name={`vat-input-${f}`} rows={() => [['วันที่', 'เลขที่ใบกำกับ', 'เลขที่ใบแจ้งหนี้', 'ชื่อผู้ขาย', 'เลขผู้เสียภาษี', 'สาขา', 'มูลค่า', 'VAT'], ...d.input.map((r) => [r.date, r.docNo, r.billNo, r.name, r.taxId, r.branch, r.base, r.vat]), ['', 'รวม', '', '', '', '', t.inputBase, t.inputVat]]} />}>
               <Wrap>
                 <thead className="bg-slate-50 text-left text-xs text-slate-600"><tr><th className={th}>วันที่</th><th className={th}>เลขที่ใบกำกับ</th><th className={th}>ใบแจ้งหนี้</th><th className={th}>ชื่อผู้ขาย</th><th className={th}>เลขผู้เสียภาษี</th><th className={th}>สาขา</th><th className={thr}>มูลค่า</th><th className={thr}>VAT</th></tr></thead>
                 <tbody>
@@ -111,7 +112,7 @@ function WhtView({ year, month, label }: { year: number; month: number; label: s
   const f = `${year}-${String(month).padStart(2, '0')}`;
   const table = (title: string, file: string, rows: WhtRow[], tot: { count: number; base: number; wht: number }) => (
     <Panel title={`${title} (${tot.count} รายการ)`} bodyClass="p-0"
-      actions={<Actions csv={() => downloadCsv(`${file}-${f}.csv`, [['วันที่', 'เลขที่การจ่าย', 'ชื่อผู้ถูกหักภาษี', 'เลขผู้เสียภาษี', 'สาขา', 'ที่อยู่', 'ฐานภาษี', 'อัตรา %', 'ภาษีที่หัก'], ...rows.map((r) => [r.date, r.paymentNo, r.name, r.taxId, r.branch, r.address, r.base, r.rate, r.wht]), ['', 'รวม', '', '', '', '', tot.base, '', tot.wht]])} />}>
+      actions={<Actions name={`${file}-${f}`} rows={() => [['วันที่', 'เลขที่การจ่าย', 'ชื่อผู้ถูกหักภาษี', 'เลขผู้เสียภาษี', 'สาขา', 'ที่อยู่', 'ฐานภาษี', 'อัตรา %', 'ภาษีที่หัก'], ...rows.map((r) => [r.date, r.paymentNo, r.name, r.taxId, r.branch, r.address, r.base, r.rate, r.wht]), ['', 'รวม', '', '', '', '', tot.base, '', tot.wht]]} />}>
       <Wrap min={820}>
         <thead className="bg-slate-50 text-left text-xs text-slate-600"><tr><th className={th}>วันที่</th><th className={th}>เลขที่การจ่าย</th><th className={th}>ชื่อผู้ถูกหักภาษี</th><th className={th}>เลขผู้เสียภาษี</th><th className={th}>ที่อยู่</th><th className={thr}>ฐานภาษี</th><th className={thr}>อัตรา</th><th className={thr}>ภาษีที่หัก</th></tr></thead>
         <tbody>
@@ -158,7 +159,7 @@ function Pnd1View({ year, month, label }: { year: number; month: number; label: 
             </div>
           )}
           <Panel title={`ภ.ง.ด.1 (${d.totals.count} คน)`} bodyClass="p-0"
-            actions={<Actions csv={() => downloadCsv(`pnd1-${f}.csv`, [['รหัส', 'ชื่อ', 'เลขประจำตัวประชาชน', 'สัญชาติ', 'เงินได้', 'ภาษีที่หัก', 'งวดเงินเดือน'], ...d.rows.map((r) => [r.code, r.name, r.nationalIdNo, r.nationality, r.income, r.tax, r.periods.join(' ')]), ['', 'รวม', '', '', d.totals.income, d.totals.tax, '']])} />}>
+            actions={<Actions name={`pnd1-${f}`} rows={() => [['รหัส', 'ชื่อ', 'เลขประจำตัวประชาชน', 'สัญชาติ', 'เงินได้', 'ภาษีที่หัก', 'งวดเงินเดือน'], ...d.rows.map((r) => [r.code, r.name, r.nationalIdNo, r.nationality, r.income, r.tax, r.periods.join(' ')]), ['', 'รวม', '', '', d.totals.income, d.totals.tax, '']]} />}>
             <Wrap min={720}>
               <thead className="bg-slate-50 text-left text-xs text-slate-600"><tr><th className={th}>รหัส</th><th className={th}>ชื่อ</th><th className={th}>เลขประจำตัวประชาชน</th><th className={thr}>เงินได้</th><th className={thr}>ภาษีที่หัก</th><th className={th}>งวด</th></tr></thead>
               <tbody>

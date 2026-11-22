@@ -8,7 +8,7 @@
 - `docs/` — PRD, architecture, schema, API, UI, security, roadmap
 
 ## Commands
-`pnpm dev` · `pnpm check` (typecheck+lint+test+build) · `pnpm db:migrate` · `pnpm db:seed` · API tests need `TEST_DATABASE_URL` (db name must end `_test`)
+`pnpm dev` · `pnpm check` (typecheck+lint+test+build) · `pnpm e2e` (Playwright against running dev servers; never run `playwright install` locally) · `pnpm db:migrate` · `pnpm db:seed` · API tests need `TEST_DATABASE_URL` (db name must end `_test`)
 New migration non-interactively: `npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --script > prisma/migrations/<ts>_<name>/migration.sql` then `npx prisma migrate deploy`
 Never run `prisma migrate reset` against non-test DBs.
 
@@ -17,6 +17,7 @@ Never run `prisma migrate reset` against non-test DBs.
 - Blank form value → `null` (clears field); unparsable number → error `กรุณากรอกตัวเลข`
 - Every mutation: `prisma.$transaction` + `audit(tx, req, {...})`; transactions are never hard-deleted (cancel/void/REPLACED)
 - Guards: `{ preHandler: app.can('x.y') }`; vessel scope via `vesselWhere(req)` / `assertVesselScope`
+- Auth: 2FA in modules/auth (lib/totp, secrets encrypted with lib/crypto); exports via components/ui/export-menu (CSV/XLSX)
 - PDPA fields: nationalIdNo, bankAccountNo, documentNo → `maskEmployee` / audit `redact`
 - Errors thrown as `AppError` with Thai message; Decimal returned as string
 - UI: Thai labels from shared `*_TH`; list state in URL (`useListParams`); mutations via `useAction` (toast + invalidate)

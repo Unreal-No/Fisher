@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
-import { ClipboardPlus, Download, Pencil, Plus } from 'lucide-react';
+import { ClipboardPlus, Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -19,7 +19,8 @@ import { Empty, QueryView } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
+import { num } from '@/lib/export';
 import { useListParams } from '@/lib/hooks';
 import { useVessels, vesselOptions } from '@/lib/lookups';
 import { EngineHourDialog, OrderDialog, PlanDialog, type OrderPrefill } from './maintenance-dialogs';
@@ -195,10 +196,10 @@ function ReportTab({ lp, canExport }: { lp: LP; canExport: boolean }) {
         <Input type="date" className="w-40" value={range.to} onChange={(e) => lp.set({ rTo: e.target.value })} aria-label="ถึง" />
         <Select options={Object.entries(GROUPS).map(([value, l]) => ({ value, label: l }))} value={groupBy} onChange={(e) => lp.set({ groupBy: e.target.value })} />
         {canExport && (
-          <Button variant="outline" className="ml-auto" disabled={!q.data?.items.length} onClick={() => q.data && downloadCsv(`maintenance-report-${toISODate()}.csv`, [
+          <ExportMenu className="ml-auto" disabled={!q.data?.items.length} baseName={`maintenance-report-${toISODate()}`} rows={() => !q.data ? [] : [
             ['กลุ่ม', 'จำนวนใบสั่งซ่อม', 'ค่าแรง', 'ค่าจ้างภายนอก', 'ค่าอะไหล่', 'รวม'],
-            ...q.data.items.map((r) => [label(r), r.orders, r.labor, r.external, r.parts, r.total]),
-          ])}><Download /> ส่งออก CSV</Button>
+            ...q.data.items.map((r) => [label(r), r.orders, num(r.labor), num(r.external), num(r.parts), num(r.total)]),
+          ]} />
         )}
       </FilterBar>
       <QueryView q={q}>

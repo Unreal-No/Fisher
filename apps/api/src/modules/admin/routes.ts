@@ -8,12 +8,12 @@ import { audit } from '../../lib/audit';
 import { badRequest, forbidden, notFound } from '../../lib/errors';
 import { idParam, paged, paging, parse, parseList, str } from '../../lib/http';
 import { prisma } from '../../lib/prisma';
-import { getSettings } from '../../lib/settings';
+import { getSettings, invalidateSettingsCache } from '../../lib/settings';
 import { hashPassword } from '../auth/routes';
 
 const userSelect = {
   id: true, username: true, fullName: true, email: true, isActive: true, mustChangePassword: true,
-  lastLoginAt: true, lockedUntil: true, employeeId: true, createdAt: true,
+  lastLoginAt: true, lockedUntil: true, employeeId: true, createdAt: true, totpEnabledAt: true,
   roles: { select: { role: { select: { id: true, code: true, name: true } } } },
   vessels: { select: { vessel: { select: { id: true, code: true, name: true } } } },
 } as const;
@@ -92,6 +92,20 @@ export default async function adminRoutes(app: FastifyInstance) {
     return { ok: true };
   });
 
+  /** Lost phone: an administrator removes the user's second factor; the user must enrol again. */
+  app.post('/users/:id/reset-2fa', { preHandler: app.can('user.manage') }, async (req) => {
+    const id = idParam(req);
+    await prisma.$transaction(async (tx) => {
+      const u = await tx.user.findUnique({ where: { id } });
+      if (!u) throw notFound('ผู้ใช้');
+      await tx.user.update({ where: { id }, data: { totpSecret: null, totpPendingSecret: null, totpEnabledAt: null, totpLastStep: null, recoveryCodes: [] } });
+      await tx.session.deleteMany({ where: { userId: id } });
+      await tx.loginChallenge.deleteMany({ where: { userId: id } });
+      await audit(tx, req, { action: '2FA_RESET', entityType: 'User', entityId: id });
+    });
+    return { ok: true };
+  });
+
   // ---------- roles ----------
   app.get('/permissions', { preHandler: app.canAny('role.manage', 'user.manage') }, async () =>
     Object.entries(PERMISSIONS).map(([code, description]) => ({ code, description })),
@@ -152,6 +166,11 @@ export default async function adminRoutes(app: FastifyInstance) {
   app.get('/settings', async () => getSettings(prisma));
   app.patch('/settings', { preHandler: app.can('settings.manage') }, async (req) => {
     const b = parse(settingsSchema, req.body);
+    if (b.require2faRoles?.length) {
+      const known = new Set((await prisma.role.findMany({ select: { code: true } })).map((r) => r.code));
+      const bad = b.require2faRoles.filter((c) => !known.has(c));
+      if (bad.length) throw badRequest(`ไม่พบบทบาท: ${bad.join(', ')}`);
+    }
     const before = await getSettings(prisma);
     await prisma.$transaction(async (tx) => {
       for (const [key, value] of Object.entries(b)) {
@@ -163,6 +182,7 @@ export default async function adminRoutes(app: FastifyInstance) {
       }
       await audit(tx, req, { action: 'UPDATE', entityType: 'Settings', before, after: b });
     });
+    invalidateSettingsCache();
     return getSettings(prisma);
   });
 

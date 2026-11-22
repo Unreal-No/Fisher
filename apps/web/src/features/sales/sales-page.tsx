@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { createColumnHelper } from '@tanstack/react-table';
-import { Download, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -16,7 +16,8 @@ import { Empty, QueryView } from '@/components/ui/states';
 import { Tabs } from '@/components/ui/tabs';
 import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
-import { downloadCsv } from '@/lib/export';
+import { ExportMenu } from '@/components/ui/export-menu';
+import { num } from '@/lib/export';
 import { useListParams } from '@/lib/hooks';
 import { CustomerDialog, InvoiceDialog, useCustomers, useLots } from './sales-dialogs';
 import { PayBadge, SalesBadge } from './status';
@@ -228,11 +229,11 @@ function ReportTab({ lp, canExport }: { lp: LP; canExport: boolean }) {
         <Input type="date" className="w-40" value={range.to} onChange={(e) => lp.set({ sTo: e.target.value })} aria-label="ถึง" />
         <Select options={Object.entries(GROUP_TH).map(([value, label]) => ({ value, label: `แยกตาม${label}` }))} value={groupBy} onChange={(e) => lp.set({ groupBy: e.target.value })} aria-label="จัดกลุ่ม" />
         {canExport && (
-          <Button variant="outline" className="ml-auto" disabled={!q.data?.items.length} onClick={() => q.data && downloadCsv(`sales-report-${groupBy}-${toISODate()}.csv`, [
+          <ExportMenu className="ml-auto" disabled={!q.data?.items.length} baseName={`sales-report-${groupBy}-${toISODate()}`} rows={() => !q.data ? [] : [
             [GROUP_TH[groupBy], 'น้ำหนัก (กก.)', 'ยอดขายสุทธิ (บาท)', 'ราคาเฉลี่ย (บาท/กก.)', 'จำนวนใบแจ้งหนี้'],
-            ...q.data.items.map((r) => [r.label, r.weightKg, r.revenue, r.avgPrice ?? '', r.invoices]),
-            ['รวม', q.data.totalKg, q.data.totalRevenue, '', ''],
-          ])}><Download /> ส่งออก CSV</Button>
+            ...q.data.items.map((r) => [r.label, num(r.weightKg), num(r.revenue), num(r.avgPrice), r.invoices]),
+            ['รวม', num(q.data.totalKg), num(q.data.totalRevenue), '', ''],
+          ]} />
         )}
       </FilterBar>
       <QueryView q={q}>

@@ -59,6 +59,11 @@ export const passwordRule = z
   .regex(/[A-Z]/, 'ต้องมีตัวพิมพ์ใหญ่')
   .regex(/\d/, 'ต้องมีตัวเลข');
 export const changePasswordSchema = z.object({ currentPassword: z.string().min(1, REQ), newPassword: passwordRule });
+const otp = z.string({ error: REQ }).trim().min(6, 'รหัส 6 หลัก หรือรหัสกู้คืน').max(20);
+export const loginTwoFactorSchema = z.object({ challenge: z.string().min(20).max(100), code: otp });
+export const twoFactorPasswordSchema = z.object({ password: z.string().min(1, REQ).max(200) });
+export const twoFactorConfirmSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, 'รหัส 6 หลักจากแอป') });
+export const twoFactorDisableSchema = z.object({ password: z.string().min(1, REQ).max(200), code: otp });
 export const userCreateSchema = z.object({
   username: reqStr(50).regex(/^[a-z0-9._-]+$/, 'ใช้ a-z 0-9 . _ - เท่านั้น'),
   fullName: reqStr(120),
@@ -312,6 +317,8 @@ export const settingsSchema = z.object({
   gpsSignalLostMinutes: z.number().int().min(5).max(1440).optional(),
   maintenanceReminderDays: z.number().int().min(1).max(180).optional(),
   maintenanceReminderHours: z.number().int().min(1).max(5000).optional(),
+  /** role codes whose users must enable two-factor authentication */
+  require2faRoles: z.array(z.string().max(50)).max(30).optional(),
 });
 
 // ---------- GPS ----------
