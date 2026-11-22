@@ -37,10 +37,33 @@ async function main() {
   };
   await mkUser('admin', 'ผู้ดูแลระบบ', 'SUPER_ADMIN');
 
-  if (isProd || process.env.SEED_DEMO_DATA !== 'true') {
-    console.log('Seed done (core only).');
+  // Demo data: development, or a trial install that asked for it (SEED_DEMO_DATA=true). Loaded once — re-running the
+  // installer must not bring it back after "ล้างข้อมูลทั้งหมด" — and never once the system has gone live.
+  const flags = await prisma.appSetting.findMany({ where: { key: { in: ['goLiveAt', 'demoSeededAt'] } } });
+  const flag = (k: string) => flags.some((f) => f.key === k && f.value !== null);
+  if (process.env.SEED_DEMO_DATA !== 'true' || flag('goLiveAt') || flag('demoSeededAt')) {
+    console.log(process.env.SEED_DEMO_DATA === 'true' ? 'Seed done (core only; demo data was loaded before or the system is live).' : 'Seed done (core only).');
     return;
   }
+  await seedDemoData(mkUser);
+  await prisma.appSetting.create({ data: { key: 'demoSeededAt', value: new Date().toISOString() } });
+  console.log(`Seed done (core + demo${isProd ? ', trial install' : ''}).`);
+}
+
+type MkUser = (username: string, fullName: string, roleCode: string, vesselIds?: string[]) => Promise<unknown>;
+
+/** DEV/TRIAL: example vessels, crew, trips, catches, purchasing, payroll and users per role. */
+async function seedDemoData(mkUser: MkUser) {
+  await seedSupplyDemo();
+  await seedPayrollDemo();
+  // demo installs show moving vessels (simulated AIS/VMS) until a real feed is connected
+  if (!(await prisma.appSetting.findUnique({ where: { key: 'gpsSimulator' } })))
+    await prisma.appSetting.create({ data: { key: 'gpsSimulator', value: true } });
+  if (!(await prisma.bankAccount.count())) {
+    const gl = await prisma.account.findUnique({ where: { code: '1120' } });
+    if (gl) await prisma.bankAccount.create({ data: { code: 'BA-01', name: 'บัญชีกระแสรายวันหลัก', bankName: 'ธนาคารตัวอย่าง', accountNo: '000-0-00000-0', glAccountId: gl.id, notes: DEMO } });
+  }
+  await mkUser('acc', 'เจ้าหน้าที่บัญชี (ตัวอย่าง)', 'ACCOUNTANT');
   if (await prisma.vessel.count()) {
     console.log('Demo data already present – skipped.');
     return;
@@ -164,7 +187,47 @@ async function main() {
   await mkUser('captain1', 'ไต้ก๋ง เรือ 1 (ตัวอย่าง)', 'CAPTAIN', [vessels[0]!.id]);
   await mkUser('hr', 'เจ้าหน้าที่บุคคล (ตัวอย่าง)', 'HR_OFFICER');
   await mkUser('viewer', 'ผู้ดูข้อมูล (ตัวอย่าง)', 'VIEWER');
-  console.log('Seed done (core + demo).');
+  await mkUser('buyer', 'เจ้าหน้าที่จัดซื้อ (ตัวอย่าง)', 'PURCHASING_OFFICER');
+  await mkUser('store', 'เจ้าหน้าที่คลัง (ตัวอย่าง)', 'WAREHOUSE_OFFICER');
+}
+
+/** DEV/DEMO: example compensation rules (idempotent; skipped once any rule exists). */
+async function seedPayrollDemo() {
+  if (await prisma.compensationRule.count()) return;
+  const from = new Date('2026-01-01');
+  await prisma.compensationRule.createMany({
+    data: [
+      { name: 'ค่าจ้างรายวันลูกเรือ', method: 'DAILY', position: 'DECKHAND', rate: 400, effectiveFrom: from, notes: DEMO },
+      { name: 'ส่วนแบ่งไต้ก๋ง 5% ของยอดขาย', method: 'REVENUE_SHARE', basis: 'GROSS_REVENUE', position: 'CAPTAIN', rate: 5, effectiveFrom: from, notes: DEMO },
+      { name: 'ค่าปลาลูกเรือ 0.30 บาท/กก.', method: 'CATCH_BASED', basis: 'CAUGHT_KG', position: 'DECKHAND', rate: 0.3, effectiveFrom: from, notes: DEMO },
+    ],
+  });
+}
+
+/** DEV/DEMO: warehouse, items, supplier and opening stock (idempotent; skipped once any warehouse exists). */
+async function seedSupplyDemo() {
+  if (await prisma.warehouse.count()) return;
+  const admin = await prisma.user.findUniqueOrThrow({ where: { username: 'admin' } });
+  const wh = await prisma.warehouse.create({ data: { code: 'WH-01', name: 'คลังหลักสงขลา', location: 'ท่าเรือสงขลา', notes: DEMO } });
+  await prisma.warehouse.create({ data: { code: 'WH-02', name: 'คลังท่าเรือปัตตานี', location: 'ท่าเรือปัตตานี', notes: DEMO } });
+  await prisma.supplier.create({ data: { code: 'SUP-0001', name: 'ร้านอุปกรณ์ประมงตัวอย่าง', taxId: '0900000000001', paymentTermDays: 30, phone: '074000000', notes: DEMO } });
+  await prisma.supplier.create({ data: { code: 'SUP-0002', name: 'โรงน้ำแข็งตัวอย่าง', paymentTermDays: 7, notes: DEMO } });
+  const items = [
+    ['ITM-00001', 'เชือก PE 12 มม.', 'ROPE', 'ม้วน', 20, 40, 115],
+    ['ITM-00002', 'อวนลาก (ผืน)', 'NET', 'ผืน', 2, 3, 18500],
+    ['ITM-00003', 'น้ำมันเครื่อง 15W-40', 'MAINTENANCE', 'แกลลอน', 10, 24, 890],
+    ['ITM-00004', 'เสื้อชูชีพ', 'SAFETY', 'ตัว', 30, 18, 450],
+    ['ITM-00005', 'ไส้กรองน้ำมันเชื้อเพลิง', 'SPARE_PART', 'ชิ้น', 6, 12, 320],
+  ] as const;
+  const { postMovement } = await import('../src/modules/inventory/stock');
+  for (const [code, name, category, unit, minStock, qty, cost] of items) {
+    const it = await prisma.inventoryItem.create({ data: { code, name, category, unit, minStock, notes: DEMO } });
+    await prisma.$transaction((tx) =>
+      postMovement(tx, { type: 'RECEIPT', warehouseId: wh.id, itemId: it.id, quantity: qty, unitCost: cost, movedAt: new Date(), refType: 'MANUAL', notes: `ยอดยกมา ${DEMO}`, userId: admin.id }),
+    );
+  }
+  await prisma.docSequence.upsert({ where: { key_period: { key: 'ITEM', period: 'ALL' } }, create: { key: 'ITEM', period: 'ALL', lastValue: items.length }, update: {} });
+  await prisma.docSequence.upsert({ where: { key_period: { key: 'SUPPLIER', period: 'ALL' } }, create: { key: 'SUPPLIER', period: 'ALL', lastValue: 2 }, update: {} });
 }
 
 main()

@@ -7,7 +7,7 @@ import { assertVesselScope, idParam, parse, scopeIds } from '../../lib/http';
 import { prisma } from '../../lib/prisma';
 import { sha256 } from '../../plugins/auth';
 import { ADAPTERS } from './adapters';
-import { fleet, generateDemo, ingest, track } from './service';
+import { fleet, generateDemo, gpsBus, ingest, track, type LivePosition } from './service';
 
 const newKey = () => `gk_${randomBytes(24).toString('base64url')}`;
 const deviceSelect = { id: true, vesselId: true, source: true, identifier: true, name: true, isActive: true, lastSeenAt: true, notes: true, createdAt: true, vessel: { select: { code: true, name: true } } } as const;
@@ -48,6 +48,31 @@ export default async function gpsRoutes(app: FastifyInstance) {
 
   // ---------- map data ----------
   app.get('/fleet', { preHandler: app.can('gps.view') }, async (req) => fleet(scopeIds(req)));
+
+  /** Live positions (Server-Sent Events). Only vessels in the user's scope; ends when the session ends. */
+  app.get('/stream', { preHandler: app.can('gps.view') }, async (req, reply) => {
+    const scope = scopeIds(req);
+    const sessionId = req.user!.sessionId;
+    reply.hijack();
+    const res = reply.raw;
+    res.writeHead(200, { 'content-type': 'text/event-stream; charset=utf-8', 'cache-control': 'no-cache, no-transform', connection: 'keep-alive', 'x-accel-buffering': 'no' });
+    res.write('retry: 5000\n\n');
+    const send = (p: LivePosition) => {
+      if (!scope || scope.includes(p.vesselId)) res.write(`event: position\ndata: ${JSON.stringify(p)}\n\n`);
+    };
+    gpsBus.on('position', send);
+    const close = () => {
+      clearInterval(ping);
+      gpsBus.off('position', send);
+      res.end();
+    };
+    const ping = setInterval(async () => {
+      const alive = await prisma.session.findUnique({ where: { id: sessionId }, select: { expiresAt: true } }).catch(() => null);
+      if (!alive || alive.expiresAt < new Date()) return close();
+      res.write(': ping\n\n');
+    }, 25_000);
+    req.raw.on('close', close);
+  });
   app.get('/track', { preHandler: app.can('gps.view') }, async (req) => {
     const f = req.query as { vesselId?: string; from?: string; to?: string; includeDemo?: string };
     if (!f.vesselId) throw badRequest('ต้องระบุเรือ');

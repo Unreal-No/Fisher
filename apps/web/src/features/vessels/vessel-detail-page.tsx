@@ -23,6 +23,7 @@ import { api, fileUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useAction } from '@/lib/hooks';
 import { personName } from '@/lib/utils';
+import { VesselMaintenanceTab } from '../maintenance/vessel-maintenance-tab';
 import type { VesselDetail } from './types';
 
 export function VesselDetailPage() {
@@ -157,6 +158,7 @@ export function VesselDetailPage() {
                   </Panel>
                 ),
               },
+              { value: 'maintenance', label: 'ซ่อมบำรุง', hidden: !can('maintenance.view'), content: <VesselMaintenanceTab vesselId={id} /> },
               { value: 'history', label: 'ประวัติการแก้ไข', content: <Panel><AuditList rows={history.data} /></Panel> },
             ]}
           />

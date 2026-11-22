@@ -1,6 +1,8 @@
 import type { FastifyInstance } from 'fastify';
 import { idParam, paged, paging, parseList } from '../../lib/http';
 import { prisma } from '../../lib/prisma';
+import { scanLowStock } from '../inventory/alerts';
+import { scanMaintenanceDue } from '../maintenance/service';
 import { scanExpirations } from './service';
 
 export default async function notificationRoutes(app: FastifyInstance) {
@@ -23,5 +25,10 @@ export default async function notificationRoutes(app: FastifyInstance) {
     const r = await prisma.notification.updateMany({ where: { userId: req.user!.id, readAt: null }, data: { readAt: new Date() } });
     return { ok: true, count: r.count };
   });
-  app.post('/scan', { preHandler: app.canAny('settings.manage', 'employee_doc.manage') }, async () => scanExpirations());
+  app.post('/scan', { preHandler: app.canAny('settings.manage', 'employee_doc.manage') }, async () => {
+    const r = await scanExpirations();
+    const s = await scanLowStock();
+    const m = await scanMaintenanceDue();
+    return { alerts: r.alerts + s.low + m.due, created: r.created + s.created + m.created };
+  });
 }

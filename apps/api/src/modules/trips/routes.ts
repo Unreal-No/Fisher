@@ -1,14 +1,14 @@
 import type { FastifyInstance } from 'fastify';
 import {
   arriveSchema, departSchema, noteSchema, reasonSchema, TRIP_STATUS, tripCreateSchema, tripCrewSchema, tripExpenseSchema,
-  tripFuelSchema, tripIncidentSchema, tripStatusSchema, tripSupplySchema, tripUpdateSchema, type TripStatus,
+  tripFuelSchema, tripIncidentSchema, tripStatusSchema, tripSupplySchema, tripUpdateSchema, type TripSettlement, type TripStatus,
 } from '@fisher/shared';
 import { audit } from '../../lib/audit';
 import { conflict, notFound } from '../../lib/errors';
 import { d, dt, idParam, paged, paging, parse, parseList, vesselWhere } from '../../lib/http';
 import { prisma, type Prisma } from '../../lib/prisma';
 import {
-  arrive, assertStatus, cancelTrip, closeTrip, createTrip, crewCheck, depart, getTrip, setCrew, settlement, transition, updatePlan,
+  arrive, assertStatus, cancelTrip, closeTrip, createTrip, crewCheck, depart, getTrip, setCrew, settlement, transition, tripCrewCost, updatePlan,
 } from './service';
 
 const OPEN: TripStatus[] = ['DRAFT', 'PREPARING', 'DEPARTED', 'AT_SEA', 'RETURNING', 'ARRIVED', 'PENDING_SETTLEMENT'];
@@ -87,7 +87,11 @@ export default async function tripRoutes(app: FastifyInstance) {
   app.get('/:id/settlement', { preHandler: app.can('trip.view') }, async (req) => {
     const id = idParam(req);
     const t = await getTrip(req, id);
-    return t.status === 'CLOSED' && t.settlementSnapshot ? t.settlementSnapshot : settlement(id);
+    if (t.status !== 'CLOSED' || !t.settlementSnapshot) return settlement(id);
+    // closed: frozen snapshot, but crew cost follows payroll approved later
+    const snap = t.settlementSnapshot as unknown as TripSettlement;
+    const crewCost = await tripCrewCost(id);
+    return { ...snap, crewCost, profitAfterCrew: Math.round((snap.grossProfit - crewCost) * 100) / 100 };
   });
   app.post('/:id/close', { preHandler: app.can('trip.approve') }, async (req) => closeTrip(req, idParam(req), parse(noteSchema, req.body).note));
   app.post('/:id/cancel', { preHandler: app.can('trip.delete') }, async (req) => cancelTrip(req, idParam(req), parse(reasonSchema, req.body).reason));
@@ -138,8 +142,11 @@ export default async function tripRoutes(app: FastifyInstance) {
       const { id: tripId, itemId } = req.params as { id: string; itemId: string };
       const t = await getTrip(req, tripId);
       assertStatus(t, c.statuses, 'ลบรายการ');
-      const row = await model().findFirst({ where: { id: itemId, tripId }, ...(kind === 'fuel' ? { include: { fuelTxn: true } } : {}) });
+      const row = await model().findFirst({ where: { id: itemId, tripId }, ...(kind === 'fuel' ? { include: { fuelTxn: true } } : kind === 'supplies' ? { include: { stockMove: true } } : {}) });
       if (!row) throw notFound('รายการ');
+      if (kind === 'supplies' && (await prisma.goodsReceiptItem.findFirst({ where: { tripSupplyId: itemId } })))
+        throw conflict('PURCHASE_LINKED', 'รายการนี้มาจากการรับสินค้าตามใบสั่งซื้อ ไม่สามารถลบจากเที่ยวเรือได้');
+      if (row.stockMove) throw conflict('STOCK_LEDGER_LINKED', `รายการนี้เบิกจากคลัง (${row.stockMove.moveNo}) ให้แก้ด้วยการรับคืน/ปรับยอดที่คลังสินค้า`);
       if (row.fuelTxn) throw conflict('FUEL_LEDGER_LINKED', `รายการนี้จ่ายจากถังบริษัท (${row.fuelTxn.txnNo}) ให้แก้ด้วยการปรับยอดที่โมดูลน้ำมัน`);
       await prisma.$transaction(async (tx) => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any

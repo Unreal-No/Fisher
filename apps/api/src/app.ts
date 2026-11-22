@@ -15,6 +15,14 @@ import employeeRoutes from './modules/employees/routes';
 import fileRoutes from './modules/files/routes';
 import fuelRoutes from './modules/fuel/routes';
 import gpsRoutes from './modules/gps/routes';
+import inventoryRoutes from './modules/inventory/routes';
+import purchasingRoutes from './modules/purchasing/routes';
+import salesRoutes from './modules/sales/routes';
+import maintenanceRoutes from './modules/maintenance/routes';
+import payrollRoutes from './modules/payroll/routes';
+import accountingRoutes from './modules/accounting/routes';
+import apRoutes from './modules/accounting/ap-routes';
+import faRoutes from './modules/accounting/fa-routes';
 import notificationRoutes from './modules/notifications/routes';
 import tripRoutes from './modules/trips/routes';
 import vesselRoutes from './modules/vessels/routes';
@@ -38,7 +46,7 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
   });
   await app.register(cors, { origin: config.CORS_ORIGINS.split(',').map((s) => s.trim()), credentials: true });
   await app.register(cookie);
-  await app.register(rateLimit, { max: config.NODE_ENV === 'test' ? 10_000 : 600, timeWindow: '1 minute' });
+  await app.register(rateLimit, { max: config.NODE_ENV === 'test' ? 10_000 : config.RATE_LIMIT_PER_MIN, timeWindow: '1 minute' });
   await app.register(multipart, { limits: { fileSize: config.MAX_UPLOAD_MB * 1024 * 1024, files: 1 } });
   await app.register(authPlugin);
   registerErrorHandler(app);
@@ -61,6 +69,14 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
       await api.register(notificationRoutes, { prefix: '/notifications' });
       await api.register(gpsRoutes, { prefix: '/gps' });
       await api.register(fuelRoutes, { prefix: '/fuel' });
+      await api.register(inventoryRoutes, { prefix: '/inventory' });
+      await api.register(purchasingRoutes, { prefix: '/purchasing' });
+      await api.register(salesRoutes, { prefix: '/sales' });
+      await api.register(maintenanceRoutes, { prefix: '/maintenance' });
+      await api.register(payrollRoutes, { prefix: '/payroll' });
+      await api.register(accountingRoutes, { prefix: '/accounting' });
+      await api.register(apRoutes, { prefix: '/accounting' });
+      await api.register(faRoutes, { prefix: '/accounting' });
     },
     { prefix: '/api/v1' },
   );

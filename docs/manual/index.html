@@ -1,0 +1,646 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>:root{color-scheme:light}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style><title>คู่มือ Fisher ERP</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=Sarabun:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: a ship's logbook — numbered chapters stacked on a nautical-chart ground; each chapter is one A4 sheet when printed */
+:root {
+  --ground: #edf2f6;
+  --paper: #ffffff;
+  --ink: #102132;
+  --muted: #566a7e;
+  --line: #d5dee8;
+  --navy: #0e2a47;
+  --navy-ink: #ffffff;
+  --sea: #0b7a84;
+  --sea-soft: #def1f2;
+  --buoy: #e2702a;
+  --buoy-soft: #fdeadb;
+  --ok: #1d8049;
+  --ok-soft: #dcf2e5;
+  --warn: #a8650f;
+  --warn-soft: #fbefd6;
+  --bad: #b8322a;
+  --grid: rgba(14, 42, 71, 0.06);
+  --shadow: 0 1px 2px rgba(16, 33, 50, 0.06), 0 8px 24px rgba(16, 33, 50, 0.06);
+  --display: 'Bai Jamjuree', 'Sarabun', 'Leelawadee UI', 'Tahoma', sans-serif;
+  --body: 'Sarabun', 'Leelawadee UI', 'Tahoma', system-ui, sans-serif;
+  --mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #08131f; --paper: #0f1f31; --ink: #e3ebf3; --muted: #9db0c3; --line: #223851;
+    --navy: #0b2340; --navy-ink: #ffffff; --sea: #4cc3cc; --sea-soft: #12343c; --buoy: #f29152; --buoy-soft: #3a2415;
+    --ok: #5fcf8e; --ok-soft: #12321f; --warn: #e8b15a; --warn-soft: #36290f; --bad: #f07a70; --grid: rgba(160, 196, 230, 0.05);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #08131f; --paper: #0f1f31; --ink: #e3ebf3; --muted: #9db0c3; --line: #223851;
+  --navy: #0b2340; --navy-ink: #ffffff; --sea: #4cc3cc; --sea-soft: #12343c; --buoy: #f29152; --buoy-soft: #3a2415;
+  --ok: #5fcf8e; --ok-soft: #12321f; --warn: #e8b15a; --warn-soft: #36290f; --bad: #f07a70; --grid: rgba(160, 196, 230, 0.05);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--ground); color: var(--ink); font-family: var(--body); font-size: 16px; line-height: 1.65;
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 48px 48px;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+.wrap { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 48px; display: grid; gap: 28px; }
+svg.i { width: 1.25em; height: 1.25em; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+h1, h2, h3 { font-family: var(--display); line-height: 1.2; text-wrap: balance; margin: 0; }
+h2 { font-size: clamp(1.5rem, 3.2vw, 2rem); font-weight: 700; }
+h3 { font-size: 1.12rem; font-weight: 600; }
+p { margin: 0; }
+b, strong { font-weight: 600; }
+a { color: var(--sea); }
+a:focus-visible { outline: 2px solid var(--buoy); outline-offset: 2px; border-radius: 4px; }
+.muted { color: var(--muted); }
+.small { font-size: 0.9rem; }
+.num { font-variant-numeric: tabular-nums; }
+.kbd { font-family: var(--mono); font-size: 0.88em; background: var(--sea-soft); color: var(--ink); padding: 1px 6px; border-radius: 5px; white-space: nowrap; }
+
+/* ---------- cover ---------- */
+.cover {
+  margin-top: calc(-1 * env(safe-area-inset-top, 0px)); padding-top: calc(env(safe-area-inset-top, 0px) + 3rem);
+  background: var(--navy); color: var(--navy-ink); position: relative; overflow: hidden;
+}
+.cover-in { max-width: 1040px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 0 2.75rem; position: relative; z-index: 1; display: grid; gap: 22px; grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr); align-items: center; }
+.eyebrow { font-family: var(--display); font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; font-size: 0.8rem; color: #8fd3d8; }
+.cover h1 { font-size: clamp(2.4rem, 6vw, 4rem); font-weight: 700; margin-top: 10px; }
+.cover h1 span { color: #ffb27d; }
+.cover .lead { font-size: 1.12rem; color: #d4e1ee; margin-top: 12px; max-width: 34ch; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.86rem; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.22); color: #e6eef6; }
+.coord { font-family: var(--mono); font-size: 0.78rem; color: #8fb3d1; margin-top: 18px; letter-spacing: 0.02em; }
+.chart { width: 100%; max-width: 100%; height: auto; display: block; }
+.chart text { font-family: var(--mono); font-size: 10px; fill: #8fb3d1; }
+
+/* ---------- toc ---------- */
+.toc { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 22px; box-shadow: var(--shadow); display: grid; gap: 14px; }
+.toc ol { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 6px 18px; }
+.toc a { display: flex; align-items: center; gap: 10px; text-decoration: none; color: var(--ink); padding: 6px 8px; border-radius: 8px; }
+.toc a:hover { background: var(--sea-soft); }
+.toc .n { font-family: var(--display); font-weight: 700; color: var(--sea); width: 1.8em; font-variant-numeric: tabular-nums; }
+
+/* ---------- chapter sheet ---------- */
+.sheet { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); padding: clamp(18px, 3.4vw, 36px); display: grid; gap: 22px; min-width: 0; scroll-margin-top: 16px; }
+.sheet-head { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: center; }
+.tab { width: 58px; height: 58px; border-radius: 14px; background: var(--navy); color: #ffb27d; display: grid; place-items: center; font-family: var(--display); font-weight: 700; font-size: 1.5rem; font-variant-numeric: tabular-nums; position: relative; }
+.tab svg.i { position: absolute; right: -8px; bottom: -8px; width: 26px; height: 26px; padding: 4px; border-radius: 8px; background: var(--buoy); color: #fff; }
+.sheet-head p { color: var(--muted); margin-top: 4px; }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+.cols > * { min-width: 0; }
+.box { border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: grid; gap: 8px; align-content: start; }
+.box h3 { display: flex; align-items: center; gap: 8px; }
+.box h3 svg.i { color: var(--sea); }
+.box ul, .sheet ul.dots { margin: 0; padding-left: 1.15em; display: grid; gap: 4px; }
+.note { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; background: var(--warn-soft); color: var(--ink); }
+.note svg.i { color: var(--warn); margin-top: 3px; }
+.note.tip { background: var(--sea-soft); }
+.note.tip svg.i { color: var(--sea); }
+
+/* step flow (real sequences only) */
+.flow { list-style: none; margin: 0; padding: 0; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 0; counter-reset: s; }
+.flow > li { position: relative; padding: 0 10px; display: grid; gap: 8px; justify-items: center; text-align: center; counter-increment: s; }
+.flow > li::after { content: ""; position: absolute; top: 25px; left: calc(50% + 30px); right: calc(-50% + 30px); border-top: 2px dashed var(--sea); }
+.flow > li:last-child::after { display: none; }
+.dot { width: 50px; height: 50px; border-radius: 50%; display: grid; place-items: center; background: var(--sea-soft); color: var(--sea); border: 2px solid var(--sea); position: relative; }
+.dot::before { content: counter(s); position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%; background: var(--buoy); color: #fff; font: 700 0.75rem/22px var(--display); text-align: center; }
+.flow.plain .dot::before { display: none; }
+.flow h3 { font-size: 0.98rem; }
+.flow p { font-size: 0.86rem; color: var(--muted); line-height: 1.5; }
+.flow .end .dot { background: var(--navy); color: #ffb27d; border-color: var(--navy); }
+
+/* voyage route (chapter 1) */
+.voyage { position: relative; display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 10px; padding-top: 8px; }
+.voyage::before { content: ""; position: absolute; left: 6%; right: 6%; top: 34px; border-top: 3px dashed var(--sea); opacity: 0.7; }
+.wp { position: relative; display: grid; gap: 8px; justify-items: center; text-align: center; }
+.wp .buoy { width: 64px; height: 64px; border-radius: 50%; background: var(--paper); border: 3px solid var(--sea); color: var(--sea); display: grid; place-items: center; box-shadow: var(--shadow); }
+.wp .buoy svg.i { width: 28px; height: 28px; }
+.wp:nth-child(3) .buoy, .wp:nth-child(4) .buoy { border-color: var(--buoy); color: var(--buoy); }
+.wp .k { font: 700 0.75rem var(--display); letter-spacing: 0.06em; color: var(--muted); }
+.wp h3 { font-size: 0.98rem; }
+.wp p { font-size: 0.84rem; color: var(--muted); line-height: 1.5; }
+
+/* trip status stepper */
+.stepper { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.st { padding: 12px 10px; display: grid; gap: 6px; align-content: start; border-right: 1px solid var(--line); min-width: 0; }
+.st:last-child { border-right: 0; }
+.st .lab { display: flex; align-items: center; gap: 6px; font-family: var(--display); font-weight: 600; font-size: 0.92rem; }
+.st .lab b { width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center; font-size: 0.75rem; background: var(--sea); color: #fff; flex: none; }
+.st.sea { background: var(--sea-soft); }
+.st.done .lab b { background: var(--navy); }
+.st p { font-size: 0.82rem; color: var(--muted); line-height: 1.45; }
+.st .btn { font-size: 0.76rem; font-weight: 600; color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; background: var(--paper); justify-self: start; }
+
+/* screenshots */
+.shot { position: relative; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: var(--ground); box-shadow: var(--shadow); }
+.shot img { display: block; width: 100%; height: auto; }
+.pin { position: absolute; transform: translate(-50%, -50%); width: 28px; height: 28px; border-radius: 50%; background: var(--buoy); color: #fff; font: 700 0.85rem/28px var(--display); text-align: center; box-shadow: 0 0 0 4px rgba(226, 112, 42, 0.28); }
+figure { margin: 0; display: grid; gap: 8px; min-width: 0; }
+figure img { display: block; width: 100%; height: auto; }
+figcaption { font-size: 0.86rem; color: var(--muted); }
+.legend { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 8px 16px; }
+.legend li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; }
+.legend .pin { position: static; transform: none; width: 26px; height: 26px; line-height: 26px; box-shadow: none; }
+.split { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+.phone { max-width: 260px; justify-self: center; border-radius: 28px; padding: 8px; background: var(--navy); }
+.phone img { border-radius: 20px; }
+
+/* roles */
+.roles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 10px; }
+.role { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; display: grid; grid-template-columns: 34px minmax(0, 1fr); gap: 4px 10px; align-items: start; }
+.role .ic { grid-row: span 2; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--sea-soft); color: var(--sea); }
+.role h3 { font-size: 0.98rem; }
+.role p { font-size: 0.85rem; color: var(--muted); line-height: 1.45; }
+.role.top .ic { background: var(--buoy-soft); color: var(--buoy); }
+
+/* status chips */
+.pills { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.pill { font-size: 0.8rem; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--sea-soft); color: var(--ink); white-space: nowrap; }
+.pill.ok { background: var(--ok-soft); }
+.pill.warn { background: var(--warn-soft); }
+.pill.navy { background: var(--navy); color: #fff; }
+.arrow { color: var(--muted); font-size: 0.9rem; }
+
+/* gps route mini-chart */
+.route-svg { width: 100%; height: auto; display: block; }
+.route-svg text { font-family: var(--body); font-size: 12px; fill: var(--ink); }
+.route-svg .sub { fill: var(--muted); font-size: 11px; }
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.metric { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.metric .v { font-family: var(--display); font-weight: 700; font-size: 1.35rem; font-variant-numeric: tabular-nums; }
+.metric .l { font-size: 0.82rem; color: var(--muted); }
+
+/* routine table */
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.92rem; }
+th, td { text-align: left; vertical-align: top; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+th { font-family: var(--display); font-weight: 600; background: var(--sea-soft); }
+tr:last-child td { border-bottom: 0; }
+td:first-child { font-weight: 600; white-space: nowrap; }
+
+/* faq */
+.faq { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+.qa { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 6px; }
+.qa h3 { font-size: 0.98rem; display: flex; gap: 8px; align-items: flex-start; }
+.qa h3 svg.i { color: var(--buoy); margin-top: 2px; }
+.qa p { font-size: 0.9rem; color: var(--muted); }
+
+.foot { text-align: center; color: var(--muted); font-size: 0.86rem; }
+
+@media screen and (max-width: 860px) {
+  .cover-in { grid-template-columns: minmax(0, 1fr); }
+  .voyage { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .voyage::before { left: 32px; right: auto; top: 20px; bottom: 20px; border-top: 0; border-left: 3px dashed var(--sea); }
+  .wp { grid-template-columns: 64px minmax(0, 1fr); justify-items: start; text-align: left; align-items: center; column-gap: 14px; }
+  .wp .buoy { grid-row: span 3; }
+  .stepper { grid-template-columns: minmax(0, 1fr); }
+  .st { border-right: 0; border-bottom: 1px solid var(--line); }
+  .st:last-child { border-bottom: 0; }
+  .flow { grid-auto-flow: row; gap: 14px; }
+  .flow > li { grid-template-columns: 50px minmax(0, 1fr); justify-items: start; text-align: left; column-gap: 12px; padding: 0; }
+  .flow > li .dot { grid-row: span 2; }
+  .flow > li::after { top: 54px; bottom: -14px; left: 24px; right: auto; border-top: 0; border-left: 2px dashed var(--sea); }
+  .split { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .toc a, .box { transition: background-color 0.15s ease; }
+}
+@media print {
+  @page { size: A4; margin: 12mm; }
+  body { background: #fff; font-size: 12.5px; }
+  .wrap { max-width: none; padding: 0; gap: 0; }
+  .cover { margin: 0; padding-top: 2.4rem; border-radius: 0; }
+  .sheet, .toc { box-shadow: none; border: 0; border-radius: 0; break-before: page; padding: 0; }
+  .box, .role, .qa, figure, .st, .wp, .flow > li, .metric, tr { break-inside: avoid; }
+  .shot { box-shadow: none; }
+  .wp p, .st p, .flow p { font-size: 0.78rem; }
+  .phone { max-width: 210px; }
+  #ch6 .split > figure { max-width: 230px; justify-self: end; }
+  #ch6 .split { grid-template-columns: minmax(0, 1fr) 230px; }
+}
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs><symbol id="i-anchor" viewBox="0 0 24 24"><path d="M12 6v16"/><path d="m19 13 2-1a9 9 0 0 1-18 0l2 1"/><path d="M9 11h6"/><circle cx="12" cy="4" r="2"/></symbol><symbol id="i-fish" viewBox="0 0 24 24"><path d="M6.5 12c.94-3.46 4.94-6 8.5-6 3.56 0 6.06 2.54 7 6-.94 3.47-3.44 6-7 6s-7.56-2.53-8.5-6Z"/><path d="M18 12v.5"/><path d="M16 17.93a9.77 9.77 0 0 1 0-11.86"/><path d="M7 10.67C7 8 5.58 5.97 2.73 5.5c-1 1.5-1 5 .23 6.5-1.24 1.5-1.24 5-.23 6.5C5.58 18.03 7 16 7 13.33"/><path d="M10.46 7.26C10.2 5.88 9.17 4.24 8 3h5.8a2 2 0 0 1 1.98 1.67l.23 1.4"/><path d="m16.01 17.93-.23 1.4A2 2 0 0 1 13.8 21H9.5a5.96 5.96 0 0 0 1.49-3.98"/></symbol><symbol id="i-map-pinned" viewBox="0 0 24 24"><path d="M18 8c0 3.613-3.869 7.429-5.393 8.795a1 1 0 01-1.214 0C9.87 15.429 6 11.613 6 8a6 6 0 0112 0"/><path d="M4.474 15h-.197a1 1 0 00-.969.753l-1.097 4.35a1.5 1.5 0 001.444 1.898L20.344 22a1.5 1.5 0 001.446-1.897l-1.098-4.35a1 1 0 00-.969-.753h-.197"/><circle cx="12" cy="8" r="2"/></symbol><symbol id="i-fuel" viewBox="0 0 24 24"><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0v-6.998a2 2 0 0 0-.59-1.42L18 5"/><path d="M14 21V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v16"/><path d="M2 21h13"/><path d="M3 9h11"/></symbol><symbol id="i-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.106-3.105c.32-.322.863-.22.983.218a6 6 0 0 1-8.259 7.057l-7.91 7.91a1 1 0 0 1-2.999-3l7.91-7.91a6 6 0 0 1 7.057-8.259c.438.12.54.662.219.984z"/></symbol><symbol id="i-ship" viewBox="0 0 24 24"><path d="M12 2v2"/><path d="M12 9.189V13"/><path d="M19 12V6a2 2 0 00-2-2H7a2 2 0 00-2 2v6"/><path d="M19.38 19A11.6 11.6 0 0021 13l-8.188-3.639a2 2 0 00-1.624 0L3 13.001a11.6 11.6 0 002.81 7.76"/><path d="M2 20c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><path d="M16 3.128a4 4 0 0 1 0 7.744"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><circle cx="9" cy="7" r="4"/></symbol><symbol id="i-wallet" viewBox="0 0 24 24"><path d="M19 7V4a1 1 0 0 0-1-1H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4h-3a2 2 0 0 0 0 4h3a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/></symbol><symbol id="i-file-warning" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-hand-coins" viewBox="0 0 24 24"><path d="M11 15h2a2 2 0 1 0 0-4h-3c-.6 0-1.1.2-1.4.6L3 17"/><path d="m7 21 1.6-1.4c.3-.4.8-.6 1.4-.6h4c1.1 0 2.1-.4 2.8-1.2l4.6-4.4a2 2 0 0 0-2.75-2.91l-4.2 3.9"/><path d="m2 16 6 6"/><circle cx="16" cy="9" r="2.9"/><circle cx="6" cy="5" r="3"/></symbol><symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 5v16"/><path d="M20.001 19A2 2 0 0022 17V5a2 2 0 00-1.999-2L16 3.002A5 5 0 0012 5a5 5 0 00-4-2H4a2 2 0 00-2 2v12a2 2 0 001.999 2H8a5 5 0 014 2 5 5 0 014-2z"/></symbol><symbol id="i-shopping-cart" viewBox="0 0 24 24"><path d="m2.05 2.05 1.099-.028a1 1 0 0 1 1.008.815l2.69 14.347A1 1 0 0 0 7.83 18H18"/><path d="M4.563 5h16.435a1 1 0 0 1 .981 1.204l-1.026 6.226A2 2 0 0 1 18.962 14H6.25"/><circle cx="18" cy="20" r="2"/><circle cx="8" cy="20" r="2"/></symbol><symbol id="i-boxes" viewBox="0 0 24 24"><path d="M2.97 12.92A2 2 0 0 0 2 14.63v3.24a2 2 0 0 0 .97 1.71l3 1.8a2 2 0 0 0 2.06 0L12 19v-5.5l-5-3-4.03 2.42Z"/><path d="m7 16.5-4.74-2.85"/><path d="m7 16.5 5-3"/><path d="M7 16.5v5.17"/><path d="M12 13.5V19l3.97 2.38a2 2 0 0 0 2.06 0l3-1.8a2 2 0 0 0 .97-1.71v-3.24a2 2 0 0 0-.97-1.71L17 10.5l-5 3Z"/><path d="m17 16.5-5-3"/><path d="m17 16.5 4.74-2.85"/><path d="M17 16.5v5.17"/><path d="M7.97 4.42A2 2 0 0 0 7 6.13v4.37l5 3 5-3V6.13a2 2 0 0 0-.97-1.71l-3-1.8a2 2 0 0 0-2.06 0l-3 1.8Z"/><path d="M12 8 7.26 5.15"/><path d="m12 8 4.74-2.85"/><path d="M12 13.5V8"/></symbol><symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol><symbol id="i-user-cog" viewBox="0 0 24 24"><path d="M10 15H6a4 4 0 0 0-4 4v2"/><path d="m14.305 16.53.923-.382"/><path d="m15.228 13.852-.923-.383"/><path d="m16.852 12.228-.383-.923"/><path d="m16.852 17.772-.383.924"/><path d="m19.148 12.228.383-.923"/><path d="m19.53 18.696-.382-.924"/><path d="m20.772 13.852.924-.383"/><path d="m20.772 16.148.924.383"/><circle cx="18" cy="15" r="3"/><circle cx="9" cy="7" r="4"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol><symbol id="i-scroll-text" viewBox="0 0 24 24"><path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-mail" viewBox="0 0 24 24"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></symbol><symbol id="i-layout-dashboard" viewBox="0 0 24 24"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></symbol><symbol id="i-log-in" viewBox="0 0 24 24"><path d="m10 17 5-5-5-5"/><path d="M15 12H3"/><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/></symbol><symbol id="i-key-round" viewBox="0 0 24 24"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/></symbol><symbol id="i-smartphone" viewBox="0 0 24 24"><rect width="14" height="20" x="5" y="2" rx="2" ry="2"/><path d="M12 18h.01"/></symbol><symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol><symbol id="i-route" viewBox="0 0 24 24"><path d="M9 5h8.5a1 1 0 010 7h-11a1 1 0 000 7H15"/><circle cx="18" cy="19" r="3"/><circle cx="6" cy="5" r="3"/></symbol><symbol id="i-map-pin" viewBox="0 0 24 24"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol><symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol><symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-circle-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9 9.5a3 2.5 0 016 0c0 2-2 2-3 3.5"/><path d="M12 17h.01"/></symbol><symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></symbol><symbol id="i-hard-drive-download" viewBox="0 0 24 24"><path d="M12 2v8"/><path d="m16 6-4 4-4-4"/><rect width="20" height="8" x="2" y="14" rx="2"/><path d="M6 18h.01"/><path d="M10 18h.01"/></symbol><symbol id="i-radio" viewBox="0 0 24 24"><path d="M16.247 7.761a6 6 0 0 1 0 8.478"/><path d="M19.075 4.933a10 10 0 0 1 0 14.134"/><path d="M4.925 19.067a10 10 0 0 1 0-14.134"/><path d="M7.753 16.239a6 6 0 0 1 0-8.478"/><circle cx="12" cy="12" r="2"/></symbol><symbol id="i-navigation" viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></symbol><symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol><symbol id="i-refresh-cw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol><symbol id="i-calendar-days" viewBox="0 0 24 24"><path d="M8 2v3"/><path d="M16 2v3"/><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M8 13h.01"/><path d="M12 13h.01"/><path d="M16 13h.01"/><path d="M8 17h.01"/><path d="M12 17h.01"/><path d="M16 17h.01"/></symbol><symbol id="i-calculator" viewBox="0 0 24 24"><rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/></symbol><symbol id="i-receipt" viewBox="0 0 24 24"><path d="M12 17V7"/><path d="M16 8h-6a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H8"/><path d="M4 3a1 1 0 0 1 1-1 1.3 1.3 0 0 1 .7.2l.933.6a1.3 1.3 0 0 0 1.4 0l.934-.6a1.3 1.3 0 0 1 1.4 0l.933.6a1.3 1.3 0 0 0 1.4 0l.933-.6a1.3 1.3 0 0 1 1.4 0l.934.6a1.3 1.3 0 0 0 1.4 0l.933-.6A1.3 1.3 0 0 1 19 2a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1 1.3 1.3 0 0 1-.7-.2l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.934.6a1.3 1.3 0 0 1-1.4 0l-.933-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-1.4 0l-.934-.6a1.3 1.3 0 0 0-1.4 0l-.933.6a1.3 1.3 0 0 1-.7.2 1 1 0 0 1-1-1z"/></symbol><symbol id="i-banknote" viewBox="0 0 24 24"><rect width="20" height="12" x="2" y="6" rx="2"/><circle cx="12" cy="12" r="2"/><path d="M6 12h.01M18 12h.01"/></symbol><symbol id="i-landmark" viewBox="0 0 24 24"><path d="M10 18v-7"/><path d="M11.119 2.205a2 2 0 0 1 1.762 0l7.84 3.846A.5.5 0 0 1 20.5 7h-17a.5.5 0 0 1-.22-.949z"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M3 22h18"/><path d="M6 18v-7"/></symbol><symbol id="i-chart-column" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></symbol><symbol id="i-package" viewBox="0 0 24 24"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/><path d="m7.5 4.27 9 5.15"/></symbol><symbol id="i-truck" viewBox="0 0 24 24"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/><path d="M15 18H9"/><path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14"/><circle cx="17" cy="18" r="2"/><circle cx="7" cy="18" r="2"/></symbol><symbol id="i-clipboard-check" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></symbol><symbol id="i-user-check" viewBox="0 0 24 24"><path d="m16 11 2 2 4-4"/><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></symbol><symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol><symbol id="i-trash-2" viewBox="0 0 24 24"><path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></symbol><symbol id="i-rocket" viewBox="0 0 24 24"><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09"/><path d="M9 12a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.4 22.4 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 .05 5 .05"/></symbol><symbol id="i-life-buoy" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/><circle cx="12" cy="12" r="4"/></symbol><symbol id="i-compass" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/></symbol><symbol id="i-waves" viewBox="0 0 24 24"><path d="M2 12q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 19q2.5 2 5 0t5 0 5 0 5 0"/><path d="M2 5q2.5 2 5 0t5 0 5 0 5 0"/></symbol><symbol id="i-circle-user" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="10" r="3"/><path d="M7 20.662V19a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v1.662"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16"/><path d="M4 12h16"/><path d="M4 19h16"/></symbol><symbol id="i-user-round" viewBox="0 0 24 24"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></symbol><symbol id="i-badge-check" viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m16 9-5.5 5.5L8 12"/></symbol><symbol id="i-coins" viewBox="0 0 24 24"><path d="M13.744 17.736a6 6 0 1 1-7.48-7.48"/><path d="M15 6h1v4"/><path d="m6.134 14.768.866-.5 2 3.464"/><circle cx="16" cy="8" r="6"/></symbol><symbol id="i-gauge" viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></symbol><symbol id="i-thermometer-snowflake" viewBox="0 0 24 24"><path d="m10 20-1.25-2.5L6 18"/><path d="M10 4 8.75 6.5 6 6"/><path d="M10.585 15H10"/><path d="M2 12h6.5L10 9"/><path d="M20 14.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0z"/><path d="m4 10 1.5 2L4 14"/><path d="m7 21 3-6-1.5-3"/><path d="m7 3 3 6h2"/></symbol><symbol id="i-scale" viewBox="0 0 24 24"><path d="M12 3v18"/><path d="m19 8 3 8a5 5 0 0 1-6 0zV7"/><path d="M3 7h1a17 17 0 0 0 8-2 17 17 0 0 0 8 2h1"/><path d="m5 8 3 8a5 5 0 0 1-6 0zV7"/><path d="M7 21h10"/></symbol><symbol id="i-printer" viewBox="0 0 24 24"><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><path d="M6 9V3a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v6"/><rect x="6" y="14" width="12" height="8" rx="1"/></symbol><symbol id="i-monitor" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" x2="16" y1="21" y2="21"/><line x1="12" x2="12" y1="17" y2="21"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4"/><path d="M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol><symbol id="i-list-checks" viewBox="0 0 24 24"><path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/></symbol><symbol id="i-undo-2" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></symbol><symbol id="i-id-card" viewBox="0 0 24 24"><path d="M13 19a4 4 0 00-8 0"/><path d="M16 10h2"/><path d="M16 14h2"/><circle cx="9" cy="12" r="3"/><rect x="2" y="5" width="20" height="14" rx="2"/></symbol></defs></svg>
+
+<header class="cover">
+  <div class="cover-in">
+    <div>
+      <div class="eyebrow">คู่มือการใช้งาน · เวอร์ชัน 0.14</div>
+      <h1>Fisher <span>ERP</span></h1>
+      <p class="lead">ระบบบริหารงานประมง ตั้งแต่เตรียมเรือ ออกทะเล บันทึกสัตว์น้ำ ขาย จ่ายค่าแรงลูกเรือ จนถึงงบการเงิน</p>
+      <div class="chips">
+        <span class="chip"><svg class="i"><use href="#i-anchor"/></svg>ไต้ก๋ง</span>
+        <span class="chip"><svg class="i"><use href="#i-ship"/></svg>ฝ่ายปฏิบัติการ</span>
+        <span class="chip"><svg class="i"><use href="#i-hand-coins"/></svg>ฝ่ายขาย</span>
+        <span class="chip"><svg class="i"><use href="#i-shopping-cart"/></svg>จัดซื้อ/คลัง</span>
+        <span class="chip"><svg class="i"><use href="#i-users"/></svg>บุคคล</span>
+        <span class="chip"><svg class="i"><use href="#i-book-open"/></svg>บัญชี</span>
+        <span class="chip"><svg class="i"><use href="#i-badge-check"/></svg>เจ้าของกิจการ</span>
+      </div>
+      <div class="coord">ท่าเทียบเรือประมงสงขลา · 7.2235°N 100.5937°E</div>
+    </div>
+    <svg class="chart" viewBox="0 0 420 300" role="img" aria-label="ภาพเส้นทางเรือจากท่าออกไปแหล่งประมงและจุดพัก">
+      <g stroke="rgba(143,179,209,0.25)" stroke-width="1">
+        <line x1="20" y1="40" x2="400" y2="40"/><line x1="20" y1="110" x2="400" y2="110"/><line x1="20" y1="180" x2="400" y2="180"/><line x1="20" y1="250" x2="400" y2="250"/>
+        <line x1="60" y1="20" x2="60" y2="280"/><line x1="160" y1="20" x2="160" y2="280"/><line x1="260" y1="20" x2="260" y2="280"/><line x1="360" y1="20" x2="360" y2="280"/>
+      </g>
+      <text x="22" y="36">8°N</text><text x="22" y="176">7°N</text><text x="262" y="292">101°E</text><text x="62" y="292">100.5°E</text>
+      <path d="M58 248 C 120 210, 170 170, 228 132 S 300 96, 318 112 S 352 150, 330 160 S 290 120, 312 92" fill="none" stroke="#ffb27d" stroke-width="2.5" stroke-dasharray="6 5"/>
+      <circle cx="58" cy="248" r="8" fill="#2fbf71" stroke="#fff" stroke-width="2"/>
+      <circle cx="228" cy="132" r="11" fill="#e2702a" stroke="#fff" stroke-width="2"/><text x="224" y="136" style="fill:#fff;font-family:var(--display);font-size:11px">1</text>
+      <circle cx="330" cy="160" r="11" fill="#e2702a" stroke="#fff" stroke-width="2"/><text x="326" y="164" style="fill:#fff;font-family:var(--display);font-size:11px">2</text>
+      <circle cx="312" cy="92" r="8" fill="#e5484d" stroke="#fff" stroke-width="2"/>
+      <text x="74" y="252" style="fill:#d4e1ee">ท่าออก</text><text x="244" y="128" style="fill:#d4e1ee">จุดพัก 1</text><text x="326" y="86" style="fill:#d4e1ee">ตำแหน่งล่าสุด</text>
+    </svg>
+  </div>
+</header>
+
+<main class="wrap">
+
+<nav class="toc" aria-label="สารบัญ">
+  <h2>สารบัญ</h2>
+  <ol>
+    <li><a href="#ch1"><span class="n">1</span>ระบบนี้ช่วยอะไร</a></li>
+    <li><a href="#ch2"><span class="n">2</span>เริ่มต้นใช้งาน</a></li>
+    <li><a href="#ch3"><span class="n">3</span>ใครทำอะไร (บทบาท)</a></li>
+    <li><a href="#ch4"><span class="n">4</span>เที่ยวเรือ</a></li>
+    <li><a href="#ch5"><span class="n">5</span>บันทึกสัตว์น้ำ</a></li>
+    <li><a href="#ch6"><span class="n">6</span>ติดตามเรือ GPS</a></li>
+    <li><a href="#ch7"><span class="n">7</span>น้ำมันและคลังสินค้า</a></li>
+    <li><a href="#ch8"><span class="n">8</span>จัดซื้อ</a></li>
+    <li><a href="#ch9"><span class="n">9</span>ขายสัตว์น้ำ</a></li>
+    <li><a href="#ch10"><span class="n">10</span>ซ่อมบำรุง</a></li>
+    <li><a href="#ch11"><span class="n">11</span>พนักงานและเอกสาร</a></li>
+    <li><a href="#ch12"><span class="n">12</span>เงินเดือนลูกเรือ</a></li>
+    <li><a href="#ch13"><span class="n">13</span>บัญชีและรายงาน</a></li>
+    <li><a href="#ch14"><span class="n">14</span>ผู้ดูแลระบบ</a></li>
+    <li><a href="#ch15"><span class="n">15</span>งานประจำวัน–เดือน</a></li>
+    <li><a href="#ch16"><span class="n">16</span>คำถามพบบ่อย</a></li>
+  </ol>
+</nav>
+
+<!-- 1 -->
+<section class="sheet" id="ch1">
+  <div class="sheet-head"><div class="tab">1<svg class="i"><use href="#i-compass"/></svg></div>
+    <div><h2>ระบบนี้ช่วยอะไร</h2><p>งานทั้งหมดของหนึ่งเที่ยวเรืออยู่ในระบบเดียว ข้อมูลที่บันทึกแต่ละขั้นส่งต่อให้ขั้นถัดไปเอง ไม่ต้องกรอกซ้ำ</p></div></div>
+  <div class="voyage" role="list">
+    <div class="wp" role="listitem"><div class="buoy"><svg class="i"><use href="#i-shopping-cart"/></svg></div><div class="k">ก่อนออก</div><h3>จัดซื้อและคลัง</h3><p>ซื้อน้ำมัน เสบียง อะไหล่ เข้าคลัง</p></div>
+    <div class="wp" role="listitem"><div class="buoy"><svg class="i"><use href="#i-clipboard-check"/></svg></div><div class="k">เตรียมเรือ</div><h3>สร้างเที่ยวเรือ</h3><p>ลูกเรือ น้ำมันที่เติม เสบียงที่เบิก</p></div>
+    <div class="wp" role="listitem"><div class="buoy"><svg class="i"><use href="#i-navigation"/></svg></div><div class="k">กลางทะเล</div><h3>ติดตาม GPS</h3><p>เห็นตำแหน่งเรือสด เส้นทาง จุดพัก</p></div>
+    <div class="wp" role="listitem"><div class="buoy"><svg class="i"><use href="#i-fish"/></svg></div><div class="k">กลางทะเล</div><h3>บันทึกสัตว์น้ำ</h3><p>ใช้มือถือ ไม่มีสัญญาณก็บันทึกได้</p></div>
+    <div class="wp" role="listitem"><div class="buoy"><svg class="i"><use href="#i-hand-coins"/></svg></div><div class="k">เข้าท่า</div><h3>ขายสัตว์น้ำ</h3><p>แบ่งล็อต ออกใบขาย รับชำระ</p></div>
+    <div class="wp" role="listitem"><div class="buoy"><svg class="i"><use href="#i-wallet"/></svg></div><div class="k">สรุปเที่ยว</div><h3>ค่าแรงลูกเรือ</h3><p>คำนวณตามกฎที่ตั้งไว้ หักเงินเบิก</p></div>
+    <div class="wp" role="listitem"><div class="buoy"><svg class="i"><use href="#i-book-open"/></svg></div><div class="k">ปิดงวด</div><h3>บัญชีและรายงาน</h3><p>ลงบัญชีอัตโนมัติ กำไรรายเรือ</p></div>
+  </div>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-calculator"/></svg>ตัวเลขที่ระบบสรุปให้</h3>
+      <ul><li>ต้นทุนต่อกิโลกรัมของแต่ละเที่ยว</li><li>กำไรจากการดำเนินงานแยกรายเรือ</li><li>น้ำมันที่ใช้ ลิตรต่อชั่วโมงเครื่อง</li><li>ระยะทาง เวลาเดินเรือ และเวลาที่จอดพัก</li></ul></div>
+    <div class="box"><h3><svg class="i"><use href="#i-bell"/></svg>สิ่งที่ระบบเตือนให้</h3>
+      <ul><li>เอกสารลูกเรือใกล้หมดอายุ (90/60/30/7 วัน)</li><li>เรือขาดสัญญาณ GPS เกิน 60 นาที</li><li>เรือเข้า-ออกเขตพื้นที่ที่กำหนด</li><li>ถึงรอบซ่อมบำรุงตามวันหรือชั่วโมงเครื่อง</li></ul></div>
+    <div class="box"><h3><svg class="i"><use href="#i-shield"/></svg>ความปลอดภัยของข้อมูล</h3>
+      <ul><li>แต่ละคนเห็นเฉพาะเมนูตามบทบาท</li><li>ทุกการแก้ไขบันทึกว่าใครทำ เมื่อไร</li><li>เอกสารที่ยืนยันแล้วไม่ถูกลบ ใช้การยกเลิกหรือกลับรายการ</li><li>เลขบัตร เลขบัญชี เข้ารหัสในฐานข้อมูล</li></ul></div>
+  </div>
+</section>
+
+<!-- 2 -->
+<section class="sheet" id="ch2">
+  <div class="sheet-head"><div class="tab">2<svg class="i"><use href="#i-log-in"/></svg></div>
+    <div><h2>เริ่มต้นใช้งาน</h2><p>ใช้ผ่านเว็บเบราว์เซอร์ (Chrome, Edge, Safari) ทั้งบนคอมพิวเตอร์และมือถือ</p></div></div>
+  <ol class="flow">
+    <li><div class="dot"><svg class="i"><use href="#i-monitor"/></svg></div><h3>เปิดเว็บระบบ</h3><p>เครื่องที่ติดตั้ง <span class="kbd">localhost:8080</span> เครื่องอื่นในออฟฟิศใช้ IP ของเครื่องนั้น</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-user-round"/></svg></div><h3>เข้าสู่ระบบ</h3><p>ชื่อผู้ใช้และรหัสผ่านที่ผู้ดูแลระบบให้</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-key-round"/></svg></div><h3>ตั้งรหัสผ่านใหม่</h3><p>ครั้งแรกระบบบังคับ อย่างน้อย 8 ตัว มีพิมพ์ใหญ่ พิมพ์เล็ก และตัวเลข</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-smartphone"/></svg></div><h3>เปิด 2FA (แนะนำ)</h3><p>บัญชีของฉัน → ยืนยันตัวตนสองขั้นตอน ใช้แอป Authenticator บนมือถือ</p></li>
+  </ol>
+  <figure>
+    <div class="shot">
+      <img src="img/dashboard-crop.jpg" width="1360" height="620" alt="หน้าแดชบอร์ดผู้บริหารของ Fisher ERP">
+      <span class="pin" style="left:8%;top:21%">1</span>
+      <span class="pin" style="left:89%;top:10%">2</span>
+      <span class="pin" style="left:96.5%;top:10%">3</span>
+      <span class="pin" style="left:71%;top:16%">4</span>
+      <span class="pin" style="left:38%;top:24%">5</span>
+      <span class="pin" style="left:67%;top:39%">6</span>
+    </div>
+    <figcaption>หน้าแดชบอร์ด (ภาพจากระบบจริงที่มีข้อมูลตัวอย่าง)</figcaption>
+  </figure>
+  <ul class="legend">
+    <li><span class="pin">1</span><span><b>เมนู</b> แบ่งตามกลุ่มงาน เห็นเฉพาะเมนูที่มีสิทธิ์ บนมือถือกดปุ่ม <svg class="i" style="vertical-align:-3px"><use href="#i-menu"/></svg></span></li>
+    <li><span class="pin">2</span><span><b>การแจ้งเตือน</b> ตัวเลขสีแดงคือรายการที่ยังไม่ได้อ่าน</span></li>
+    <li><span class="pin">3</span><span><b>บัญชีของฉัน</b> เปลี่ยนรหัสผ่าน ตั้ง 2FA ออกจากระบบ</span></li>
+    <li><span class="pin">4</span><span><b>ปุ่มลัด</b> สร้างเที่ยวเรือ บันทึกสัตว์น้ำ เพิ่มพนักงาน</span></li>
+    <li><span class="pin">5</span><span><b>ตัวกรอง</b> ช่วงวันที่และเรือ ตัวเลขทั้งหน้าคำนวณตามนี้</span></li>
+    <li><span class="pin">6</span><span><b>การ์ดสรุป</b> เรือออกทะเล น้ำหนักสัตว์น้ำ ค่าน้ำมัน ลูกหนี้ กำไร</span></li>
+  </ul>
+  <div class="note tip"><svg class="i"><use href="#i-sparkles"/></svg><p>ตารางส่วนใหญ่มีปุ่ม <b>ส่งออก</b> เป็น Excel หรือ CSV วันที่แสดงเป็นปี พ.ศ. ตามเวลาประเทศไทย</p></div>
+</section>
+
+<!-- 3 -->
+<section class="sheet" id="ch3">
+  <div class="sheet-head"><div class="tab">3<svg class="i"><use href="#i-users"/></svg></div>
+    <div><h2>ใครทำอะไร</h2><p>ผู้ใช้แต่ละคนมีบทบาท บทบาทกำหนดว่าเห็นเมนูไหน แก้ไขหรืออนุมัติอะไรได้ ผู้ดูแลระบบปรับสิทธิ์ได้ที่เมนู “บทบาทและสิทธิ์”</p></div></div>
+  <div class="roles">
+    <div class="role top"><div class="ic"><svg class="i"><use href="#i-shield"/></svg></div><h3>ผู้ดูแลระบบสูงสุด</h3><p>ทุกสิทธิ์ สร้างผู้ใช้ ตั้งค่า ล้างข้อมูลก่อนใช้งานจริง</p></div>
+    <div class="role top"><div class="ic"><svg class="i"><use href="#i-badge-check"/></svg></div><h3>เจ้าของกิจการ</h3><p>ดูทุกส่วน อนุมัติ และส่งออกรายงาน</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-ship"/></svg></div><h3>ผู้จัดการฝ่ายปฏิบัติการ</h3><p>ควบคุมเรือ เที่ยวเรือ สัตว์น้ำ</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-map-pinned"/></svg></div><h3>ผู้จัดการกองเรือ</h3><p>ทะเบียนเรือ เที่ยวเรือ GPS</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-anchor"/></svg></div><h3>ไต้ก๋ง/นายเรือ</h3><p>บันทึกเที่ยวเรือและสัตว์น้ำ เห็นเฉพาะเรือของตนเอง</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-id-card"/></svg></div><h3>เจ้าหน้าที่บุคคล</h3><p>ข้อมูลพนักงานและเอกสารแรงงาน</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-book-open"/></svg></div><h3>นักบัญชี</h3><p>การเงิน บัญชี เงินเดือน</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-shopping-cart"/></svg></div><h3>เจ้าหน้าที่จัดซื้อ</h3><p>ใบขอซื้อ ใบสั่งซื้อ ผู้ขาย</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-boxes"/></svg></div><h3>เจ้าหน้าที่คลังสินค้า</h3><p>รับ จ่าย โอนสต็อก</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-hand-coins"/></svg></div><h3>เจ้าหน้าที่ขาย</h3><p>ขายสัตว์น้ำ ลูกค้า</p></div>
+    <div class="role"><div class="ic"><svg class="i"><use href="#i-eye-off"/></svg></div><h3>ผู้ดูข้อมูล</h3><p>ดูอย่างเดียว ไม่เห็นข้อมูลส่วนบุคคล</p></div>
+  </div>
+  <div class="note"><svg class="i"><use href="#i-triangle-alert"/></svg><p>งานที่ต้องตรวจสอบกันเอง ระบบบังคับให้คนละคนทำ เช่น คนคำนวณเงินเดือนอนุมัติงวดของตัวเองไม่ได้</p></div>
+</section>
+
+<!-- 4 -->
+<section class="sheet" id="ch4">
+  <div class="sheet-head"><div class="tab">4<svg class="i"><use href="#i-anchor"/></svg></div>
+    <div><h2>เที่ยวเรือ</h2><p>เมนู เที่ยวเรือ · หนึ่งเที่ยวเดินตามสถานะ 7 ขั้น กดปุ่มด้านขวาบนของหน้าเที่ยวเพื่อไปขั้นถัดไป</p></div></div>
+  <div class="stepper">
+    <div class="st done"><div class="lab"><b>1</b>ร่าง</div><p>เลือกเรือ กำหนดวันออก-กลับ พื้นที่ทำประมง</p><span class="btn">เริ่มเตรียมออกเรือ</span></div>
+    <div class="st done"><div class="lab"><b>2</b>เตรียมออกเรือ</div><p>ใส่ลูกเรือ น้ำมันที่เติม เสบียง/วัสดุ</p><span class="btn">ยืนยันออกเรือ</span></div>
+    <div class="st sea"><div class="lab"><b>3</b>ออกจากท่า</div><p>บันทึกเวลาออกจริง ชั่วโมงเครื่อง</p><span class="btn">อยู่ในพื้นที่ทำประมง</span></div>
+    <div class="st sea"><div class="lab"><b>4</b>อยู่ในทะเล</div><p>บันทึกสัตว์น้ำ เหตุการณ์ ค่าใช้จ่าย</p><span class="btn">กำลังกลับเข้าฝั่ง</span></div>
+    <div class="st"><div class="lab"><b>5</b>เข้าท่าแล้ว</div><p>บันทึกเข้าท่า น้ำมันคงเหลือ ท่าที่เทียบ</p><span class="btn">ส่งสรุปเที่ยว</span></div>
+    <div class="st"><div class="lab"><b>6</b>รอสรุปเที่ยว</div><p>ตรวจต้นทุน รายได้ ค่าแรง ในแท็บ สรุปเที่ยว</p><span class="btn">ปิดเที่ยว</span></div>
+    <div class="st"><div class="lab"><b>7</b>ปิดเที่ยว</div><p>ข้อมูลล็อก ใช้คำนวณบัญชีและค่าแรง</p></div>
+  </div>
+  <figure>
+    <div class="shot"><img src="img/trip-stepper.jpg" width="1120" height="230" alt="หัวหน้าเที่ยวเรือ แสดงแถบสถานะและตัวเลขสรุป"></div>
+    <figcaption>หน้าเที่ยวเรือ: แถบสถานะ ปุ่มทำขั้นถัดไป และตัวเลขสรุป (ลูกเรือ สัตว์น้ำ น้ำมัน ต้นทุนรวม บาท/กก.)</figcaption>
+  </figure>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-list-checks"/></svg>แท็บในหน้าเที่ยว</h3>
+      <div class="pills"><span class="pill">ภาพรวม</span><span class="pill">ลูกเรือ</span><span class="pill">สัตว์น้ำ</span><span class="pill">น้ำมัน</span><span class="pill">เสบียง/วัสดุ</span><span class="pill">ค่าใช้จ่าย</span><span class="pill">เหตุการณ์</span><span class="pill">สรุปเที่ยว</span><span class="pill">ประวัติ</span></div></div>
+    <div class="box"><h3><svg class="i"><use href="#i-lock"/></svg>กฎที่ควรรู้</h3>
+      <ul><li>เรือหนึ่งลำมีเที่ยวที่กำลังดำเนินการได้ทีละเที่ยว</li><li>ลูกเรือ น้ำมัน เสบียง แก้ได้ถึงก่อนออกเรือ</li><li>ปิดเที่ยวได้เฉพาะผู้มีสิทธิ์อนุมัติ ถ้าต้องแก้ ใช้ “เปิดกลับเพื่อแก้ไข”</li></ul></div>
+  </div>
+</section>
+
+<!-- 5 -->
+<section class="sheet" id="ch5">
+  <div class="sheet-head"><div class="tab">5<svg class="i"><use href="#i-fish"/></svg></div>
+    <div><h2>บันทึกสัตว์น้ำ</h2><p>เมนู สัตว์น้ำที่จับได้ · บันทึกน้ำหนักที่จับได้จากเที่ยวเรือ (ยังไม่ใช่น้ำหนักขาย) ทุกการแก้ไขมีประวัติ</p></div></div>
+  <div class="split">
+    <div style="display:grid;gap:16px;min-width:0">
+      <ol class="flow plain" style="grid-auto-flow:row;gap:14px">
+        <li style="grid-template-columns:50px minmax(0,1fr);justify-items:start;text-align:left;column-gap:12px;padding:0"><div class="dot" style="grid-row:span 2"><svg class="i"><use href="#i-fish"/></svg></div><h3>กด “บันทึกสัตว์น้ำ”</h3><p>บนมือถือหรือคอมพิวเตอร์ก็ได้</p></li>
+        <li style="grid-template-columns:50px minmax(0,1fr);justify-items:start;text-align:left;column-gap:12px;padding:0"><div class="dot" style="grid-row:span 2"><svg class="i"><use href="#i-scale"/></svg></div><h3>กรอกรายละเอียด</h3><p>เที่ยวเรือ ชนิด เกรด น้ำหนัก (กก.) จำนวนเข่ง วิธีเก็บรักษา</p></li>
+        <li style="grid-template-columns:50px minmax(0,1fr);justify-items:start;text-align:left;column-gap:12px;padding:0"><div class="dot" style="grid-row:span 2"><svg class="i"><use href="#i-check"/></svg></div><h3>บันทึก</h3><p>น้ำหนักรวมขึ้นในหน้าเที่ยวเรือและแดชบอร์ดทันที</p></li>
+      </ol>
+      <div class="note tip"><svg class="i"><use href="#i-wifi-off"/></svg><p><b>กลางทะเลไม่มีสัญญาณ?</b> บันทึกได้ตามปกติ รายการจะรออยู่ในแท็บ <b>รอซิงก์ (ออฟไลน์)</b> และส่งเข้าระบบเองเมื่อมือถือกลับมาออนไลน์</p></div>
+      <div class="box"><h3><svg class="i"><use href="#i-list-checks"/></svg>แท็บ</h3><p><b>รายการ</b> ทุกครั้งที่บันทึก · <b>สรุป</b> รวมตามชนิด/เรือ · <b>รอซิงก์</b> รายการที่ยังไม่ส่ง</p></div>
+      <p class="small muted">บันทึกได้ตั้งแต่ออกเรือจนถึงรอสรุปเที่ยว เพิ่มชนิดสัตว์น้ำได้ที่เมนู ชนิดสัตว์น้ำ</p>
+    </div>
+    <figure class="phone"><img src="img/phone-catch.jpg" width="780" height="1328" alt="หน้าบันทึกสัตว์น้ำบนมือถือ"></figure>
+  </div>
+</section>
+
+<!-- 6 -->
+<section class="sheet" id="ch6">
+  <div class="sheet-head"><div class="tab">6<svg class="i"><use href="#i-map-pinned"/></svg></div>
+    <div><h2>ติดตามเรือ GPS</h2><p>เมนู ติดตามเรือ (GPS) · ดูตำแหน่งสด ย้อนดูเส้นทาง และรู้ว่าเรือพักที่ไหนนานเท่าไร</p></div></div>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-radio"/></svg>แผนที่ (สด)</h3><p>ป้าย <span class="pill ok">สด</span> แปลว่าเชื่อมต่ออยู่ ตำแหน่งขยับเองเมื่อมีข้อมูลเข้า เลือกเรือเพื่อดูเส้นทาง 12 ชั่วโมงล่าสุด</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-route"/></svg>ประวัติการเดินทาง</h3><p>เลือกเรือ + ช่วงเวลา (เที่ยวปัจจุบัน 24 ชม. 7 วัน 30 วัน กำหนดเอง) ได้เส้นทาง สรุป และไทม์ไลน์ ส่งออก Excel ได้</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-map-pin"/></svg>เขตพื้นที่ (Geofence)</h3><p>กำหนดวงกลมหรือรูปหลายเหลี่ยม เช่น ท่าเรือ เขตห้ามทำประมง ระบบเตือนเมื่อเรือเข้า-ออก</p></div>
+  </div>
+  <div class="split">
+    <div style="display:grid;gap:14px;min-width:0">
+      <h3>อ่านประวัติการเดินทางอย่างไร</h3>
+      <svg class="route-svg" viewBox="0 0 520 210" role="img" aria-label="ตัวอย่างเส้นทาง: ออกจากท่า แล่นเรือ พักจุดที่ 1 แล่นต่อ พักจุดที่ 2 และตำแหน่งล่าสุด">
+        <path d="M30 170 L170 110" stroke="var(--sea)" stroke-width="3" stroke-dasharray="7 6" fill="none"/>
+        <path d="M170 110 L330 140" stroke="var(--sea)" stroke-width="3" stroke-dasharray="7 6" fill="none"/>
+        <path d="M330 140 L470 70" stroke="var(--sea)" stroke-width="3" stroke-dasharray="7 6" fill="none"/>
+        <circle cx="30" cy="170" r="10" fill="#1d8049" stroke="var(--paper)" stroke-width="3"/>
+        <circle cx="170" cy="110" r="14" fill="#e2702a" stroke="var(--paper)" stroke-width="3"/><text x="165" y="115" style="fill:#fff;font-weight:700">1</text>
+        <circle cx="330" cy="140" r="14" fill="#e2702a" stroke="var(--paper)" stroke-width="3"/><text x="325" y="145" style="fill:#fff;font-weight:700">2</text>
+        <circle cx="470" cy="70" r="10" fill="#c93a32" stroke="var(--paper)" stroke-width="3"/>
+        <text x="14" y="198">ท่าออก</text>
+        <text x="72" y="128" class="sub">แล่น 69 กม. · 4 ชม. 48 นาที</text>
+        <text x="138" y="84">พัก 5 ชม. 30 นาที</text>
+        <text x="224" y="146" class="sub">แล่น 72 กม.</text>
+        <text x="300" y="174">พัก 11 ชม.</text>
+        <text x="420" y="52">ตำแหน่งล่าสุด</text>
+      </svg>
+      <ul class="legend">
+        <li><span class="pin" style="background:#1d8049">●</span><span>จุดเริ่ม (ท่าที่ออก)</span></li>
+        <li><span class="pin">1</span><span>จุดพัก มีหมายเลขตามลำดับ</span></li>
+        <li><span class="pin" style="background:#c93a32">●</span><span>ตำแหน่งล่าสุด หรือท่าที่เข้า</span></li>
+        <li><span class="pin" style="background:var(--sea)">–</span><span>เส้นประ = ข้อมูลจำลอง เส้นทึบ = ข้อมูลจริง</span></li>
+      </ul>
+      <div class="metrics">
+        <div class="metric"><div class="v">3.2 วัน</div><div class="l">ระยะเวลารวม</div></div>
+        <div class="metric"><div class="v">154 ไมล์</div><div class="l">ระยะทาง (ไมล์ทะเล)</div></div>
+        <div class="metric"><div class="v">4 จุด</div><div class="l">จุดพัก นานสุด 11 ชม.</div></div>
+      </div>
+      <p class="small muted">ตัวเลขด้านบนเป็นตัวอย่างจากข้อมูลจำลอง ระบบนับเป็น “พัก” เมื่อเรือแทบไม่เคลื่อนที่ (ไม่เกิน 1 นอต) ต่อเนื่อง 30 นาทีขึ้นไป</p>
+    </div>
+    <figure><div class="shot"><img src="img/gps-timeline.jpg" width="382" height="630" alt="แผงสรุปการเดินทางและไทม์ไลน์ช่วงแล่นเรือกับจุดพัก"></div><figcaption>สรุปการเดินทางและไทม์ไลน์ในระบบ กดแต่ละรายการเพื่อซูมบนแผนที่</figcaption></figure>
+  </div>
+  <div class="note"><svg class="i"><use href="#i-triangle-alert"/></svg><p>ป้าย <b>จำลอง</b> คือสัญญาณ AIS/VMS ที่ระบบสร้างขึ้นระหว่างยังไม่ได้เชื่อมอุปกรณ์จริง ไม่ใช้คำนวณการแจ้งเตือน เมื่อเรือมีอุปกรณ์ GPS จริง ระบบหยุดจำลองเรือลำนั้นเอง ปิดได้ที่แท็บ อุปกรณ์ GPS</p></div>
+</section>
+
+<!-- 7 -->
+<section class="sheet" id="ch7">
+  <div class="sheet-head"><div class="tab">7<svg class="i"><use href="#i-fuel"/></svg></div>
+    <div><h2>น้ำมันและคลังสินค้า</h2><p>เมนู น้ำมันเชื้อเพลิง และ คลังสินค้า · ของทุกชิ้นที่เข้า-ออกมีรายการกำกับ ยอดคงเหลือคำนวณจากรายการเหล่านี้</p></div></div>
+  <ol class="flow">
+    <li><div class="dot"><svg class="i"><use href="#i-truck"/></svg></div><h3>ซื้อเข้าถังบริษัท</h3><p>บันทึกน้ำมันเข้าถังที่แท็บ ถังน้ำมันบริษัท</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-fuel"/></svg></div><h3>เติมเข้าเรือ</h3><p>ผูกกับเที่ยวเรือ ยอดในถังลดลงอัตโนมัติ</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-gauge"/></svg></div><h3>วัดน้ำมันเหลือตอนเข้าท่า</h3><p>ระบบหาน้ำมันที่ใช้จริงของเที่ยว</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-chart-column"/></svg></div><h3>ดูรายงาน</h3><p>ลิตรที่ใช้ บาท/กก. ลิตร/ชม.เครื่อง</p></li>
+  </ol>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-boxes"/></svg>คลังสินค้า: 4 แท็บ</h3>
+      <ul><li><b>สต็อกคงเหลือ</b> จำนวนและมูลค่า (ต้นทุนเฉลี่ย)</li><li><b>สินค้า</b> รายการวัสดุ อะไหล่ เสบียง</li><li><b>ความเคลื่อนไหว</b> ทุกการรับ-จ่าย</li><li><b>คลังสินค้า</b> ที่เก็บแต่ละแห่ง</li></ul></div>
+    <div class="box"><h3><svg class="i"><use href="#i-package"/></svg>ชนิดรายการเคลื่อนไหว</h3>
+      <div class="pills"><span class="pill ok">รับเข้า</span><span class="pill warn">เบิกจ่าย</span><span class="pill">โอนออก</span><span class="pill">โอนเข้า</span><span class="pill navy">ปรับยอด</span></div>
+      <p class="small muted">เบิกเสบียงเข้าเที่ยวเรือ ต้นทุนจะไปอยู่ในเที่ยวนั้น · ตรวจนับแล้วยอดไม่ตรงใช้ “ปรับยอด”</p></div>
+  </div>
+</section>
+
+<!-- 8 -->
+<section class="sheet" id="ch8">
+  <div class="sheet-head"><div class="tab">8<svg class="i"><use href="#i-shopping-cart"/></svg></div>
+    <div><h2>จัดซื้อ</h2><p>เมนู จัดซื้อ · ขอซื้อ → สั่งซื้อ → รับของ → ตั้งหนี้ → จ่ายเงิน แต่ละขั้นมีผู้อนุมัติ</p></div></div>
+  <ol class="flow">
+    <li><div class="dot"><svg class="i"><use href="#i-clipboard-check"/></svg></div><h3>ใบขอซื้อ</h3><p>ร่าง → รออนุมัติ → อนุมัติแล้ว</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-receipt"/></svg></div><h3>ใบสั่งซื้อ</h3><p>สร้างจากใบขอซื้อ ส่งให้ผู้ขาย</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-package"/></svg></div><h3>รับสินค้า</h3><p>รับบางส่วน หรือรับครบ สต็อกเพิ่มทันที</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-file-warning"/></svg></div><h3>ใบแจ้งหนี้ผู้ขาย</h3><p>บัญชี → เจ้าหนี้ ตั้งหนี้ตามใบสั่งซื้อ</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-banknote"/></svg></div><h3>จ่ายชำระ</h3><p>หักภาษี ณ ที่จ่ายได้ ลงบัญชีให้เอง</p></li>
+  </ol>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-list-checks"/></svg>สถานะใบสั่งซื้อ</h3>
+      <div class="pills"><span class="pill">ร่าง</span><span class="arrow">→</span><span class="pill">อนุมัติแล้ว</span><span class="arrow">→</span><span class="pill warn">รับบางส่วน</span><span class="arrow">→</span><span class="pill ok">รับครบ</span><span class="arrow">→</span><span class="pill navy">ปิด</span></div></div>
+    <div class="box"><h3><svg class="i"><use href="#i-chart-column"/></svg>ดูภาพรวม</h3><p>แท็บ <b>ผู้ขาย</b> เก็บข้อมูลผู้ขาย · <b>สรุปการซื้อ</b> ยอดซื้อตามช่วงเวลา</p></div>
+  </div>
+</section>
+
+<!-- 9 -->
+<section class="sheet" id="ch9">
+  <div class="sheet-head"><div class="tab">9<svg class="i"><use href="#i-hand-coins"/></svg></div>
+    <div><h2>ขายสัตว์น้ำ</h2><p>เมนู ขายสัตว์น้ำ · ขายจากล็อตที่มาจากสัตว์น้ำที่จับได้ ระบบไม่ให้ขายเกินน้ำหนักที่มีในล็อต</p></div></div>
+  <ol class="flow">
+    <li><div class="dot"><svg class="i"><use href="#i-thermometer-snowflake"/></svg></div><h3>ล็อตสัตว์น้ำ</h3><p>แยกตามเที่ยว ชนิด เกรด พร้อมน้ำหนักคงเหลือ</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-receipt"/></svg></div><h3>ใบขาย (ร่าง)</h3><p>เลือกลูกค้า ล็อต น้ำหนัก ราคา</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-check"/></svg></div><h3>ออกใบแจ้งหนี้</h3><p>ระบบตรวจว่าน้ำหนักในล็อตพอ แล้วลงบัญชีให้เอง</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-coins"/></svg></div><h3>รับชำระ</h3><p>เงินสด โอน เช็ค รับทีละส่วนได้</p></li>
+  </ol>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-wallet"/></svg>สถานะการชำระ</h3>
+      <div class="pills"><span class="pill warn">ยังไม่ชำระ</span><span class="arrow">→</span><span class="pill">ชำระบางส่วน</span><span class="arrow">→</span><span class="pill ok">ชำระครบ</span></div>
+      <p class="small muted">แท็บ <b>ลูกหนี้</b> แสดงยอดค้างของลูกค้าแต่ละราย</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-undo-2"/></svg>ขายผิด ต้องแก้</h3><p>ใบที่ออกแล้วไม่ถูกลบ ใช้ <b>ใบลดหนี้</b> (คืนสินค้า/ลดราคา) หรือ <b>ยกเลิก</b> ระบบกลับรายการบัญชีให้ตรงกัน</p></div>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="sheet" id="ch10">
+  <div class="sheet-head"><div class="tab">10<svg class="i"><use href="#i-wrench"/></svg></div>
+    <div><h2>ซ่อมบำรุง</h2><p>เมนู ซ่อมบำรุง · วางแผนบำรุงรักษาล่วงหน้า และเก็บประวัติค่าซ่อมแยกรายเรือ</p></div></div>
+  <ol class="flow">
+    <li><div class="dot"><svg class="i"><use href="#i-calendar-days"/></svg></div><h3>แผนบำรุงรักษา</h3><p>ทุกกี่วัน หรือทุกกี่ชั่วโมงเครื่อง</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-bell"/></svg></div><h3>ระบบเตือน</h3><p>ล่วงหน้า 14 วัน หรือเหลือไม่เกิน 50 ชม.เครื่อง</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-wrench"/></svg></div><h3>ใบสั่งซ่อม</h3><p>รอดำเนินการ → กำลังซ่อม → เสร็จแล้ว</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-chart-column"/></svg></div><h3>รายงานค่าซ่อม</h3><p>ค่าซ่อมแยกตามเรือ</p></li>
+  </ol>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-clock"/></svg>ชั่วโมงเครื่อง</h3><p>บันทึกตอนออกเรือ เข้าท่า และตอนซ่อม หรือบันทึกเองที่แท็บ ชั่วโมงเครื่อง ใช้คำนวณรอบซ่อมและน้ำมันต่อชั่วโมง</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-list-checks"/></svg>หมวดงานซ่อม</h3>
+      <div class="pills"><span class="pill">เครื่องยนต์</span><span class="pill">ตัวเรือ</span><span class="pill">ไฟฟ้า</span><span class="pill">ไฮดรอลิก/กว้าน</span><span class="pill">ความปลอดภัย</span><span class="pill">เครื่องมือประมง</span><span class="pill">ห้องเย็น</span><span class="pill">ขึ้นคาน</span></div></div>
+  </div>
+</section>
+
+<!-- 11 -->
+<section class="sheet" id="ch11">
+  <div class="sheet-head"><div class="tab">11<svg class="i"><use href="#i-id-card"/></svg></div>
+    <div><h2>พนักงานและเอกสาร</h2><p>เมนู พนักงาน/ลูกเรือ และ เอกสารใกล้หมดอายุ · ทะเบียนลูกเรือ คนไทยและแรงงานต่างด้าว พร้อมเอกสารประจำตัว</p></div></div>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-user-check"/></svg>ข้อมูลพนักงาน</h3><ul><li>ตำแหน่ง เรือที่ประจำ สัญชาติ ช่องทางติดต่อ</li><li>บัญชีธนาคารสำหรับจ่ายค่าแรง</li><li>เอกสารแต่ละฉบับ พร้อมวันหมดอายุ</li></ul></div>
+    <div class="box"><h3><svg class="i"><use href="#i-eye-off"/></svg>ข้อมูลส่วนบุคคล (PDPA)</h3><p>เลขบัตร เลขบัญชี เลขเอกสาร เข้ารหัสในฐานข้อมูล และแสดงแบบปิดบังบางส่วนสำหรับผู้ที่ไม่มีสิทธิ์</p></div>
+  </div>
+  <h3>เอกสารที่ระบบติดตาม (ตั้งค่าเพิ่มได้)</h3>
+  <div class="pills"><span class="pill">หนังสือเดินทาง</span><span class="pill">เอกสารรับรองบุคคล (CI)</span><span class="pill">วีซ่า</span><span class="pill">ใบอนุญาตทำงาน</span><span class="pill">บัตรชมพู</span><span class="pill">หนังสือคนประจำเรือ</span><span class="pill">ใบรับรองแพทย์</span><span class="pill">ประกันสุขภาพ</span><span class="pill">สัญญาจ้าง</span><span class="pill">บัตรประชาชน</span></div>
+  <ol class="flow plain">
+    <li><div class="dot"><svg class="i"><use href="#i-calendar-days"/></svg></div><h3>90 วัน</h3><p>เตือนครั้งแรก</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-calendar-days"/></svg></div><h3>60 วัน</h3><p>เตือนอีกครั้ง</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-calendar-days"/></svg></div><h3>30 วัน</h3><p>เริ่มต่ออายุ</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-triangle-alert"/></svg></div><h3>7 วัน</h3><p>เร่งด่วน</p></li>
+  </ol>
+  <p class="small muted">จำนวนวันที่เตือนตั้งได้ที่ ตั้งค่าระบบ · เป็นการเตือนเพื่อการบริหาร ไม่ใช่คำแนะนำทางกฎหมาย</p>
+</section>
+
+<!-- 12 -->
+<section class="sheet" id="ch12">
+  <div class="sheet-head"><div class="tab">12<svg class="i"><use href="#i-wallet"/></svg></div>
+    <div><h2>เงินเดือนลูกเรือ</h2><p>เมนู เงินเดือน/ค่าตอบแทน · ตั้งกฎครั้งเดียว ระบบคำนวณจากเที่ยวเรือ วันทำงาน และยอดขายให้ทุกงวด</p></div></div>
+  <div class="pills"><span class="pill">เงินเดือน</span><span class="pill">ค่าจ้างรายวัน</span><span class="pill">ค่าจ้างรายเที่ยว</span><span class="pill">ส่วนแบ่งรายได้ (%)</span><span class="pill">ตามปริมาณสัตว์น้ำ</span><span class="pill">โบนัส</span></div>
+  <ol class="flow">
+    <li><div class="dot"><svg class="i"><use href="#i-settings"/></svg></div><h3>กฎค่าตอบแทน</h3><p>ตามตำแหน่ง เช่น ลูกเรือ 400 บาท/วัน</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-calendar-days"/></svg></div><h3>สร้างงวด</h3><p>ช่วงวันที่ และเรือ</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-calculator"/></svg></div><h3>คำนวณ</h3><p>ตรวจรายคน มีคำเตือนถ้าหักเกินเกณฑ์</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-badge-check"/></svg></div><h3>อนุมัติ</h3><p>คนละคนกับคนคำนวณ หักเงินเบิกตอนนี้</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-banknote"/></svg></div><h3>จ่าย</h3><p>สลิปรายคน ไฟล์โอนธนาคาร</p></li>
+  </ol>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-coins"/></svg>เงินเบิก/เงินกู้</h3><p><b>เบิกล่วงหน้า</b> หักคืนในงวดเงินเดือน · <b>เงินกู้</b> ผ่อนหักทีละงวด ยอดค้างอยู่ที่แท็บ เงินเบิก/เงินกู้</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-list-checks"/></svg>สถานะงวด</h3><div class="pills"><span class="pill">ร่าง</span><span class="arrow">→</span><span class="pill">คำนวณแล้ว</span><span class="arrow">→</span><span class="pill warn">อนุมัติแล้ว</span><span class="arrow">→</span><span class="pill ok">จ่ายแล้ว</span></div></div>
+  </div>
+  <div class="note"><svg class="i"><use href="#i-triangle-alert"/></svg><p>อัตราค่าจ้างและเพดานการหัก ควรให้ผู้เชี่ยวชาญกฎหมายแรงงานประมงตรวจก่อนใช้จ่ายจริง</p></div>
+</section>
+
+<!-- 13 -->
+<section class="sheet" id="ch13">
+  <div class="sheet-head"><div class="tab">13<svg class="i"><use href="#i-book-open"/></svg></div>
+    <div><h2>บัญชีและรายงาน</h2><p>เมนู บัญชี · เอกสารจากทุกเมนูลงบัญชีคู่ให้เอง นักบัญชีตรวจ ปิดงวด และออกงบ</p></div></div>
+  <div class="split">
+    <div class="box"><h3><svg class="i"><use href="#i-refresh-cw"/></svg>เอกสารที่ลงบัญชีอัตโนมัติ</h3>
+      <div class="pills"><span class="pill">ใบแจ้งหนี้ขาย</span><span class="pill">รับชำระ</span><span class="pill">ใบลดหนี้</span><span class="pill">รับสินค้า</span><span class="pill">เคลื่อนไหวคลัง</span><span class="pill">ถังน้ำมัน</span><span class="pill">น้ำมัน/เสบียงเข้าเที่ยว</span><span class="pill">ค่าใช้จ่ายเที่ยวเรือ</span><span class="pill">ใบสั่งซ่อม</span><span class="pill">งวดเงินเดือน</span><span class="pill">เงินเบิก/เงินกู้</span><span class="pill">ใบแจ้งหนี้ผู้ขาย</span><span class="pill">จ่ายชำระผู้ขาย</span><span class="pill">ค่าเสื่อมราคา</span></div>
+      <p class="small muted">ดูรายการที่ยังไม่ลงได้ที่แท็บ ลงบัญชีอัตโนมัติ</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-chart-column"/></svg>รายงาน (แท็บ รายงาน)</h3>
+      <ul><li>งบทดลอง</li><li>งบกำไรขาดทุน แยกรายเรือได้</li><li>งบแสดงฐานะการเงิน</li><li>บัญชีแยกประเภท</li><li>งบกระแสเงินสด</li><li>แท็บ ภาษี: ภาษีขาย/ซื้อ ภ.ง.ด.1 ภ.ง.ด.3 ภ.ง.ด.53</li></ul></div>
+  </div>
+  <ol class="flow">
+    <li><div class="dot"><svg class="i"><use href="#i-receipt"/></svg></div><h3>เอกสารยืนยัน</h3><p>ขาย ซื้อ จ่าย เงินเดือน</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-book-open"/></svg></div><h3>สมุดรายวัน</h3><p>ผ่านรายการแล้วแก้ไม่ได้ แก้ด้วยการกลับรายการ</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-landmark"/></svg></div><h3>กระทบยอดธนาคาร</h3><p>จับคู่รายการกับ statement</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-lock"/></svg></div><h3>ปิดงวดบัญชี</h3><p>งวดที่ปิดแล้วบันทึกย้อนไม่ได้</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-calendar-days"/></svg></div><h3>ปิดบัญชีสิ้นปี</h3><p>โอนกำไรสะสม เริ่มปีใหม่</p></li>
+  </ol>
+  <div class="note"><svg class="i"><use href="#i-triangle-alert"/></svg><p>ผังบัญชี กฎการลงบัญชี และอัตราภาษี ควรให้ผู้สอบบัญชีของบริษัทตรวจก่อนใช้งานจริง</p></div>
+</section>
+
+<!-- 14 -->
+<section class="sheet" id="ch14">
+  <div class="sheet-head"><div class="tab">14<svg class="i"><use href="#i-settings"/></svg></div>
+    <div><h2>ผู้ดูแลระบบ</h2><p>เมนูกลุ่ม ระบบ · ผู้ใช้งาน บทบาทและสิทธิ์ ประวัติการใช้งาน ตั้งค่าระบบ อีเมลขาออก</p></div></div>
+  <div class="cols">
+    <div class="box"><h3><svg class="i"><use href="#i-user-cog"/></svg>ผู้ใช้งาน</h3><p>สร้างผู้ใช้ กำหนดบทบาทและเรือที่ดูแล รีเซ็ตรหัสผ่านหรือ 2FA ให้ผู้ที่ลืม</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-scroll-text"/></svg>ประวัติการใช้งาน</h3><p>ดูว่าใครสร้าง แก้ไข อนุมัติอะไร เมื่อไร ค่าก่อนและหลังแก้</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-settings"/></svg>ตั้งค่าระบบ</h3><p>ชื่อบริษัท วันเตือนเอกสาร เวลาขาดสัญญาณ GPS รอบเตือนซ่อม บทบาทที่ต้องใช้ 2FA ประเภทเอกสาร</p></div>
+    <div class="box"><h3><svg class="i"><use href="#i-mail"/></svg>อีเมลขาออก</h3><p>ยังไม่ได้ตั้ง SMTP ระบบเก็บอีเมลไว้ในหน้านี้แทนการส่งจริง</p></div>
+  </div>
+  <h3>จากทดลองใช้ สู่ใช้งานจริง</h3>
+  <ol class="flow">
+    <li><div class="dot"><svg class="i"><use href="#i-sparkles"/></svg></div><h3>ทดลองกับข้อมูลตัวอย่าง</h3><p>ลองทุกเมนูได้เต็มที่</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-hard-drive-download"/></svg></div><h3>สำรองข้อมูล</h3><p><span class="kbd">.\fisher.cmd backup</span></p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-trash-2"/></svg></div><h3>ล้างข้อมูลทั้งหมด</h3><p>ตั้งค่าระบบ → พิมพ์ “ลบข้อมูลทั้งหมด” + รหัสผ่าน</p></li>
+    <li><div class="dot"><svg class="i"><use href="#i-database"/></svg></div><h3>ใส่ข้อมูลจริง</h3><p>ผู้ใช้ เรือ ลูกเรือ สินค้า ยอดยกมา</p></li>
+    <li class="end"><div class="dot"><svg class="i"><use href="#i-rocket"/></svg></div><h3>เริ่มใช้งานจริง</h3><p>หลังกด ล้างข้อมูลไม่ได้อีก</p></li>
+  </ol>
+  <div class="note"><svg class="i"><use href="#i-triangle-alert"/></svg><p>เก็บไฟล์ <b>fisher.env</b> ไว้ที่ปลอดภัยแยกจากไฟล์สำรอง ไฟล์นี้มีกุญแจเข้ารหัสข้อมูล ถ้าหาย จะอ่านข้อมูลส่วนบุคคลเดิมไม่ได้</p></div>
+</section>
+
+<!-- 15 -->
+<section class="sheet" id="ch15">
+  <div class="sheet-head"><div class="tab">15<svg class="i"><use href="#i-list-checks"/></svg></div>
+    <div><h2>งานประจำวัน–เดือน</h2><p>รายการตรวจสำหรับแต่ละฝ่าย ติดไว้ข้างโต๊ะได้</p></div></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>ฝ่าย</th><th>ทุกวัน</th><th>ทุกสัปดาห์</th><th>ทุกเดือน</th></tr></thead>
+      <tbody>
+        <tr><td>ไต้ก๋ง</td><td>บันทึกสัตว์น้ำ เหตุการณ์ ค่าใช้จ่าย</td><td>ตรวจรายการรอซิงก์ในมือถือ</td><td>–</td></tr>
+        <tr><td>ปฏิบัติการ/กองเรือ</td><td>ดูแผนที่สด อ่านการแจ้งเตือน</td><td>ส่งสรุปเที่ยวที่เข้าท่า ตรวจแผนซ่อมบำรุง</td><td>ดูน้ำมันต่อชั่วโมงเครื่อง ต้นทุนต่อ กก.</td></tr>
+        <tr><td>ขาย</td><td>ออกใบขาย รับชำระ</td><td>ตามลูกหนี้ค้างชำระ</td><td>รายงานยอดขาย</td></tr>
+        <tr><td>จัดซื้อ/คลัง</td><td>รับสินค้า เบิกเสบียงเข้าเที่ยว</td><td>อนุมัติใบขอซื้อ</td><td>ตรวจนับและปรับยอดสต็อก</td></tr>
+        <tr><td>บุคคล</td><td>–</td><td>เปิดหน้าเอกสารใกล้หมดอายุ</td><td>อัปเดตลูกเรือเข้า-ออก</td></tr>
+        <tr><td>บัญชี</td><td>ตรวจรายการลงบัญชีอัตโนมัติ</td><td>ตั้งหนี้และจ่ายผู้ขาย</td><td>เงินเดือน กระทบยอดธนาคาร ค่าเสื่อม ปิดงวด</td></tr>
+        <tr><td>ผู้ดูแลระบบ</td><td>สำรองข้อมูล</td><td>ดูประวัติการใช้งานที่ผิดปกติ</td><td>ลองกู้คืนไฟล์สำรอง 1 ครั้ง</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- 16 -->
+<section class="sheet" id="ch16">
+  <div class="sheet-head"><div class="tab">16<svg class="i"><use href="#i-life-buoy"/></svg></div>
+    <div><h2>คำถามพบบ่อย</h2><p>ปัญหาที่เจอบ่อยและวิธีแก้</p></div></div>
+  <div class="faq">
+    <div class="qa"><h3><svg class="i"><use href="#i-circle-help"/></svg>ลืมรหัสผ่าน</h3><p>ให้ผู้ดูแลระบบกด รีเซ็ตรหัสผ่าน ที่เมนูผู้ใช้งาน ถ้าเป็น admin คนเดียว ใช้ <span class="kbd">.\fisher.cmd reset-password</span> บนเครื่องที่ติดตั้ง</p></div>
+    <div class="qa"><h3><svg class="i"><use href="#i-circle-help"/></svg>หาเมนูไม่เจอ</h3><p>บทบาทของคุณไม่มีสิทธิ์เมนูนั้น ติดต่อผู้ดูแลระบบให้เพิ่มสิทธิ์</p></div>
+    <div class="qa"><h3><svg class="i"><use href="#i-circle-help"/></svg>แก้หรือลบเอกสารที่ยืนยันแล้วไม่ได้</h3><p>ตั้งใจให้เป็นแบบนั้น เพื่อให้บัญชีตรวจสอบได้ ใช้ ยกเลิก ใบลดหนี้ หรือกลับรายการ แทนการลบ</p></div>
+    <div class="qa"><h3><svg class="i"><use href="#i-circle-help"/></svg>ทำไมมีป้าย “จำลอง”</h3><p>เป็นข้อมูลตัวอย่างหรือสัญญาณ GPS จำลอง ใช้ทดลองระบบ ล้างทิ้งได้ก่อนเริ่มใช้งานจริง</p></div>
+    <div class="qa"><h3><svg class="i"><use href="#i-circle-help"/></svg>แผนที่ไม่ขึ้นภาพ</h3><p>ภาพแผนที่โหลดจาก OpenStreetMap ต้องต่ออินเทอร์เน็ต ถ้าขึ้น Access blocked ให้อัปเดตระบบเป็นรุ่นล่าสุด</p></div>
+    <div class="qa"><h3><svg class="i"><use href="#i-circle-help"/></svg>มือถือส่งตำแหน่งไม่ได้</h3><p>เบราว์เซอร์อนุญาตให้ใช้ GPS ของมือถือเฉพาะเว็บที่เป็น https:// ต้องตั้ง HTTPS ให้ระบบก่อน</p></div>
+    <div class="qa"><h3><svg class="i"><use href="#i-circle-help"/></svg>เห็นเลขบัตรเป็น ****</h3><p>ข้อมูลส่วนบุคคลแสดงเต็มเฉพาะผู้ที่มีสิทธิ์ ตามหลัก PDPA</p></div>
+    <div class="qa"><h3><svg class="i"><use href="#i-circle-help"/></svg>อัปเดตระบบอย่างไร</h3><p>สำรองข้อมูลก่อน แล้วรัน <span class="kbd">.\fisher.cmd update</span> ในโฟลเดอร์ที่ติดตั้ง จากนั้นกด F5 ในเบราว์เซอร์</p></div>
+  </div>
+  <p class="foot">Fisher ERP · คู่มือการใช้งานเวอร์ชัน 0.14 · ภาพหน้าจอจากระบบที่มีข้อมูลตัวอย่าง ตัวเลขในภาพไม่ใช่ข้อมูลจริง</p>
+</section>
+
+</main>
+</body></html>

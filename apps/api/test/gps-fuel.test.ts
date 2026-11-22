@@ -77,7 +77,9 @@ describe('GPS ingestion', () => {
     expect(v.link).toBe('ONLINE');
     expect(Number(v.position.lat)).toBe(7.5);
     const tr = (await admin.get(`/gps/track?vesselId=${f.vessel.id}`)).body;
-    expect(tr.points.length).toBe(4);
+    // the AIS fix is 15 km from the IMEI fix a minute earlier: both cannot be right, so the busier device wins
+    expect(tr.points.length).toBe(3);
+    expect(tr.devices).toBe(2);
     expect(tr.events).toHaveLength(1);
   });
 

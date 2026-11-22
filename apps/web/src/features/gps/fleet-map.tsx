@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef } from 'react';
 import { formatDateTime, formatNumber } from '@fisher/shared';
+import { addBaseLayer } from './tiles';
 import type { FleetVessel, Geofence, Track } from './types';
 
 const COLORS = { ONLINE: '#15803d', LOST: '#b91c1c', NO_DATA: '#64748b', DEMO: '#7c8796' };
@@ -19,7 +20,7 @@ function vesselIcon(v: FleetVessel, selected: boolean) {
     iconAnchor: [size / 2, size / 2],
     html: `<div style="width:${size}px;height:${size}px;transform:rotate(${rot}deg)">
       <svg viewBox="0 0 24 24" width="${size}" height="${size}"><path d="M12 2 L19 21 L12 17 L5 21 Z" fill="${color}" stroke="#fff" stroke-width="1.5" ${demo ? 'stroke-dasharray="2 2" fill-opacity="0.7"' : ''}/></svg></div>
-      <div style="position:absolute;left:${size}px;top:2px;white-space:nowrap;font:600 11px Sarabun,sans-serif;color:#0b1f3a;background:#fffd;padding:0 3px;border-radius:2px">${esc(v.name)}${demo ? ' · สาธิต' : ''}</div>`,
+      <div style="position:absolute;left:${size}px;top:2px;white-space:nowrap;font:600 11px Sarabun,sans-serif;color:#0b1f3a;background:#fffd;padding:0 3px;border-radius:2px">${esc(v.name)}${demo ? ' · จำลอง' : ''}</div>`,
   });
 }
 
@@ -34,10 +35,7 @@ export function FleetMap({ vessels, track, fences, selectedId, onSelect }: {
   useEffect(() => {
     if (!el.current || map.current) return;
     const m = L.map(el.current, { zoomControl: true, attributionControl: true }).setView([9.5, 100.8], 6); // Gulf of Thailand
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(m);
+    addBaseLayer(m);
     L.control.scale({ metric: true, imperial: false }).addTo(m);
     map.current = m;
     layers.current = L.layerGroup().addTo(m);
@@ -91,7 +89,7 @@ export function FleetMap({ vessels, track, fences, selectedId, onSelect }: {
       const ll: [number, number] = [Number(p.lat), Number(p.lng)];
       L.marker(ll, { icon: vesselIcon(v, v.id === selectedId), zIndexOffset: v.id === selectedId ? 1000 : 0 })
         .bindPopup(
-          `<b>${esc(v.code)} ${esc(v.name)}</b>${p.isDemo ? ' <i>(ข้อมูลสาธิต)</i>' : ''}<br>
+          `<b>${esc(v.code)} ${esc(v.name)}</b>${p.isDemo ? ' <i>(จำลอง)</i>' : ''}<br>
           ${formatDateTime(p.recordedAt)}<br>${p.speedKnots !== null ? `${formatNumber(p.speedKnots, 1)} นอต` : ''} ${p.headingDeg !== null ? `· ${formatNumber(p.headingDeg)}°` : ''}<br>
           ${Number(p.lat).toFixed(5)}, ${Number(p.lng).toFixed(5)}`,
         )
@@ -99,7 +97,7 @@ export function FleetMap({ vessels, track, fences, selectedId, onSelect }: {
         .addTo(g);
       if (!track?.points.length) bounds.push(ll);
     }
-    const key = `${selectedId ?? ''}:${track?.points.length ?? 0}:${vessels.filter((v) => v.position).length}`;
+    const key = `${selectedId ?? ''}:${track?.points.length ? 'T' : '-'}:${vessels.filter((v) => v.position).length}`;
     if (bounds.length && fitted.current !== key) {
       fitted.current = key;
       m.fitBounds(L.latLngBounds(bounds), { padding: [40, 40], maxZoom: 11 });

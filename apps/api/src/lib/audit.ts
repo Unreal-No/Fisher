@@ -2,7 +2,7 @@ import type { FastifyRequest } from 'fastify';
 import { maskId } from '@fisher/shared';
 import type { DbOrTx } from './prisma';
 
-const SENSITIVE = new Set(['passwordHash', 'nationalIdNo', 'bankAccountNo', 'documentNo']);
+const SENSITIVE = new Set(['passwordHash', 'nationalIdNo', 'bankAccountNo', 'documentNo', 'totpSecret', 'totpPendingSecret', 'recoveryCodes']);
 
 /** Deep-clone to JSON-safe data and mask PDPA-sensitive keys. */
 export function redact(v: unknown): unknown {
@@ -14,7 +14,7 @@ export function redact(v: unknown): unknown {
     if ('toFixed' in (v as object) && 'd' in (v as object)) return String(v); // Prisma.Decimal
     const out: Record<string, unknown> = {};
     for (const [k, val] of Object.entries(v as Record<string, unknown>)) {
-      out[k] = SENSITIVE.has(k) ? (k === 'passwordHash' ? '[hidden]' : maskId(val as string)) : redact(val);
+      out[k] = SENSITIVE.has(k) ? (['passwordHash', 'totpSecret', 'totpPendingSecret', 'recoveryCodes'].includes(k) ? '[hidden]' : maskId(val as string)) : redact(val);
     }
     return out;
   }

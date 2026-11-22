@@ -23,6 +23,7 @@ import { api, fileUrl } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useAction } from '@/lib/hooks';
 import { useDocTypes, useVessels, vesselOptions } from '@/lib/lookups';
+import { EmployeePayrollTab } from '@/features/payroll/employee-payroll-tab';
 import type { EmpDoc, EmployeeDetail } from './types';
 
 const EVENT_TH: Record<string, string> = {
@@ -187,6 +188,7 @@ export function EmployeeDetailPage() {
                   </Panel>
                 ),
               },
+              { value: 'payroll', label: 'เงินเดือน', hidden: !can('payroll.view'), content: <EmployeePayrollTab employeeId={id} /> },
             ]}
           />
           {docDlg && <DocDialog employeeId={id} renew={docDlg.renew} nationality={e.nationality} onClose={() => setDocDlg(null)} />}

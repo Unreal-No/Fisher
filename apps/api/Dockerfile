@@ -2,7 +2,7 @@
 FROM node:22-slim AS build
 WORKDIR /app
 RUN corepack enable && apt-get update -y && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY pnpm-lock.yaml pnpm-workspace.yaml package.json tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
 COPY packages/shared/package.json packages/shared/
 RUN pnpm install --frozen-lockfile --filter @fisher/api...

@@ -60,7 +60,7 @@ function Breadcrumbs() {
         return (
           <span key={to} className="flex min-w-0 items-center gap-1">
             <ChevronRight className="size-3.5 shrink-0 text-slate-400" />
-            {last || p === 'admin' ? <span className={cn('truncate', last && 'font-medium text-ink')}>{label}</span> : <Link to={to} className="truncate text-muted hover:text-ink">{label}</Link>}
+            {last || ['admin', 'requests', 'orders', 'invoices', 'periods', 'slips', 'journals', 'bills', 'assets', 'bank-recs'].includes(p) ? <span className={cn('truncate', last && 'font-medium text-ink')}>{label}</span> : <Link to={to} className="truncate text-muted hover:text-ink">{label}</Link>}
           </span>
         );
       })}
@@ -78,6 +78,8 @@ export function AppLayout() {
     queryKey: ['notifications', 'count'],
     queryFn: () => api.get<{ unreadCount: number }>('/notifications', { pageSize: 1 }),
     refetchInterval: 120_000,
+    // the API answers 403 until the first-login password change / required 2FA is done
+    enabled: !!me && !me.mustChangePassword && !me.mustEnable2fa,
   });
 
   const sidebar = (
@@ -112,13 +114,13 @@ export function AppLayout() {
           );
         })}
       </nav>
-      <div className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-500">Phase 1 · v0.1.0</div>
+      <div className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-500">v0.14.1</div>
     </div>
   );
 
   return (
-    <div className="flex h-dvh overflow-hidden">
-      <aside className="hidden w-60 shrink-0 lg:block">{sidebar}</aside>
+    <div className="flex h-dvh overflow-hidden print:block print:h-auto print:overflow-visible">
+      <aside className="hidden w-60 shrink-0 lg:block print:hidden">{sidebar}</aside>
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-navy-950/50" onClick={() => setOpen(false)} />
@@ -129,7 +131,7 @@ export function AppLayout() {
         </div>
       )}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-white px-3 sm:px-5">
+        <header className="flex h-14 shrink-0 items-center gap-3 border-b border-line bg-white px-3 sm:px-5 print:hidden">
           <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setOpen(true)} aria-label="เมนู">
             <Menu />
           </Button>
@@ -165,7 +167,7 @@ export function AppLayout() {
             </DropdownItem>
           </Dropdown>
         </header>
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto print:overflow-visible">
           <div className="mx-auto max-w-[1440px] p-3 sm:p-5">
             <Outlet />
           </div>

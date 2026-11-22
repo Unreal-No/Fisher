@@ -20,6 +20,10 @@ export interface Me {
   permissions: Permission[];
   vesselScope: string[]; // empty = all vessels
   mustChangePassword: boolean;
+  /** TOTP second factor active */
+  twoFactorEnabled: boolean;
+  /** a role of the user requires 2FA and it is not enabled yet — only account pages are allowed */
+  mustEnable2fa: boolean;
 }
 
 /** Departure crew document check result (per crew member). */
@@ -54,4 +58,11 @@ export interface TripSettlement {
   totalCost: number;
   fuelCostPerKg: number | null;
   costPerKg: number | null;
+  /** confirmed sales of this trip's lots, net of discount share and credit notes, excl. VAT */
+  soldKg: number;
+  revenue: number;
+  grossProfit: number;
+  /** crew pay booked to this trip in approved/paid payroll */
+  crewCost: number;
+  profitAfterCrew: number;
 }

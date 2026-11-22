@@ -6,6 +6,7 @@ import type { Me, Permission } from '@fisher/shared';
 import { config } from '../config';
 import { AppError, forbidden } from '../lib/errors';
 import { prisma } from '../lib/prisma';
+import { getSettingsCached } from '../lib/settings';
 
 export const SESSION_COOKIE = 'fsid';
 export const CSRF_COOKIE = 'fcsrf';
@@ -20,6 +21,8 @@ export interface AuthUser {
   permissions: Set<string>;
   roles: { code: string; name: string }[];
   vesselScope: string[];
+  twoFactorEnabled: boolean;
+  mustEnable2fa: boolean;
   mustChangePassword: boolean;
 }
 
@@ -70,6 +73,8 @@ export function toMe(u: AuthUser): Me {
     permissions: [...u.permissions] as Permission[],
     vesselScope: u.vesselScope,
     mustChangePassword: u.mustChangePassword,
+    twoFactorEnabled: u.twoFactorEnabled,
+    mustEnable2fa: u.mustEnable2fa,
   };
 }
 
@@ -103,7 +108,12 @@ async function loadUser(req: FastifyRequest): Promise<AuthUser | null> {
   }
   const perms = new Set<string>();
   for (const ur of s.user.roles) for (const rp of ur.role.permissions) perms.add(rp.permission.code);
+  const twoFactorEnabled = !!s.user.totpEnabledAt;
+  const required = (await getSettingsCached()).require2faRoles;
+  const mustEnable2fa = !twoFactorEnabled && s.user.roles.some((r) => required.includes(r.role.code));
   return {
+    twoFactorEnabled,
+    mustEnable2fa,
     id: s.user.id,
     username: s.user.username,
     fullName: s.user.fullName,
@@ -119,7 +129,7 @@ async function loadUser(req: FastifyRequest): Promise<AuthUser | null> {
 const safeEq = (a: string, b: string) =>
   a.length === b.length && timingSafeEqual(Buffer.from(a), Buffer.from(b));
 
-const PUBLIC = new Set(['/api/v1/auth/login', '/api/health']);
+const PUBLIC = new Set(['/api/v1/auth/login', '/api/v1/auth/login/2fa', '/api/health']);
 const MUTATING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 export const authPlugin = fp(async (app: FastifyInstance) => {
@@ -139,6 +149,8 @@ export const authPlugin = fp(async (app: FastifyInstance) => {
     }
     if (req.user.mustChangePassword && !['/api/v1/auth/me', '/api/v1/auth/change-password', '/api/v1/auth/logout'].includes(url))
       throw new AppError(403, 'MUST_CHANGE_PASSWORD', 'กรุณาเปลี่ยนรหัสผ่านก่อนใช้งาน');
+    if (req.user.mustEnable2fa && !['/api/v1/auth/me', '/api/v1/auth/change-password', '/api/v1/auth/logout'].includes(url) && !url.startsWith('/api/v1/auth/2fa'))
+      throw new AppError(403, 'TWO_FACTOR_REQUIRED', 'บทบาทของคุณต้องเปิดใช้การยืนยันตัวตนสองขั้นตอน (2FA) ก่อนใช้งาน');
   });
 
   app.decorate('can', (...perms: Permission[]) => async (req: FastifyRequest) => {

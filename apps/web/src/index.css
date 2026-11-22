@@ -32,3 +32,8 @@
   :focus-visible { @apply outline-2 outline-offset-1 outline-accent; }
   input[type='number']::-webkit-inner-spin-button { opacity: 0.4; }
 }
+
+@media print {
+  body { background: #fff; }
+  [data-sonner-toaster] { display: none !important; }
+}

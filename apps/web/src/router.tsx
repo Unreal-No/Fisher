@@ -21,6 +21,22 @@ const TripList = L(() => import('./features/trips/trip-list-page'), 'TripListPag
 const TripDetail = L(() => import('./features/trips/trip-detail-page'), 'TripDetailPage');
 const Gps = L(() => import('./features/gps/gps-page'), 'GpsPage');
 const Fuel = L(() => import('./features/fuel/fuel-page'), 'FuelPage');
+const Inventory = L(() => import('./features/inventory/inventory-page'), 'InventoryPage');
+const Purchasing = L(() => import('./features/purchasing/purchasing-page'), 'PurchasingPage');
+const PurchaseRequest = L(() => import('./features/purchasing/pr-detail-page'), 'PurchaseRequestPage');
+const PurchaseOrder = L(() => import('./features/purchasing/po-detail-page'), 'PurchaseOrderPage');
+const Sales = L(() => import('./features/sales/sales-page'), 'SalesPage');
+const SalesInvoice = L(() => import('./features/sales/invoice-detail-page'), 'SalesInvoicePage');
+const Maintenance = L(() => import('./features/maintenance/maintenance-page'), 'MaintenancePage');
+const Payroll = L(() => import('./features/payroll/payroll-page'), 'PayrollPage');
+const PayrollPeriod = L(() => import('./features/payroll/period-detail-page'), 'PayrollPeriodPage');
+const Accounting = L(() => import('./features/accounting/accounting-page'), 'AccountingPage');
+const VendorBill = L(() => import('./features/accounting/vendor-bill-page'), 'VendorBillPage');
+const BankRec = L(() => import('./features/accounting/bank-rec-page'), 'BankRecPage');
+const Journal = L(() => import('./features/accounting/journal-detail-page'), 'JournalPage');
+const Asset = L(() => import('./features/accounting/asset-page'), 'AssetPage');
+const Payslip = L(() => import('./features/payroll/payslip-page'), 'PayslipPage');
+const MaintenanceOrder = L(() => import('./features/maintenance/order-detail-page'), 'MaintenanceOrderPage');
 const Catch = L(() => import('./features/catch/catch-page'), 'CatchPage');
 const Species = L(() => import('./features/catch/species-page'), 'SpeciesPage');
 const Notifications = L(() => import('./features/notifications/notifications-page'), 'NotificationsPage');
@@ -28,6 +44,7 @@ const Users = L(() => import('./features/admin/users-page'), 'UsersPage');
 const Roles = L(() => import('./features/admin/roles-page'), 'RolesPage');
 const Audit = L(() => import('./features/admin/audit-page'), 'AuditPage');
 const Settings = L(() => import('./features/admin/settings-page'), 'SettingsPage');
+const Outbox = L(() => import('./features/admin/outbox-page'), 'OutboxPage');
 const Account = L(() => import('./features/auth/account-page'), 'AccountPage');
 
 function RequireAuth() {
@@ -36,6 +53,7 @@ function RequireAuth() {
   if (loading) return <Spinner />;
   if (!me) return <Navigate to="/login" replace state={{ from: loc.pathname + loc.search }} />;
   if (me.mustChangePassword && loc.pathname !== '/account') return <Navigate to="/account" replace />;
+  if (me.mustEnable2fa && loc.pathname !== '/account') return <Navigate to="/account" replace />;
   return <Outlet />;
 }
 
@@ -74,6 +92,22 @@ export const router = createBrowserRouter([
           { path: 'trips/:id', element: <P perm={['trip.view']}><TripDetail /></P> },
           { path: 'gps', element: <P perm={['gps.view']}><Gps /></P> },
           { path: 'fuel', element: <P perm={['fuel.view']}><Fuel /></P> },
+          { path: 'inventory', element: <P perm={['inventory.view']}><Inventory /></P> },
+          { path: 'purchasing', element: <P perm={['purchase.view']}><Purchasing /></P> },
+          { path: 'purchasing/requests/:id', element: <P perm={['purchase.view']}><PurchaseRequest /></P> },
+          { path: 'purchasing/orders/:id', element: <P perm={['purchase.view']}><PurchaseOrder /></P> },
+          { path: 'sales', element: <P perm={['sales.view']}><Sales /></P> },
+          { path: 'sales/invoices/:id', element: <P perm={['sales.view']}><SalesInvoice /></P> },
+          { path: 'payroll', element: <P perm={['payroll.view']}><Payroll /></P> },
+          { path: 'payroll/periods/:id', element: <P perm={['payroll.view']}><PayrollPeriod /></P> },
+          { path: 'payroll/periods/:id/slips/:recordId', element: <P perm={['payroll.view']}><Payslip /></P> },
+          { path: 'accounting', element: <P perm={['finance.view']}><Accounting /></P> },
+          { path: 'accounting/journals/:id', element: <P perm={['finance.view']}><Journal /></P> },
+          { path: 'accounting/bills/:id', element: <P perm={['finance.view']}><VendorBill /></P> },
+          { path: 'accounting/assets/:id', element: <P perm={['finance.view']}><Asset /></P> },
+          { path: 'accounting/bank-recs/:id', element: <P perm={['finance.view']}><BankRec /></P> },
+          { path: 'maintenance', element: <P perm={['maintenance.view']}><Maintenance /></P> },
+          { path: 'maintenance/orders/:id', element: <P perm={['maintenance.view']}><MaintenanceOrder /></P> },
           { path: 'catch', element: <P perm={['catch.view']}><Catch /></P> },
           { path: 'species', element: <P perm={['catch.view']}><Species /></P> },
           { path: 'notifications', element: <P><Notifications /></P> },
@@ -82,6 +116,7 @@ export const router = createBrowserRouter([
           { path: 'admin/roles', element: <P perm={['role.manage']}><Roles /></P> },
           { path: 'admin/audit', element: <P perm={['audit.view']}><Audit /></P> },
           { path: 'admin/settings', element: <P perm={['settings.manage']}><Settings /></P> },
+          { path: 'admin/outbox', element: <P perm={['settings.manage']}><Outbox /></P> },
           { path: '*', element: <Empty title="ไม่พบหน้าที่ต้องการ" /> },
         ],
       },

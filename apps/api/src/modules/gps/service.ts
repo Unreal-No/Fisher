@@ -5,9 +5,11 @@ import { notFound, unprocessable } from '../../lib/errors';
 import { num } from '../../lib/http';
 import { Prisma, prisma } from '../../lib/prisma';
 import { getSettings } from '../../lib/settings';
+import { EventEmitter } from 'node:events';
 import type { FastifyRequest } from 'fastify';
 import type { ParsedPosition } from './adapters';
-import { insideFence, move } from './geo';
+import { haversineKm, insideFence, move } from './geo';
+import { analyzeVoyage, type NamedPlace } from './voyage';
 
 const MAX_FUTURE_MS = 5 * 60_000;
 const MAX_AGE_MS = 30 * 86400_000;
@@ -81,6 +83,20 @@ async function evaluateGeofences(vesselId: string, prev: LastPos | undefined, la
 }
 
 /** Store positions for a device. Idempotent (unique vessel+device+time). */
+/** In-process live feed for the map (single instance; see docs for multi-instance). */
+export const gpsBus = new EventEmitter();
+gpsBus.setMaxListeners(500);
+export interface LivePosition {
+  vesselId: string;
+  lat: number;
+  lng: number;
+  speedKnots: number | null;
+  headingDeg: number | null;
+  recordedAt: string;
+  isDemo: boolean;
+  source: string;
+}
+
 export async function ingest(device: DeviceLite, positions: ParsedPosition[], opts: { isDemo?: boolean } = {}) {
   const now = Date.now();
   let rejected = 0;
@@ -122,6 +138,13 @@ export async function ingest(device: DeviceLite, positions: ParsedPosition[], op
   for (const vid of vesselIds) {
     const latest = rows.filter((r) => r.vesselId === vid).sort((a, b) => +new Date(b.recordedAt) - +new Date(a.recordedAt))[0]!;
     geofenceEvents += await evaluateGeofences(vid, prev.get(vid), { lat: Number(latest.lat), lng: Number(latest.lng), recordedAt: new Date(latest.recordedAt) }, !!opts.isDemo);
+    // push to live map listeners only when this is newer than what they already have
+    const p = prev.get(vid);
+    if (res.count && (!p || new Date(latest.recordedAt) > p.recordedAt))
+      gpsBus.emit('position', {
+        vesselId: vid, lat: Number(latest.lat), lng: Number(latest.lng), speedKnots: latest.speedKnots == null ? null : Number(latest.speedKnots),
+        headingDeg: latest.headingDeg == null ? null : Number(latest.headingDeg), recordedAt: new Date(latest.recordedAt).toISOString(), isDemo: !!opts.isDemo, source: device.source,
+      } satisfies LivePosition);
   }
   return { accepted: res.count, duplicates: rows.length - res.count, rejected, unknownVessel, geofenceEvents };
 }
@@ -183,26 +206,85 @@ export async function scanSignalLost(now = new Date()) {
 }
 
 /** Track for a vessel in a time range (downsampled to <= 5000 points) + trip markers + geofence events. */
+/**
+ * One coherent track out of everything stored for a vessel. Real data always wins: when the window has any real point,
+ * demo points are left out (never mixed). Among several devices (e.g. AIS box + phone) the one with most points is
+ * primary; another device's point is kept when the primary was silent around it (> `fillGapMin`) or when it agrees with
+ * the primary's nearest fix. Disagreeing points are dropped — interleaving them would zig-zag between two positions.
+ */
+export function mergeDevices<T extends { deviceId: string | null; source: string; isDemo: boolean; recordedAt: Date; lat: unknown; lng: unknown }>(
+  rows: T[],
+  opt = { fillGapMin: 15, maxKnots: 30, toleranceKm: 0.5 },
+) {
+  const real = rows.filter((r) => !r.isDemo);
+  const pool = real.length ? real : rows;
+  const byDevice = new Map<string, T[]>();
+  for (const r of pool) {
+    const k = r.deviceId ?? `source:${r.source}`;
+    const list = byDevice.get(k);
+    if (list) list.push(r);
+    else byDevice.set(k, [r]);
+  }
+  const at = (r: T) => r.recordedAt.getTime();
+  const byTime = (a: T, b: T) => at(a) - at(b);
+  const devices = [...byDevice.values()].sort((a, b) => b.length - a.length);
+  const primary = (devices[0] ?? []).slice().sort(byTime);
+  const nearest = (t: number) => {
+    let lo = 0;
+    let hi = primary.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (at(primary[mid]!) < t) lo = mid + 1;
+      else hi = mid;
+    }
+    const prev = lo > 0 ? primary[lo - 1] : undefined;
+    const cur = primary[lo];
+    return prev && (!cur || Math.abs(t - at(prev)) < Math.abs(at(cur) - t)) ? prev : cur;
+  };
+  const keep = (r: T) => {
+    const p = nearest(at(r));
+    if (!p) return true;
+    const dtMin = Math.abs(at(r) - at(p)) / 60_000;
+    if (dtMin > opt.fillGapMin) return true;
+    const km = haversineKm(Number(p.lat), Number(p.lng), Number(r.lat), Number(r.lng));
+    return km <= opt.toleranceKm + opt.maxKnots * 1.852 * (dtMin / 60);
+  };
+  const merged = [...primary, ...devices.slice(1).flatMap((d) => d.filter(keep))].sort(byTime);
+  return { rows: merged, demoHidden: rows.length - pool.length, devices: devices.length };
+}
+
 export async function track(vesselId: string, from: Date, to: Date, includeDemo: boolean) {
   const where = { vesselId, recordedAt: { gte: from, lte: to }, ...(includeDemo ? {} : { isDemo: false }) };
-  const total = await prisma.gpsPosition.count({ where });
-  const step = Math.max(1, Math.ceil(total / 5000));
-  const rows = await prisma.gpsPosition.findMany({
+  const stored = await prisma.gpsPosition.findMany({
     where, orderBy: { recordedAt: 'asc' }, take: 50_000,
-    select: { lat: true, lng: true, speedKnots: true, headingDeg: true, recordedAt: true, source: true, isDemo: true },
+    select: { lat: true, lng: true, speedKnots: true, headingDeg: true, recordedAt: true, source: true, isDemo: true, deviceId: true },
   });
+  const { rows: merged, demoHidden, devices } = mergeDevices(stored);
+  const rows = merged.map(({ deviceId: _d, ...r }) => r);
+  const total = rows.length;
+  const step = Math.max(1, Math.ceil(total / 5000));
   const points = rows.filter((_, i) => i % step === 0 || i === rows.length - 1);
+  const fences = await prisma.geofence.findMany({ where: { isActive: true } });
   const [trips, events] = await Promise.all([
     prisma.fishingTrip.findMany({
       where: { vesselId, OR: [{ departedAt: { gte: from, lte: to } }, { arrivedAt: { gte: from, lte: to } }] },
       select: { id: true, tripNo: true, departedAt: true, departureLat: true, departureLng: true, departurePort: true, arrivedAt: true, arrivalLat: true, arrivalLng: true, arrivalPort: true },
     }),
     prisma.geofenceEvent.findMany({
-      where: { vesselId, at: { gte: from, lte: to }, ...(includeDemo ? {} : { isDemo: false }) },
+      where: { vesselId, at: { gte: from, lte: to }, ...(merged.some((r) => r.isDemo) ? {} : { isDemo: false }) },
       include: { geofence: { select: { name: true } } }, orderBy: { at: 'asc' },
     }),
   ]);
-  return { total, sampledEvery: step, points, trips, events };
+  // legs / stops on every point (not the sampled map line); places = geofences + trip ports
+  const places: NamedPlace[] = [
+    ...fences.map((f) => ({ name: f.name, fence: { type: f.type, centerLat: num(f.centerLat), centerLng: num(f.centerLng), radiusKm: num(f.radiusKm), polygon: f.polygon as [number, number][] | null } })),
+    ...trips.flatMap((t) => [
+      { name: t.departurePort ?? '', lat: t.departureLat === null ? null : num(t.departureLat), lng: t.departureLng === null ? null : num(t.departureLng) },
+      { name: t.arrivalPort ?? '', lat: t.arrivalLat === null ? null : num(t.arrivalLat), lng: t.arrivalLng === null ? null : num(t.arrivalLng) },
+    ]).filter((p) => p.name && p.lat !== null),
+  ];
+  const analysis = analyzeVoyage(rows.map((r) => ({ t: r.recordedAt, lat: num(r.lat), lng: num(r.lng), speedKnots: r.speedKnots === null ? null : num(r.speedKnots) })), places);
+  return { total, sampledEvery: step, demoHidden, devices, points, trips, events, analysis };
 }
 
 /** DEMO ONLY: synthesise a plausible track (flagged is_demo) so the map can be evaluated without hardware. */

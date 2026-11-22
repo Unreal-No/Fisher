@@ -18,6 +18,22 @@ const schema = z.object({
   S3_SECRET_ACCESS_KEY: z.string().optional(),
   S3_FORCE_PATH_STYLE: bool.default(true),
   MAX_UPLOAD_MB: z.coerce.number().default(10),
+  /** base64 32-byte key for secrets at rest (2FA). Required in production: `openssl rand -base64 32` */
+  APP_ENCRYPTION_KEY: z.string().optional(),
+  /** previous keys (comma-separated) still accepted for decryption during key rotation */
+  APP_ENCRYPTION_KEYS_OLD: z.string().optional(),
+  /** login attempts per IP per minute (password and 2FA steps each) */
+  LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).default(10),
+  /** API requests per IP per minute (all routes) */
+  RATE_LIMIT_PER_MIN: z.coerce.number().int().min(10).default(600),
+  /** GPS over MQTT (optional): broker URL e.g. mqtts://broker:8883 — devices publish to {MQTT_TOPIC_PREFIX}/{adapter}/{device identifier} */
+  MQTT_URL: z.string().optional(),
+  MQTT_USERNAME: z.string().optional(),
+  MQTT_PASSWORD: z.string().optional(),
+  MQTT_TOPIC_PREFIX: z.string().default('fisher/gps'),
+  /** outgoing email; without SMTP_URL emails are simulated (recorded in the outbox only). e.g. smtps://user:pass@smtp.example.com:465 */
+  SMTP_URL: z.string().optional(),
+  MAIL_FROM: z.string().default('Fisher ERP <no-reply@localhost>'),
 });
 
 export type Config = z.infer<typeof schema>;

@@ -42,3 +42,10 @@ export function move(lat: number, lng: number, bearingDeg: number, km: number): 
   const lo2 = lo1 + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(la1), Math.cos(d) - Math.sin(la1) * Math.sin(la2));
   return [(la2 * 180) / Math.PI, (((lo2 * 180) / Math.PI + 540) % 360) - 180];
 }
+
+/** Initial bearing (deg) from a to b */
+export function bearingDeg(aLat: number, aLng: number, bLat: number, bLng: number) {
+  const y = Math.sin(rad(bLng - aLng)) * Math.cos(rad(bLat));
+  const x = Math.cos(rad(aLat)) * Math.sin(rad(bLat)) - Math.sin(rad(aLat)) * Math.cos(rad(bLat)) * Math.cos(rad(bLng - aLng));
+  return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+}

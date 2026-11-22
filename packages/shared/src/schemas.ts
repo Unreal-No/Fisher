@@ -59,6 +59,11 @@ export const passwordRule = z
   .regex(/[A-Z]/, 'ต้องมีตัวพิมพ์ใหญ่')
   .regex(/\d/, 'ต้องมีตัวเลข');
 export const changePasswordSchema = z.object({ currentPassword: z.string().min(1, REQ), newPassword: passwordRule });
+const otp = z.string({ error: REQ }).trim().min(6, 'รหัส 6 หลัก หรือรหัสกู้คืน').max(20);
+export const loginTwoFactorSchema = z.object({ challenge: z.string().min(20).max(100), code: otp });
+export const twoFactorPasswordSchema = z.object({ password: z.string().min(1, REQ).max(200) });
+export const twoFactorConfirmSchema = z.object({ code: z.string().trim().regex(/^\d{6}$/, 'รหัส 6 หลักจากแอป') });
+export const twoFactorDisableSchema = z.object({ password: z.string().min(1, REQ).max(200), code: otp });
 export const userCreateSchema = z.object({
   username: reqStr(50).regex(/^[a-z0-9._-]+$/, 'ใช้ a-z 0-9 . _ - เท่านั้น'),
   fullName: reqStr(120),
@@ -310,6 +315,12 @@ export const settingsSchema = z.object({
   companyName: optStr(200),
   docReminderDays: z.array(z.number().int().min(1).max(365)).min(1).max(10).optional(),
   gpsSignalLostMinutes: z.number().int().min(5).max(1440).optional(),
+  /** simulated AIS/VMS feed for vessels at sea (demo until a real provider is connected) */
+  gpsSimulator: z.boolean().optional(),
+  maintenanceReminderDays: z.number().int().min(1).max(180).optional(),
+  maintenanceReminderHours: z.number().int().min(1).max(5000).optional(),
+  /** role codes whose users must enable two-factor authentication */
+  require2faRoles: z.array(z.string().max(50)).max(30).optional(),
 });
 
 // ---------- GPS ----------
@@ -390,3 +401,375 @@ export const fuelAdjustSchema = z.object({
   measuredBalanceL: reqNum(0, 1e8),
   reason: reqStr(500),
 });
+
+// ---------- suppliers / inventory ----------
+export const supplierSchema = z.object({
+  code: optStr(20),
+  name: reqStr(200),
+  taxId: z.preprocess(blankToNull, z.string().regex(/^\d{13}$/, 'เลขผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก').nullish()),
+  branch: optStr(60),
+  contactName: optStr(120),
+  phone: optStr(40),
+  email: z.preprocess(blankToNull, z.email('อีเมลไม่ถูกต้อง').nullish()),
+  address: optStr(500),
+  paymentTermDays: optInt(0, 365),
+  bankName: optStr(80),
+  bankAccountNo: optStr(30),
+  /** individual (ภ.ง.ด.3) vs juristic person (ภ.ง.ด.53) for withholding tax */
+  isIndividual: z.boolean().default(false),
+  isActive: z.boolean().default(true),
+  notes: optStr(1000),
+});
+export const warehouseSchema = z.object({
+  code: reqStr(20),
+  name: reqStr(120),
+  location: optStr(200),
+  isActive: z.boolean().default(true),
+  notes: optStr(500),
+});
+export const inventoryItemSchema = z.object({
+  code: optStr(30),
+  name: reqStr(200),
+  category: z.enum(E.SUPPLY_CATEGORY),
+  unit: reqStr(20),
+  minStock: optNum(0, 1e9),
+  isActive: z.boolean().default(true),
+  notes: optStr(500),
+});
+const qty = posNum(1e9);
+export const stockReceiptSchema = z.object({
+  warehouseId: id, itemId: id, quantity: qty, unitCost: reqNum(0, 1e9), movedAt: isoDateTime, notes: reqStr(500),
+});
+export const stockIssueSchema = z.object({
+  warehouseId: id, itemId: id, quantity: qty, movedAt: isoDateTime, vesselId: id, tripId: optId, notes: optStr(500),
+  override: z.boolean().optional(), overrideReason: optStr(500),
+});
+export const stockTransferSchema = z
+  .object({ fromWarehouseId: id, toWarehouseId: id, itemId: id, quantity: qty, movedAt: isoDateTime, notes: optStr(500) })
+  .refine((v) => v.fromWarehouseId !== v.toWarehouseId, { path: ['toWarehouseId'], message: 'คลังปลายทางต้องไม่ซ้ำคลังต้นทาง' });
+export const stockAdjustSchema = z.object({
+  warehouseId: id, itemId: id, countedQty: reqNum(0, 1e9), movedAt: isoDateTime, reason: reqStr(500),
+});
+
+// ---------- purchasing ----------
+const prLine = z.object({
+  itemId: optId,
+  description: reqStr(200),
+  quantity: qty,
+  unit: reqStr(20),
+  estUnitCost: optNum(0, 1e9),
+  notes: optStr(300),
+});
+export const purchaseRequestSchema = z.object({
+  neededBy: optDate,
+  vesselId: optId,
+  tripId: optId,
+  notes: optStr(1000),
+  items: z.array(prLine).min(1, 'เพิ่มรายการอย่างน้อย 1 รายการ').max(200),
+});
+const poLine = z.object({
+  itemId: optId,
+  category: z.enum(E.SUPPLY_CATEGORY).default('OTHER'),
+  description: reqStr(200),
+  quantity: qty,
+  unit: reqStr(20),
+  unitPrice: reqNum(0, 1e9),
+});
+export const purchaseOrderSchema = z.object({
+  supplierId: id,
+  prId: optId,
+  orderDate: isoDate,
+  expectedDate: optDate,
+  warehouseId: id,
+  vesselId: optId,
+  tripId: optId,
+  discount: optNum(0, 1e10),
+  vatRate: z.preprocess((v) => (v === '' || v == null ? 7 : Number(v)), z.number().min(0).max(20)),
+  notes: optStr(1000),
+  items: z.array(poLine).min(1, 'เพิ่มรายการอย่างน้อย 1 รายการ').max(200),
+});
+export const goodsReceiptSchema = z.object({
+  receivedAt: isoDateTime,
+  warehouseId: optId,
+  supplierInvoiceNo: optStr(60),
+  fileId: optId,
+  notes: optStr(1000),
+  lines: z.array(z.object({ poItemId: id, quantity: qty })).min(1, 'ระบุจำนวนที่รับอย่างน้อย 1 รายการ'),
+});
+
+// ---------- sales ----------
+export const customerSchema = z.object({
+  code: optStr(20),
+  name: reqStr(200),
+  taxId: z.preprocess(blankToNull, z.string().regex(/^\d{13}$/, 'เลขผู้เสียภาษีต้องเป็นตัวเลข 13 หลัก').nullish()),
+  branch: optStr(60),
+  contactName: optStr(120),
+  phone: optStr(40),
+  email: z.preprocess(blankToNull, z.email('อีเมลไม่ถูกต้อง').nullish()),
+  address: optStr(500),
+  creditTermDays: optInt(0, 365),
+  isActive: z.boolean().default(true),
+  notes: optStr(1000),
+});
+const saleLine = z.object({
+  tripId: id,
+  speciesId: id,
+  gradeId: optId,
+  description: optStr(200),
+  weightKg: posNum(1e7),
+  quantity: optInt(0),
+  unitPrice: reqNum(0, 1e7),
+});
+export const salesInvoiceSchema = z.object({
+  customerId: id,
+  invoiceDate: isoDate,
+  dueDate: optDate,
+  discount: optNum(0, 1e10),
+  additionalCost: optNum(0, 1e10),
+  vatRate: z.preprocess((v) => (v === '' || v == null ? 0 : Number(v)), z.number().min(0).max(20)),
+  notes: optStr(1000),
+  items: z.array(saleLine).min(1, 'เพิ่มรายการอย่างน้อย 1 รายการ').max(300),
+});
+export const salesPaymentSchema = z.object({
+  paidAt: isoDateTime,
+  amount: posNum(1e10),
+  method: z.enum(E.PAYMENT_METHOD),
+  reference: optStr(100),
+  notes: optStr(500),
+});
+export const salesReturnSchema = z.object({
+  returnDate: isoDate,
+  reason: reqStr(500),
+  items: z.array(z.object({ salesItemId: id, weightKg: posNum(1e7), amount: posNum(1e10) })).min(1, 'ระบุรายการคืนอย่างน้อย 1 รายการ'),
+});
+
+// ---------- maintenance ----------
+export const maintenancePlanSchema = z
+  .object({
+    vesselId: id,
+    name: reqStr(150),
+    category: z.enum(E.MAINT_CATEGORY),
+    intervalDays: optInt(1, 3650),
+    intervalEngineHours: optInt(1, 100000),
+    lastDoneAt: optDate,
+    lastDoneEngineHours: optNum(0, 1e6),
+    isActive: z.boolean().default(true),
+    notes: optStr(1000),
+  })
+  .refine((p) => p.intervalDays != null || p.intervalEngineHours != null, { path: ['intervalDays'], message: 'กำหนดรอบเป็นวันหรือชั่วโมงเครื่องอย่างน้อยหนึ่งอย่าง' });
+export const engineHourSchema = z.object({
+  vesselId: id,
+  recordedAt: isoDateTime,
+  hours: reqNum(0, 1e6),
+  isReset: z.boolean().default(false),
+  notes: optStr(500),
+});
+export const maintenanceOrderSchema = z.object({
+  vesselId: id,
+  planId: optId,
+  title: reqStr(200),
+  category: z.enum(E.MAINT_CATEGORY),
+  type: z.enum(E.MAINT_TYPE),
+  priority: z.enum(E.PRIORITY).default('MEDIUM'),
+  reportedAt: isoDateTime,
+  takesOutOfService: z.boolean().default(false),
+  providerId: optId,
+  description: optStr(2000),
+});
+export const maintenanceCompleteSchema = z.object({
+  completedAt: isoDateTime,
+  engineHours: optNum(0, 1e6),
+  findings: optStr(2000),
+  laborCost: optNum(0, 1e10),
+  externalCost: optNum(0, 1e10),
+  providerId: optId,
+  invoiceNo: optStr(60),
+});
+export const maintenancePartSchema = z.object({ warehouseId: id, itemId: id, quantity: posNum(1e9), notes: optStr(300) });
+export const attachmentSchema = z.object({ fileId: id, note: optStr(300) });
+
+// ---------- payroll ----------
+export const compensationRuleSchema = z
+  .object({
+    name: reqStr(150),
+    method: z.enum(E.PAY_TYPE),
+    vesselId: optId,
+    position: z.preprocess(blankToNull, z.enum(E.EMPLOYEE_POSITION).nullish()),
+    employeeId: optId,
+    rate: optNum(0, 1e9),
+    basis: z.preprocess(blankToNull, z.enum(E.COMP_BASIS).nullish()),
+    effectiveFrom: isoDate,
+    effectiveTo: optDate,
+    isActive: z.boolean().default(true),
+    notes: optStr(1000),
+  })
+  .superRefine((r, ctx) => {
+    if (r.rate == null) ctx.addIssue({ code: 'custom', path: ['rate'], message: REQ });
+    if (r.method === 'REVENUE_SHARE' && !(r.basis === 'GROSS_REVENUE' || r.basis === 'NET_PROFIT'))
+      ctx.addIssue({ code: 'custom', path: ['basis'], message: 'ส่วนแบ่งรายได้ต้องเลือกฐานเป็นยอดขายหรือกำไร' });
+    if (r.method === 'REVENUE_SHARE' && r.rate != null && r.rate > 100) ctx.addIssue({ code: 'custom', path: ['rate'], message: 'เปอร์เซ็นต์ต้องไม่เกิน 100' });
+    if (r.method === 'CATCH_BASED' && !(r.basis === 'CAUGHT_KG' || r.basis === 'SOLD_KG'))
+      ctx.addIssue({ code: 'custom', path: ['basis'], message: 'ค่าจ้างตามปริมาณต้องเลือกฐานเป็นน้ำหนักจับหรือขาย' });
+    if (r.effectiveTo && r.effectiveTo < r.effectiveFrom) ctx.addIssue({ code: 'custom', path: ['effectiveTo'], message: 'วันสิ้นสุดต้องหลังวันเริ่ม' });
+  });
+export const advanceSchema = z
+  .object({
+    employeeId: id,
+    kind: z.enum(E.ADVANCE_KIND),
+    advanceDate: isoDate,
+    amount: posNum(1e8),
+    installment: optNum(0.01, 1e8),
+    method: z.enum(E.PAYMENT_METHOD).default('CASH'),
+    reason: reqStr(500),
+  })
+  .refine((a) => a.kind === 'ADVANCE' || a.installment != null, { path: ['installment'], message: 'เงินกู้ต้องกำหนดยอดผ่อนต่องวด' });
+export const payrollPeriodSchema = z
+  .object({
+    name: reqStr(120),
+    startDate: isoDate,
+    endDate: isoDate,
+    payDate: optDate,
+    vesselId: optId,
+    notes: optStr(1000),
+  })
+  .refine((p) => p.endDate >= p.startDate, { path: ['endDate'], message: 'วันสิ้นสุดต้องไม่ก่อนวันเริ่ม' });
+export const payrollAdjustmentSchema = z.object({
+  employeeId: id,
+  code: z.enum(E.ADJUSTMENT_CODES),
+  description: reqStr(200),
+  amount: posNum(1e8),
+});
+export const payrollPaySchema = z.object({
+  paidAt: isoDateTime,
+  method: z.enum(E.PAYMENT_METHOD),
+  reference: optStr(100),
+});
+
+// ---------- accounting ----------
+export const accountSchema = z.object({
+  code: z.string({ error: REQ }).trim().regex(/^\d{4,6}$/, 'รหัสบัญชีเป็นตัวเลข 4–6 หลัก'),
+  nameTh: reqStr(150),
+  nameEn: optStr(150),
+  type: z.enum(E.ACCOUNT_TYPE),
+  normalBalance: z.enum(E.NORMAL_BALANCE),
+  parentId: optId,
+  isPostable: z.boolean().default(true),
+  isActive: z.boolean().default(true),
+  description: optStr(500),
+});
+const r2 = (v: number) => Math.round(v * 100) / 100;
+export const journalLineSchema = z
+  .object({
+    accountId: id,
+    debit: optNum(0, 1e12),
+    credit: optNum(0, 1e12),
+    description: optStr(300),
+    vesselId: optId,
+    tripId: optId,
+  })
+  .refine((l) => (l.debit ?? 0) > 0 !== (l.credit ?? 0) > 0, { path: ['debit'], message: 'แต่ละบรรทัดต้องมีเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง' });
+export const journalSchema = z
+  .object({
+    entryDate: isoDate,
+    memo: reqStr(300),
+    reference: optStr(100),
+    lines: z.array(journalLineSchema).min(2, 'ต้องมีอย่างน้อย 2 บรรทัด').max(200),
+  })
+  .superRefine((j, ctx) => {
+    const dr = r2(j.lines.reduce((s, l) => s + (l.debit ?? 0), 0));
+    const cr = r2(j.lines.reduce((s, l) => s + (l.credit ?? 0), 0));
+    if (dr !== cr) ctx.addIssue({ code: 'custom', path: ['lines'], message: `เดบิต (${dr}) ต้องเท่ากับเครดิต (${cr})` });
+  });
+export const journalReverseSchema = z.object({ entryDate: isoDate, reason: reqStr(500) });
+export const accountMappingSchema = z.object({ mappings: z.partialRecord(z.enum(E.ACCOUNT_MAP_KEY), id) });
+
+// ---------- accounts payable / bank ----------
+export const bankAccountSchema = z.object({
+  code: z.string({ error: REQ }).trim().min(1, REQ).max(20),
+  name: reqStr(120),
+  bankName: reqStr(80),
+  accountNo: z.string({ error: REQ }).trim().regex(/^[0-9-]{6,20}$/, 'เลขบัญชีไม่ถูกต้อง'),
+  glAccountId: id,
+  isActive: z.boolean().default(true),
+  notes: optStr(500),
+});
+export const vendorBillLineSchema = z
+  .object({
+    kind: z.enum(E.BILL_LINE_KIND),
+    goodsReceiptId: optId,
+    accountId: optId,
+    description: optStr(300),
+    amount: optNum(0.01, 1e10),
+    vesselId: optId,
+    tripId: optId,
+  })
+  .superRefine((l, ctx) => {
+    if (l.kind === 'GR' && !l.goodsReceiptId) ctx.addIssue({ code: 'custom', path: ['goodsReceiptId'], message: 'เลือกใบรับสินค้า' });
+    if (l.kind === 'EXPENSE' && !l.accountId) ctx.addIssue({ code: 'custom', path: ['accountId'], message: 'เลือกบัญชี' });
+    if (l.kind === 'EXPENSE' && l.amount == null) ctx.addIssue({ code: 'custom', path: ['amount'], message: REQ });
+  });
+export const vendorBillSchema = z
+  .object({
+    supplierId: id,
+    supplierInvoiceNo: reqStr(60),
+    billDate: isoDate,
+    dueDate: optDate,
+    vatRate: z.preprocess((v) => (v === '' || v == null ? 0 : v), z.coerce.number({ error: 'กรุณากรอกตัวเลข' }).min(0).max(30)),
+    notes: optStr(1000),
+    lines: z.array(vendorBillLineSchema).min(1, 'ต้องมีอย่างน้อย 1 รายการ').max(200),
+  })
+  .refine((b) => !b.dueDate || b.dueDate >= b.billDate, { path: ['dueDate'], message: 'วันครบกำหนดต้องไม่ก่อนวันที่ใบแจ้งหนี้' });
+export const vendorPaymentSchema = z
+  .object({
+    supplierId: id,
+    paidAt: isoDateTime,
+    method: z.enum(E.PAYMENT_METHOD),
+    bankAccountId: optId,
+    reference: optStr(100),
+    whtRate: optNum(0, 15),
+    whtBase: optNum(0, 1e10),
+    notes: optStr(500),
+    allocations: z.array(z.object({ billId: id, amount: posNum(1e10) })).min(1, 'เลือกใบแจ้งหนี้อย่างน้อย 1 ใบ').max(100),
+  })
+  .superRefine((p, ctx) => {
+    if (p.method !== 'CASH' && !p.bankAccountId) ctx.addIssue({ code: 'custom', path: ['bankAccountId'], message: 'เลือกบัญชีธนาคารที่จ่าย' });
+    if ((p.whtRate ?? 0) > 0 && !(p.whtBase && p.whtBase > 0)) ctx.addIssue({ code: 'custom', path: ['whtBase'], message: 'ระบุฐานภาษีหัก ณ ที่จ่าย (ยอดก่อน VAT)' });
+  });
+export const bankRecSchema = z.object({ bankAccountId: id, statementDate: isoDate, statementBalance: reqNum(-1e12, 1e12), notes: optStr(500) });
+export const bankRecItemsSchema = z.object({ journalLineIds: z.array(id).max(5000) });
+
+// ---------- fixed assets / year end ----------
+export const fixedAssetSchema = z
+  .object({
+    name: reqStr(200),
+    category: z.enum(E.ASSET_CATEGORY),
+    vesselId: optId,
+    acquisitionDate: isoDate,
+    cost: posNum(1e11),
+    salvageValue: optNum(0, 1e11),
+    usefulLifeMonths: z.coerce.number({ error: 'กรุณากรอกตัวเลข' }).int('ต้องเป็นจำนวนเต็ม').min(1).max(1200),
+    assetAccountId: id,
+    accumDepAccountId: id,
+    depExpenseAccountId: id,
+    serialNo: optStr(100),
+    notes: optStr(1000),
+  })
+  .refine((a) => (a.salvageValue ?? 0) < a.cost, { path: ['salvageValue'], message: 'มูลค่าซากต้องน้อยกว่าราคาทุน' });
+export const assetDisposalSchema = z
+  .object({
+    disposedAt: isoDate,
+    proceeds: optNum(0, 1e11),
+    method: z.enum(E.PAYMENT_METHOD).default('TRANSFER'),
+    bankAccountId: optId,
+    reason: reqStr(500),
+  })
+  .refine((d) => !(d.proceeds && d.proceeds > 0 && d.method !== 'CASH' && !d.bankAccountId), { path: ['bankAccountId'], message: 'เลือกบัญชีธนาคารที่รับเงิน' });
+export const depreciationRunSchema = z.object({ year: z.coerce.number().int().min(2000).max(2200), month: z.coerce.number().int().min(1).max(12) });
+
+// ---------- system (first installation) ----------
+export const RESET_CONFIRM_TEXT = 'ลบข้อมูลทั้งหมด';
+export const systemResetSchema = z.object({
+  password: z.string().min(1, REQ).max(200),
+  confirm: z.literal(RESET_CONFIRM_TEXT, { error: `พิมพ์ "${RESET_CONFIRM_TEXT}" เพื่อยืนยัน` }),
+});
+export const goLiveSchema = z.object({ password: z.string().min(1, REQ).max(200) });

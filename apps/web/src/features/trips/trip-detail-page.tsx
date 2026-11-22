@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Anchor, Ban, Check, CheckCircle2, ClipboardCheck, Lock, Navigation, Pencil, Plus, RotateCcw, Ship, Trash2, Undo2, Users } from 'lucide-react';
+import { Anchor, Ban, Check, CheckCircle2, ClipboardCheck, Lock, Navigation, Package, Pencil, Plus, RotateCcw, Ship, Trash2, Undo2, Users } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router';
 import {
@@ -24,6 +24,7 @@ import { useAction } from '@/lib/hooks';
 import { cn, personName } from '@/lib/utils';
 import { CatchFormDialog, type CatchRow } from '../catch/catch-dialogs';
 import { catchColumns, useCatchActions } from '../catch/catch-page';
+import { StockIssueDialog } from '../inventory/inventory-dialogs';
 import { ArriveDialog, CrewEditor, DepartDialog, IssuesList, ItemDialog, PlanDialog } from './trip-dialogs';
 import type { Trip } from './types';
 
@@ -73,6 +74,7 @@ export function TripDetailPage() {
   const q = useQuery({ queryKey: ['trip', id], queryFn: () => api.get<Trip>(`/trips/${id}`) });
   const [dlg, setDlg] = useState<null | 'depart' | 'arrive' | 'crew' | 'plan' | 'catch' | 'cancel' | 'close' | ItemKind>(null);
   const [delItem, setDelItem] = useState<{ kind: ItemKind; id: string } | null>(null);
+  const [stockOpen, setStockOpen] = useState(false);
   const settlement = useQuery({ queryKey: ['trip-settlement', id], queryFn: () => api.get<TripSettlement>(`/trips/${id}/settlement`) });
   const catches = useQuery({ queryKey: ['catch', 'trip', id], queryFn: () => api.get<{ items: CatchRow[]; total: number; totalKg: number }>('/catch/records', { tripId: id, pageSize: 200, sort: 'catchDate', order: 'asc' }), enabled: can('catch.view') });
   const crewCheck = useQuery({ queryKey: ['crew-check', id], queryFn: () => api.get<{ ok: boolean; issues: import('@fisher/shared').CrewDocIssue[] }>(`/trips/${id}/crew-check`), enabled: false });
@@ -202,7 +204,10 @@ export function TripDetailPage() {
                 ] as [ItemKind, string, boolean, string[], { id: string; cells: ReactNode[] }[]][]).map(([kind, label, editable, head, rows]) => ({
                   value: kind, label: `${label} (${rows.length})`,
                   content: (
-                    <Panel bodyClass="p-0" title={label} actions={editable && edit && <Button size="sm" onClick={() => setDlg(kind)}><Plus /> เพิ่มรายการ</Button>}>
+                    <Panel bodyClass="p-0" title={label} actions={editable && edit && <>
+                      {kind === 'supplies' && can('inventory.edit') && <Button size="sm" variant="outline" onClick={() => setStockOpen(true)}><Package /> เบิกจากคลัง</Button>}
+                      <Button size="sm" onClick={() => setDlg(kind)}><Plus /> เพิ่มรายการ</Button>
+                    </>}>
                       <ItemTable head={head} rows={rows} onDelete={editable && edit ? (rid) => setDelItem({ kind, id: rid }) : undefined} />
                     </Panel>
                   ),
@@ -223,9 +228,13 @@ export function TripDetailPage() {
                           ['ค่าใช้จ่ายยืนยันแล้ว', `${formatMoney(s.expenses)} บาท`], ['ค่าใช้จ่ายประมาณการ', `${formatMoney(s.estimatedExpenses)} บาท`],
                           ['ต้นทุนรวม', <b>{formatMoney(s.totalCost)} บาท</b>], ['ค่าน้ำมันต่อ กก.', s.fuelCostPerKg === null ? '-' : `${formatMoney(s.fuelCostPerKg)} บาท`],
                           ['ต้นทุนต่อ กก.', s.costPerKg === null ? '-' : `${formatMoney(s.costPerKg)} บาท`], ['สัตว์น้ำสูญเสีย', `${formatKg(s.lossKg)} กก.`],
+                          ['ขายแล้ว (สุทธิ)', `${formatKg(s.soldKg ?? 0)} กก. · ${formatMoney(s.revenue ?? 0)} บาท`],
+                          ['กำไรขั้นต้น (ขาย − ต้นทุนเที่ยว)', <b className={(s.grossProfit ?? 0) < 0 ? 'text-bad' : 'text-ok'}>{formatMoney(s.grossProfit ?? 0)} บาท</b>],
+                          ['ค่าแรงลูกเรือตามเที่ยว (งวดที่อนุมัติ)', `${formatMoney(s.crewCost ?? 0)} บาท`],
+                          ['กำไรหลังค่าแรงลูกเรือ', <b className={(s.profitAfterCrew ?? 0) < 0 ? 'text-bad' : 'text-ok'}>{formatMoney(s.profitAfterCrew ?? 0)} บาท</b>],
                           ['ชั่วโมงเครื่องยนต์', s.engineHours === null || s.engineHours === undefined ? '-' : formatNumber(s.engineHours, 1)], ['ลิตร/ชั่วโมงเครื่อง', s.litersPerEngineHour == null ? '-' : formatNumber(s.litersPerEngineHour, 1)],
                         ]} />
-                        <p className="mt-3 text-xs text-muted">ตัวเลขเชิงปฏิบัติการ ยังไม่ใช่รายการบัญชี รายได้จากการขายจะเชื่อมในโมดูลขาย (Phase 2)</p>
+                        <p className="mt-3 text-xs text-muted">ตัวเลขเชิงปฏิบัติการ ยังไม่ใช่รายการบัญชี · ยอดขายจากใบแจ้งหนี้ที่ยืนยันแล้ว ไม่รวม VAT หลังหักส่วนลด/ใบลดหนี้ · ค่าแรงลูกเรือนับเฉพาะรายการตามเที่ยว (รายวัน/เหมาเที่ยว/ส่วนแบ่ง/ตามน้ำหนัก) ในงวดเงินเดือนที่อนุมัติแล้ว ไม่รวมเงินเดือนประจำ</p>
                       </Panel>
                     </div>
                   ),
@@ -263,6 +272,7 @@ export function TripDetailPage() {
               message="ระบบจะบันทึกสรุปเที่ยว ณ ขณะนี้ และล็อกรายการสัตว์น้ำของเที่ยวนี้" onConfirm={(r) => close.mutate(r)} />
             <ConfirmDialog open={!!delItem} onOpenChange={() => setDelItem(null)} title="ลบรายการ" danger loading={remove.isPending}
               message="ยืนยันลบรายการนี้? (บันทึกในประวัติการตรวจสอบ)" onConfirm={() => delItem && remove.mutate(delItem)} />
+            {stockOpen && <StockIssueDialog open onOpenChange={setStockOpen} vesselId={t.vesselId} tripId={t.id} />}
             {catchActions.dialogs}
           </>
         );

@@ -13,6 +13,8 @@ import { prisma, type Tx } from '../../lib/prisma';
 import { has } from '../../plugins/auth';
 import { checklist } from '../employees/docs';
 import { fullName } from '../employees/service';
+import { tripRevenue } from '../sales/service';
+import { logEngineHours } from '../maintenance/service';
 
 export async function getTrip(req: FastifyRequest, id: string, db: Tx | typeof prisma = prisma) {
   const t = await db.fishingTrip.findUnique({ where: { id } });
@@ -224,6 +226,8 @@ export async function depart(req: FastifyRequest, id: string, b: z.output<typeof
       });
     }
     await tx.vessel.update({ where: { id: t.vesselId }, data: { status: 'AT_SEA' } });
+    if (b.engineHoursAtDeparture != null)
+      await logEngineHours(tx, req.user!.id, { vesselId: t.vesselId, recordedAt: departedAt, hours: b.engineHoursAtDeparture, source: 'TRIP_DEPARTURE', tripId: id, notes: t.tripNo });
     await logStatus(tx, req, id, t.status, 'DEPARTED');
     await audit(tx, req, { action: 'DEPART', entityType: 'FishingTrip', entityId: id, before: t, after: u });
     if (blocking.length)
@@ -258,10 +262,21 @@ export async function arrive(req: FastifyRequest, id: string, b: z.output<typeof
     });
     const stillAtSea = await tx.fishingTrip.count({ where: { vesselId: t.vesselId, id: { not: id }, status: { in: AT_SEA_STATUSES } } });
     if (!stillAtSea) await tx.vessel.update({ where: { id: t.vesselId }, data: { status: 'AT_PORT' } });
+    if (b.engineHoursAtArrival != null)
+      await logEngineHours(tx, req.user!.id, { vesselId: t.vesselId, recordedAt: arrivedAt, hours: b.engineHoursAtArrival, source: 'TRIP_ARRIVAL', tripId: id, notes: t.tripNo });
     await logStatus(tx, req, id, t.status, 'ARRIVED');
     await audit(tx, req, { action: 'ARRIVE', entityType: 'FishingTrip', entityId: id, before: t, after: u });
     return u;
     }).catch(mapDbConflict);
+}
+
+/** Trip-based crew pay (daily / per-trip / share / catch) from approved or paid payroll periods. Live — payroll may be approved after the trip closes. */
+export async function tripCrewCost(tripId: string) {
+  const crew = await prisma.payrollItem.aggregate({
+    where: { tripId, code: { in: ['DAILY_WAGE', 'TRIP_PAY', 'REVENUE_SHARE', 'CATCH_PAY'] }, record: { period: { status: { in: ['APPROVED', 'PAID'] } } } },
+    _sum: { amount: true },
+  });
+  return Math.round(num(crew._sum.amount) * 100) / 100;
 }
 
 export async function settlement(tripId: string): Promise<TripSettlement> {
@@ -290,6 +305,8 @@ export async function settlement(tripId: string): Promise<TripSettlement> {
   const suppliesCost = num(supplies._sum.totalCost);
   const totalCost = fuelCost + suppliesCost + exp + estExp;
   const r2 = (v: number) => Math.round(v * 100) / 100;
+  const sales = (await tripRevenue([tripId])).get(tripId) ?? { soldKg: 0, revenue: 0 };
+  const crewCost = await tripCrewCost(tripId);
   const engineHours =
     t.engineHoursAtDeparture !== null && t.engineHoursAtArrival !== null ? r2(num(t.engineHoursAtArrival) - num(t.engineHoursAtDeparture)) : null;
   return {
@@ -307,6 +324,11 @@ export async function settlement(tripId: string): Promise<TripSettlement> {
     totalCost: r2(totalCost),
     fuelCostPerKg: catchKg > 0 ? r2(fuelCost / catchKg) : null,
     costPerKg: catchKg > 0 ? r2(totalCost / catchKg) : null,
+    soldKg: Math.round(sales.soldKg * 1000) / 1000,
+    revenue: r2(sales.revenue),
+    grossProfit: r2(sales.revenue - totalCost),
+    crewCost,
+    profitAfterCrew: r2(sales.revenue - totalCost - crewCost),
   };
 }
 
