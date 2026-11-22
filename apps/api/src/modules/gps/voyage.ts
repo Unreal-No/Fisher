@@ -68,7 +68,6 @@ export interface VoyageSummary {
 }
 
 const r1 = (v: number) => Math.round(v * 10) / 10;
-const r2 = (v: number) => Math.round(v * 100) / 100;
 const hrs = (a: Date, b: Date) => (b.getTime() - a.getTime()) / 3_600_000;
 
 /** Name of the place at a coordinate: a geofence containing it, else a named point within 2 km. */

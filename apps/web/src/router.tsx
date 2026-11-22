@@ -44,6 +44,7 @@ const Users = L(() => import('./features/admin/users-page'), 'UsersPage');
 const Roles = L(() => import('./features/admin/roles-page'), 'RolesPage');
 const Audit = L(() => import('./features/admin/audit-page'), 'AuditPage');
 const Settings = L(() => import('./features/admin/settings-page'), 'SettingsPage');
+const Outbox = L(() => import('./features/admin/outbox-page'), 'OutboxPage');
 const Account = L(() => import('./features/auth/account-page'), 'AccountPage');
 
 function RequireAuth() {
@@ -115,6 +116,7 @@ export const router = createBrowserRouter([
           { path: 'admin/roles', element: <P perm={['role.manage']}><Roles /></P> },
           { path: 'admin/audit', element: <P perm={['audit.view']}><Audit /></P> },
           { path: 'admin/settings', element: <P perm={['settings.manage']}><Settings /></P> },
+          { path: 'admin/outbox', element: <P perm={['settings.manage']}><Outbox /></P> },
           { path: '*', element: <Empty title="ไม่พบหน้าที่ต้องการ" /> },
         ],
       },

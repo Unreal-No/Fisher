@@ -13,6 +13,7 @@ import { Checkbox, Input, Select } from '@/components/ui/input';
 import { Panel } from '@/components/ui/panel';
 import { api } from '@/lib/api';
 import { useAction } from '@/lib/hooks';
+import { SystemPanel } from './system-panel';
 import { useRoles } from './users-page';
 import { useDocTypes, type DocType } from '@/lib/lookups';
 
@@ -70,6 +71,7 @@ export function SettingsPage() {
             <Button loading={save.isPending} onClick={() => save.mutate({ require2faRoles: req2fa })}>บันทึก</Button>
           </div>
         </Panel>
+        <SystemPanel />
         </div>
         <Panel title="ประเภทเอกสารพนักงาน (Checklist)" bodyClass="p-0" actions={<Button size="sm" onClick={() => setEdit('new')}><Plus /> เพิ่มประเภท</Button>}>
           <table className="w-full text-sm">

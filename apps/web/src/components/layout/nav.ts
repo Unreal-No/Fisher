@@ -1,5 +1,5 @@
 import {
-  Anchor, Bell, BookOpen, Boxes, Fuel, HandCoins, MapPinned, ShoppingCart, Wallet, Wrench, ClipboardList, FileWarning, Fish, LayoutDashboard, ScrollText, Settings, Shield, Ship, Users, UserCog,
+  Anchor, Bell, BookOpen, Boxes, Fuel, HandCoins, MapPinned, ShoppingCart, Wallet, Wrench, ClipboardList, FileWarning, Fish, LayoutDashboard, ScrollText, Mail, Settings, Shield, Ship, Users, UserCog,
   type LucideIcon,
 } from 'lucide-react';
 import type { Permission } from '@fisher/shared';
@@ -49,6 +49,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
       { to: '/admin/roles', label: 'บทบาทและสิทธิ์', icon: Shield, perm: ['role.manage'] },
       { to: '/admin/audit', label: 'ประวัติการใช้งาน', icon: ScrollText, perm: ['audit.view'] },
       { to: '/admin/settings', label: 'ตั้งค่าระบบ', icon: Settings, perm: ['settings.manage'] },
+      { to: '/admin/outbox', label: 'อีเมลขาออก', icon: Mail, perm: ['settings.manage'] },
     ],
   },
 ];
@@ -57,5 +58,5 @@ export const NAV: { group: string; items: NavItem[] }[] = [
 export const CRUMB: Record<string, string> = {
   trips: 'เที่ยวเรือ', catch: 'สัตว์น้ำ', vessels: 'ทะเบียนเรือ', employees: 'พนักงาน', documents: 'เอกสารใกล้หมดอายุ',
   species: 'ชนิดสัตว์น้ำ', notifications: 'การแจ้งเตือน', admin: 'ระบบ', users: 'ผู้ใช้งาน', roles: 'บทบาทและสิทธิ์',
-  audit: 'ประวัติการใช้งาน', gps: 'ติดตามเรือ', fuel: 'น้ำมัน', purchasing: 'จัดซื้อ', inventory: 'คลังสินค้า', requests: 'ใบขอซื้อ', orders: 'ใบสั่งซื้อ', sales: 'ขายสัตว์น้ำ', invoices: 'ใบขาย', maintenance: 'ซ่อมบำรุง', payroll: 'เงินเดือน', periods: 'งวดเงินเดือน', slips: 'สลิปเงินเดือน', accounting: 'บัญชี', journals: 'สมุดรายวัน', bills: 'ใบแจ้งหนี้ผู้ขาย', assets: 'ทรัพย์สิน', 'bank-recs': 'กระทบยอดธนาคาร', settings: 'ตั้งค่า', new: 'เพิ่มใหม่', edit: 'แก้ไข', account: 'บัญชีของฉัน',
+  audit: 'ประวัติการใช้งาน', gps: 'ติดตามเรือ', fuel: 'น้ำมัน', purchasing: 'จัดซื้อ', inventory: 'คลังสินค้า', requests: 'ใบขอซื้อ', orders: 'ใบสั่งซื้อ', sales: 'ขายสัตว์น้ำ', invoices: 'ใบขาย', maintenance: 'ซ่อมบำรุง', payroll: 'เงินเดือน', periods: 'งวดเงินเดือน', slips: 'สลิปเงินเดือน', accounting: 'บัญชี', journals: 'สมุดรายวัน', bills: 'ใบแจ้งหนี้ผู้ขาย', assets: 'ทรัพย์สิน', 'bank-recs': 'กระทบยอดธนาคาร', settings: 'ตั้งค่า', outbox: 'อีเมลขาออก', new: 'เพิ่มใหม่', edit: 'แก้ไข', account: 'บัญชีของฉัน',
 };

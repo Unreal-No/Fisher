@@ -99,11 +99,26 @@ export function DevicesPanel() {
           <p className="mt-2 text-xs text-muted">ข้อมูลสาธิตติดป้ายชัดเจน แสดงเป็นเส้นประสีเทา ไม่นำไปคำนวณสถานะสัญญาณหรือสร้างการแจ้งเตือน</p>
         </Panel>
       )}
+      {can('settings.manage') && <SimulatorPanel />}
       {edit && <DeviceDialog d={edit === 'new' ? undefined : edit} onClose={() => setEdit(null)} onKey={setKey} />}
       {key && <KeyDialog apiKey={key} onClose={() => setKey(undefined)} />}
       <ConfirmDialog open={!!rotate} onOpenChange={() => setRotate(null)} title="สร้างคีย์ใหม่" confirmText="สร้างคีย์ใหม่" danger loading={rot.isPending}
         message={`คีย์เดิมของ ${rotate?.identifier} จะใช้ไม่ได้ทันที ต้องตั้งค่าคีย์ใหม่ในอุปกรณ์`} onConfirm={() => rotate && rot.mutate(rotate.id)} />
     </div>
+  );
+}
+
+function SimulatorPanel() {
+  const q = useQuery({ queryKey: ['settings'], queryFn: () => api.get<{ gpsSimulator?: boolean }>('/settings') });
+  const save = useAction((v: boolean) => api.patch('/settings', { gpsSimulator: v }), { success: 'บันทึกการตั้งค่าแล้ว', invalidate: ['settings'] });
+  return (
+    <Panel title="สัญญาณจำลอง AIS/VMS">
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <input type="checkbox" role="switch" className="size-4" checked={!!q.data?.gpsSimulator} disabled={!q.data || save.isPending} onChange={(e) => save.mutate(e.target.checked)} />
+        สัญญาณจำลอง AIS/VMS
+      </label>
+      <p className="mt-2 text-xs text-muted">ใช้ระหว่างยังไม่เชื่อมต่อผู้ให้บริการจริง — เรือที่ออกทะเลจะเคลื่อนที่ตามเส้นทางจำลองทุก 1 นาที (ข้อมูลติดป้าย จำลอง และถูกลบเมื่อล้างข้อมูลก่อนใช้งานจริง)</p>
+    </Panel>
   );
 }
 
