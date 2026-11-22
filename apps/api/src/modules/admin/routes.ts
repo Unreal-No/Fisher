@@ -1,14 +1,17 @@
 // Users, roles/permissions, audit log, settings, document types.
 import type { FastifyInstance } from 'fastify';
 import {
-  documentTypeSchema, PERMISSIONS, resetPasswordSchema, rolePermissionsSchema, settingsSchema,
+  documentTypeSchema, goLiveSchema, PERMISSIONS, systemResetSchema, resetPasswordSchema, rolePermissionsSchema, settingsSchema,
   userCreateSchema, userUpdateSchema,
 } from '@fisher/shared';
 import { audit } from '../../lib/audit';
 import { badRequest, forbidden, notFound } from '../../lib/errors';
+import { z } from 'zod';
 import { idParam, paged, paging, parse, parseList, str } from '../../lib/http';
 import { prisma } from '../../lib/prisma';
 import { getSettings, invalidateSettingsCache } from '../../lib/settings';
+import { goLive, resetAllData, systemStatus } from './system';
+import { mailMode, sendMail } from '../../lib/mail';
 import { hashPassword } from '../auth/routes';
 
 const userSelect = {
@@ -91,6 +94,27 @@ export default async function adminRoutes(app: FastifyInstance) {
     });
     return { ok: true };
   });
+
+  // ---------- outgoing email (simulated until SMTP_URL is set) ----------
+  app.get('/outbox', { preHandler: app.can('settings.manage') }, async (req) => {
+    const q = parseList(req);
+    const [items, total] = await Promise.all([
+      prisma.emailOutbox.findMany({ orderBy: { createdAt: 'desc' }, ...paging(q) }),
+      prisma.emailOutbox.count(),
+    ]);
+    return { ...paged(items, total, q), mode: mailMode() };
+  });
+  app.post('/outbox/test', { preHandler: app.can('settings.manage') }, async (req) => {
+    const { to } = parse(z.object({ to: z.email('อีเมลไม่ถูกต้อง') }), req.body);
+    const m = await sendMail({ to, subject: 'Fisher ERP: ทดสอบการส่งอีเมล', text: `ข้อความทดสอบจาก Fisher ERP (${mailMode() === 'SMTP' ? 'ส่งผ่าน SMTP' : 'โหมดจำลอง — ยังไม่ได้ส่งจริง'})`, relatedType: 'TEST' });
+    await audit(prisma, req, { action: 'EMAIL_TEST', entityType: 'EmailOutbox', entityId: m.id, after: { to, status: m.status } });
+    return m;
+  });
+
+  // ---------- first installation: wipe demo data, then lock ----------
+  app.get('/system', { preHandler: app.can('settings.manage') }, async () => systemStatus());
+  app.post('/system/reset', { preHandler: app.can('settings.manage') }, async (req) => resetAllData(req, parse(systemResetSchema, req.body).password));
+  app.post('/system/go-live', { preHandler: app.can('settings.manage') }, async (req) => goLive(req, parse(goLiveSchema, req.body).password));
 
   /** Lost phone: an administrator removes the user's second factor; the user must enrol again. */
   app.post('/users/:id/reset-2fa', { preHandler: app.can('user.manage') }, async (req) => {

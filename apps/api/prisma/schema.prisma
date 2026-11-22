@@ -2172,3 +2172,28 @@ model FiscalYear {
 
   @@map("fiscal_years")
 }
+
+// ======================= OUTGOING EMAIL =======================
+enum EmailStatus {
+  SIMULATED
+  SENT
+  FAILED
+}
+
+/// Every outgoing email. Without SMTP settings emails are only recorded here (SIMULATED).
+model EmailOutbox {
+  id          String      @id @default(uuid(7)) @db.Uuid
+  to          String
+  subject     String
+  body        String
+  status      EmailStatus
+  error       String?
+  relatedType String?     @map("related_type")
+  relatedId   String?     @map("related_id")
+  createdAt   DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  sentAt      DateTime?   @map("sent_at") @db.Timestamptz
+
+  @@index([createdAt])
+  @@index([to, createdAt])
+  @@map("email_outbox")
+}

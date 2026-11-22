@@ -315,6 +315,8 @@ export const settingsSchema = z.object({
   companyName: optStr(200),
   docReminderDays: z.array(z.number().int().min(1).max(365)).min(1).max(10).optional(),
   gpsSignalLostMinutes: z.number().int().min(5).max(1440).optional(),
+  /** simulated AIS/VMS feed for vessels at sea (demo until a real provider is connected) */
+  gpsSimulator: z.boolean().optional(),
   maintenanceReminderDays: z.number().int().min(1).max(180).optional(),
   maintenanceReminderHours: z.number().int().min(1).max(5000).optional(),
   /** role codes whose users must enable two-factor authentication */
@@ -763,3 +765,11 @@ export const assetDisposalSchema = z
   })
   .refine((d) => !(d.proceeds && d.proceeds > 0 && d.method !== 'CASH' && !d.bankAccountId), { path: ['bankAccountId'], message: 'เลือกบัญชีธนาคารที่รับเงิน' });
 export const depreciationRunSchema = z.object({ year: z.coerce.number().int().min(2000).max(2200), month: z.coerce.number().int().min(1).max(12) });
+
+// ---------- system (first installation) ----------
+export const RESET_CONFIRM_TEXT = 'ลบข้อมูลทั้งหมด';
+export const systemResetSchema = z.object({
+  password: z.string().min(1, REQ).max(200),
+  confirm: z.literal(RESET_CONFIRM_TEXT, { error: `พิมพ์ "${RESET_CONFIRM_TEXT}" เพื่อยืนยัน` }),
+});
+export const goLiveSchema = z.object({ password: z.string().min(1, REQ).max(200) });

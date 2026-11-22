@@ -43,6 +43,9 @@ async function main() {
   }
   await seedSupplyDemo();
   await seedPayrollDemo();
+  // demo installs show moving vessels (simulated AIS/VMS) until a real feed is connected
+  if (!(await prisma.appSetting.findUnique({ where: { key: 'gpsSimulator' } })))
+    await prisma.appSetting.create({ data: { key: 'gpsSimulator', value: true } });
   if (!(await prisma.bankAccount.count())) {
     const gl = await prisma.account.findUnique({ where: { code: '1120' } });
     if (gl) await prisma.bankAccount.create({ data: { code: 'BA-01', name: 'บัญชีกระแสรายวันหลัก', bankName: 'ธนาคารตัวอย่าง', accountNo: '000-0-00000-0', glAccountId: gl.id, notes: DEMO } });

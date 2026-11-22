@@ -31,6 +31,9 @@ const schema = z.object({
   MQTT_USERNAME: z.string().optional(),
   MQTT_PASSWORD: z.string().optional(),
   MQTT_TOPIC_PREFIX: z.string().default('fisher/gps'),
+  /** outgoing email; without SMTP_URL emails are simulated (recorded in the outbox only). e.g. smtps://user:pass@smtp.example.com:465 */
+  SMTP_URL: z.string().optional(),
+  MAIL_FROM: z.string().default('Fisher ERP <no-reply@localhost>'),
 });
 
 export type Config = z.infer<typeof schema>;

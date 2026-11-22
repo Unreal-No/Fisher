@@ -4,6 +4,10 @@ export const DEFAULT_SETTINGS = {
   companyName: 'บริษัท ประมงตัวอย่าง จำกัด',
   docReminderDays: [90, 60, 30, 7],
   gpsSignalLostMinutes: 60,
+  /** simulated AIS/VMS positions (flagged is_demo) */
+  gpsSimulator: false,
+  /** set when the company starts real use; from then on the data reset is disabled */
+  goLiveAt: null as string | null,
   maintenanceReminderDays: 14,
   maintenanceReminderHours: 50,
   /** warn when payroll deductions exceed this % of gross (Labour Protection Act s.76 caps many deductions) */

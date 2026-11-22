@@ -5,9 +5,11 @@ import { notFound, unprocessable } from '../../lib/errors';
 import { num } from '../../lib/http';
 import { Prisma, prisma } from '../../lib/prisma';
 import { getSettings } from '../../lib/settings';
+import { EventEmitter } from 'node:events';
 import type { FastifyRequest } from 'fastify';
 import type { ParsedPosition } from './adapters';
 import { insideFence, move } from './geo';
+import { analyzeVoyage, type NamedPlace } from './voyage';
 
 const MAX_FUTURE_MS = 5 * 60_000;
 const MAX_AGE_MS = 30 * 86400_000;
@@ -81,6 +83,20 @@ async function evaluateGeofences(vesselId: string, prev: LastPos | undefined, la
 }
 
 /** Store positions for a device. Idempotent (unique vessel+device+time). */
+/** In-process live feed for the map (single instance; see docs for multi-instance). */
+export const gpsBus = new EventEmitter();
+gpsBus.setMaxListeners(500);
+export interface LivePosition {
+  vesselId: string;
+  lat: number;
+  lng: number;
+  speedKnots: number | null;
+  headingDeg: number | null;
+  recordedAt: string;
+  isDemo: boolean;
+  source: string;
+}
+
 export async function ingest(device: DeviceLite, positions: ParsedPosition[], opts: { isDemo?: boolean } = {}) {
   const now = Date.now();
   let rejected = 0;
@@ -122,6 +138,13 @@ export async function ingest(device: DeviceLite, positions: ParsedPosition[], op
   for (const vid of vesselIds) {
     const latest = rows.filter((r) => r.vesselId === vid).sort((a, b) => +new Date(b.recordedAt) - +new Date(a.recordedAt))[0]!;
     geofenceEvents += await evaluateGeofences(vid, prev.get(vid), { lat: Number(latest.lat), lng: Number(latest.lng), recordedAt: new Date(latest.recordedAt) }, !!opts.isDemo);
+    // push to live map listeners only when this is newer than what they already have
+    const p = prev.get(vid);
+    if (res.count && (!p || new Date(latest.recordedAt) > p.recordedAt))
+      gpsBus.emit('position', {
+        vesselId: vid, lat: Number(latest.lat), lng: Number(latest.lng), speedKnots: latest.speedKnots == null ? null : Number(latest.speedKnots),
+        headingDeg: latest.headingDeg == null ? null : Number(latest.headingDeg), recordedAt: new Date(latest.recordedAt).toISOString(), isDemo: !!opts.isDemo, source: device.source,
+      } satisfies LivePosition);
   }
   return { accepted: res.count, duplicates: rows.length - res.count, rejected, unknownVessel, geofenceEvents };
 }
@@ -192,6 +215,7 @@ export async function track(vesselId: string, from: Date, to: Date, includeDemo:
     select: { lat: true, lng: true, speedKnots: true, headingDeg: true, recordedAt: true, source: true, isDemo: true },
   });
   const points = rows.filter((_, i) => i % step === 0 || i === rows.length - 1);
+  const fences = await prisma.geofence.findMany({ where: { isActive: true } });
   const [trips, events] = await Promise.all([
     prisma.fishingTrip.findMany({
       where: { vesselId, OR: [{ departedAt: { gte: from, lte: to } }, { arrivedAt: { gte: from, lte: to } }] },
@@ -202,7 +226,16 @@ export async function track(vesselId: string, from: Date, to: Date, includeDemo:
       include: { geofence: { select: { name: true } } }, orderBy: { at: 'asc' },
     }),
   ]);
-  return { total, sampledEvery: step, points, trips, events };
+  // legs / stops on every point (not the sampled map line); places = geofences + trip ports
+  const places: NamedPlace[] = [
+    ...fences.map((f) => ({ name: f.name, fence: { type: f.type, centerLat: num(f.centerLat), centerLng: num(f.centerLng), radiusKm: num(f.radiusKm), polygon: f.polygon as [number, number][] | null } })),
+    ...trips.flatMap((t) => [
+      { name: t.departurePort ?? '', lat: t.departureLat === null ? null : num(t.departureLat), lng: t.departureLng === null ? null : num(t.departureLng) },
+      { name: t.arrivalPort ?? '', lat: t.arrivalLat === null ? null : num(t.arrivalLat), lng: t.arrivalLng === null ? null : num(t.arrivalLng) },
+    ]).filter((p) => p.name && p.lat !== null),
+  ];
+  const analysis = analyzeVoyage(rows.map((r) => ({ t: r.recordedAt, lat: num(r.lat), lng: num(r.lng), speedKnots: r.speedKnots === null ? null : num(r.speedKnots) })), places);
+  return { total, sampledEvery: step, points, trips, events, analysis };
 }
 
 /** DEMO ONLY: synthesise a plausible track (flagged is_demo) so the map can be evaluated without hardware. */
