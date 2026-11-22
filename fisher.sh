@@ -105,6 +105,12 @@ cmd_install() {
   if [ -f "$ENV_FILE" ]; then
     info "ใช้การตั้งค่าเดิมใน $ENV_FILE"
   else
+    # data from an earlier install is only readable with that install's fisher.env (DB password + encryption key)
+    if docker volume inspect "${PROJECT}_db-data" >/dev/null 2>&1; then
+      die "เครื่องนี้มีข้อมูล Fisher ERP จากการติดตั้งครั้งก่อน แต่ไม่พบไฟล์ $ENV_FILE ในโฟลเดอร์นี้
+  คัดลอก $ENV_FILE จากโฟลเดอร์ที่ติดตั้งครั้งก่อนมาไว้ที่นี่ แล้วรันใหม่ (ไฟล์นี้มีรหัสผ่านฐานข้อมูลและกุญแจเข้ารหัสของข้อมูลเดิม)
+  ถ้าไฟล์หายจริงและต้องการเริ่มใหม่ทั้งหมด (ข้อมูลเดิมหายถาวร): docker volume rm ${PROJECT}_db-data ${PROJECT}_files"
+    fi
     create_env "$port" "$demo"
     fresh=true
   fi

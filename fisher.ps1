@@ -127,7 +127,18 @@ function ShowAccess {
 function Install {
   NeedDocker
   $fresh = $false
-  if (Test-Path $EnvFile) { Info "ใช้การตั้งค่าเดิมใน $EnvFile" } else { CreateEnv $Port (-not $NoDemo); $fresh = $true }
+  if (Test-Path $EnvFile) {
+    Info "ใช้การตั้งค่าเดิมใน $EnvFile"
+  } else {
+    # data from an earlier install is only readable with that install's fisher.env (DB password + encryption key)
+    & docker volume inspect "${Project}_db-data" *> $null
+    if ($LASTEXITCODE -eq 0) {
+      Fail ("เครื่องนี้มีข้อมูล Fisher ERP จากการติดตั้งครั้งก่อน แต่ไม่พบไฟล์ $EnvFile ในโฟลเดอร์นี้`n" +
+        "  คัดลอก $EnvFile จากโฟลเดอร์ที่ติดตั้งครั้งก่อนมาไว้ที่นี่ แล้วรันใหม่ (ไฟล์นี้มีรหัสผ่านฐานข้อมูลและกุญแจเข้ารหัสของข้อมูลเดิม)`n" +
+        "  ถ้าไฟล์หายจริงและต้องการเริ่มใหม่ทั้งหมด (ข้อมูลเดิมหายถาวร): docker volume rm ${Project}_db-data ${Project}_files")
+    }
+    CreateEnv $Port (-not $NoDemo); $fresh = $true
+  }
   Info 'สร้างและเริ่มระบบ (ครั้งแรกใช้เวลาประมาณ 3-10 นาที ขึ้นกับความเร็วอินเทอร์เน็ต)...'
   if (-not (DcOk up -d --build)) { Fail 'สร้างหรือเริ่มระบบไม่สำเร็จ - ดูข้อความด้านบน' }
   WaitReady
