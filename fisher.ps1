@@ -133,7 +133,7 @@ function Install {
   WaitReady
   Seed
   Write-Host ""
-  Ok 'ติดตั้ง Fisher ERP เสร็จแล้ว'
+  Ok "ติดตั้ง Fisher ERP เวอร์ชัน $(AppVersion) เสร็จแล้ว"
   ShowAccess
   if ($fresh) {
     Write-Host "  ชื่อผู้ใช้:  admin"
@@ -186,20 +186,31 @@ function Restore($db, $files) {
   Ok 'กู้คืนข้อมูลแล้ว'
 }
 
+function AppVersion {
+  try { return (Get-Content apps/web/package.json -Raw -Encoding UTF8 | ConvertFrom-Json).version } catch { return '?' }
+}
+
 function Update {
   NeedDocker; NeedEnv
-  if ((Test-Path .git) -and (Get-Command git -ErrorAction SilentlyContinue)) {
-    Info 'ดึงโค้ดรุ่นล่าสุด...'
+  $before = AppVersion
+  $hasGit = [bool](Get-Command git -ErrorAction SilentlyContinue)
+  if ((Test-Path .git) -and $hasGit) {
+    Info "ดึงโค้ดรุ่นล่าสุด (branch $(& git branch --show-current))..."
+    $h0 = & git rev-parse --short HEAD
     & git pull --ff-only
     if ($LASTEXITCODE -ne 0) { Fail 'ดึงโค้ดไม่สำเร็จ - มีไฟล์ที่แก้ไขในเครื่องหรือไม่? (git status)' }
+    $h1 = & git rev-parse --short HEAD
+    if ($h0 -eq $h1) { Info "ไม่มีโค้ดใหม่ - เป็นรุ่นล่าสุดของ branch นี้แล้ว ($h1)" } else { Info "โค้ด $h0 -> $h1" }
+  } elseif (Test-Path .git) {
+    Fail 'ไม่พบคำสั่ง git - ติดตั้ง Git for Windows (https://git-scm.com/download/win) แล้วเปิด PowerShell ใหม่'
   } else {
-    Info "ดาวน์โหลดรุ่นใหม่มาแตกทับโฟลเดอร์นี้ (เก็บไฟล์ $EnvFile ไว้) แล้วรันคำสั่งนี้อีกครั้ง"
+    Info "โฟลเดอร์นี้ไม่ได้ติดตั้งด้วย git: ต้องดาวน์โหลดรุ่นใหม่มาแตกทับก่อน (เก็บไฟล์ $EnvFile ไว้) - ตอนนี้จะสร้างระบบใหม่จากโค้ดที่มีในโฟลเดอร์"
   }
   Info 'แนะนำ: .\fisher.cmd backup ก่อนอัปเดตทุกครั้ง'
   if (-not (DcOk up -d --build)) { Fail 'สร้างหรือเริ่มระบบไม่สำเร็จ' }
   WaitReady
   Seed
-  Ok 'อัปเดตแล้ว'
+  Ok "อัปเดตแล้ว: เวอร์ชัน $before -> $(AppVersion) (กด F5 ในเบราว์เซอร์เพื่อโหลดหน้าใหม่)"
 }
 
 function Uninstall {

@@ -112,7 +112,7 @@ cmd_install() {
   dc up -d --build
   wait_ready
   seed
-  printf '\n✓ ติดตั้ง Fisher ERP เสร็จแล้ว\n'
+  printf '\n✓ ติดตั้ง Fisher ERP เวอร์ชัน %s เสร็จแล้ว\n' "$(app_version)"
   show_access
   if $fresh; then
     printf '  ชื่อผู้ใช้:  admin\n  รหัสผ่าน:   %s   (ระบบจะให้ตั้งรหัสผ่านใหม่เมื่อเข้าครั้งแรก)\n' "$(env_get SEED_ADMIN_PASSWORD)"
@@ -156,19 +156,29 @@ cmd_restore() {
   ok "กู้คืนข้อมูลแล้ว"
 }
 
+app_version() { grep -m1 '"version"' apps/web/package.json | cut -d'"' -f4; }
+
 cmd_update() {
   need_docker; need_env
-  if [ -d .git ]; then
-    info "ดึงโค้ดรุ่นล่าสุด..."
+  local before
+  before=$(app_version)
+  if [ -d .git ] && command -v git >/dev/null 2>&1; then
+    info "ดึงโค้ดรุ่นล่าสุด (branch $(git branch --show-current))..."
+    local h0 h1
+    h0=$(git rev-parse --short HEAD)
     git pull --ff-only || die "ดึงโค้ดไม่สำเร็จ — มีไฟล์ที่แก้ไขในเครื่องหรือไม่? (git status)"
+    h1=$(git rev-parse --short HEAD)
+    if [ "$h0" = "$h1" ]; then info "ไม่มีโค้ดใหม่ — เป็นรุ่นล่าสุดของ branch นี้แล้ว ($h1)"; else info "โค้ด $h0 → $h1"; fi
+  elif [ -d .git ]; then
+    die "ไม่พบคำสั่ง git — ติดตั้ง Git แล้วรันใหม่"
   else
-    info "โฟลเดอร์นี้ไม่ใช่ git — ดาวน์โหลดรุ่นใหม่มาแตกทับ (เก็บไฟล์ $ENV_FILE ไว้) แล้วรันคำสั่งนี้อีกครั้ง"
+    info "โฟลเดอร์นี้ไม่ได้ติดตั้งด้วย git: ต้องดาวน์โหลดรุ่นใหม่มาแตกทับก่อน (เก็บไฟล์ $ENV_FILE ไว้) — ตอนนี้จะสร้างระบบใหม่จากโค้ดที่มีในโฟลเดอร์"
   fi
   info "แนะนำ: ./fisher.sh backup ก่อนอัปเดตทุกครั้ง"
   dc up -d --build
   wait_ready
   seed
-  ok "อัปเดตแล้ว"
+  ok "อัปเดตแล้ว: เวอร์ชัน $before → $(app_version) (กด F5 ในเบราว์เซอร์เพื่อโหลดหน้าใหม่)"
 }
 
 cmd_uninstall() {
