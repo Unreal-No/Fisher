@@ -78,7 +78,7 @@ function YearEndPanel({ year, canApprove }: { year: number; canApprove: boolean 
                 <Item ok={d.pending === 0} label="เอกสารรอลงบัญชี" detail={d.pending ? `เหลือ ${d.pending} รายการ` : 'ไม่มี'} />
                 <Item ok={!d.depreciationOwed} label="ค่าเสื่อมราคาค้างคิด" detail={d.depreciationOwed ? `ค้าง ${formatMoney(d.depreciationOwed)} บาท` : 'ไม่มี'} />
                 <Item ok={d.openEarlierYears.length === 0} label="ปีก่อนหน้าที่ยังไม่ปิด" detail={d.openEarlierYears.length ? d.openEarlierYears.map((y) => `พ.ศ. ${y + 543}`).join(', ') : 'ไม่มี'} />
-                <Item ok={d.decemberClosed || closed} label="งวดธันวาคม" detail={d.decemberClosed || closed ? 'ปิดแล้ว' : 'ยังเปิดอยู่ (ระบบจะปิดให้ทุกงวดเมื่อปิดบัญชี)'} />
+                <Item ok={closed || !d.decemberClosed} label="งวดธันวาคมต้องเปิดอยู่ (เพื่อลงรายการปิดบัญชี 31 ธ.ค.)" detail={closed ? 'ปิดบัญชีแล้ว' : d.decemberClosed ? 'งวดธันวาคมปิดอยู่ — เปิดงวดก่อน' : 'เปิดอยู่ (ระบบจะปิดทุกงวดให้เมื่อปิดบัญชี)'} />
               </ul>
               {blocked && <p className="rounded border border-red-200 bg-bad-soft px-3 py-2 text-bad">{blocked}</p>}
               {canApprove && (
