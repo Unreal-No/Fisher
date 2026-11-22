@@ -62,6 +62,9 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | vendor_bills / vendor_bill_lines | ใบแจ้งหนี้ผู้ขาย AP: DRAFT→APPROVED / VOID; บรรทัด GR (มูลค่าใบรับสินค้า) หรือ EXPENSE (บัญชี + เรือ/เที่ยว); paid_amount ดูแลใน transaction | partial unique (supplier, supplier_invoice_no) ยกเว้น VOID; CHECK total = subtotal + vat, paid ≤ total; CHECK ชนิดบรรทัด |
 | vendor_payments / vendor_payment_allocations | จ่ายชำระ PV หลายใบ: gross = ตัดหนี้, WHT (อัตรา/ฐาน), net = gross − WHT; VOID คืนยอด | CHECK net = gross − wht, wht < gross |
 | bank_reconciliations / bank_rec_items | กระทบยอด: statement date/balance, รายการบัญชีที่ติ๊ก (ครั้งเดียวต่อรายการ) | unique journal_line_id |
+| fixed_assets | ทะเบียนทรัพย์สิน FA: ราคาทุน, มูลค่าซาก, อายุ (เดือน), เดือนเริ่มคิด, บัญชีทุน/ค่าเสื่อมสะสม/ค่าเสื่อม, เรือ, ACTIVE/DISPOSED | CHECK cost > 0, salvage < cost, life > 0 |
+| depreciation_runs / depreciation_lines | คิดค่าเสื่อมรายเดือน (เรียงเดือน), ยอดต่อทรัพย์สิน, entry_id | unique (year, month), unique (run, asset); CHECK amount > 0 |
+| fiscal_years | ปีบัญชี OPEN/CLOSED, closing_entry_id, เหตุผลเปิดใหม่ | unique year |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |

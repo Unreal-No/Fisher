@@ -1,6 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
+import { Check, X } from 'lucide-react';
 import { useState } from 'react';
-import { formatDateTime } from '@fisher/shared';
+import { Link } from 'react-router';
+import { formatDateTime, formatMoney } from '@fisher/shared';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog, Dialog } from '@/components/ui/dialog';
@@ -11,7 +13,7 @@ import { api, ApiError } from '@/lib/api';
 import { useAction, type useListParams } from '@/lib/hooks';
 import { INV } from './lookups';
 import { FiscalStatusBadge } from './status';
-import type { Checklist, FiscalPeriod } from './types';
+import type { Checklist, FiscalPeriod, YearEndStatus } from './types';
 import { JOURNAL_SOURCE_TH } from '@fisher/shared';
 
 const MONTHS = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
@@ -34,6 +36,66 @@ function ChecklistView({ c }: { c: Checklist }) {
         ) : <p className="text-muted">ไม่มี</p>}
       </div>
     </div>
+  );
+}
+
+const Item = ({ ok, label, detail }: { ok: boolean; label: string; detail?: string }) => (
+  <li className="flex items-start gap-2">
+    {ok ? <Check className="mt-0.5 size-4 shrink-0 text-ok" aria-label="ผ่าน" /> : <X className="mt-0.5 size-4 shrink-0 text-bad" aria-label="ไม่ผ่าน" />}
+    <span>{label}{detail && <span className={ok ? 'text-muted' : 'text-bad'}> — {detail}</span>}</span>
+  </li>
+);
+
+function YearEndPanel({ year, canApprove }: { year: number; canApprove: boolean }) {
+  const q = useQuery({ queryKey: ['accounting', 'year-end', year], queryFn: () => api.get<YearEndStatus>(`/accounting/year-end/${year}`) });
+  const [closing, setClosing] = useState(false);
+  const [reopen, setReopen] = useState(false);
+  const [blocked, setBlocked] = useState<string | null>(null);
+  const close = useAction(() => api.post<{ netProfit: number }>(`/accounting/year-end/${year}/close`, {}), {
+    success: 'ปิดบัญชีสิ้นปีแล้ว', invalidate: INV, silentError: true, onSuccess: () => setClosing(false),
+  });
+  const doClose = () => close.mutate(undefined, {
+    onError: (e) => {
+      setClosing(false);
+      setBlocked(e instanceof ApiError ? e.message : 'เกิดข้อผิดพลาด');
+    },
+  });
+  const doReopen = useAction((reason: string) => api.post(`/accounting/year-end/${year}/reopen`, { reason }), { success: 'เปิดปีบัญชีแล้ว', invalidate: INV, onSuccess: () => setReopen(false) });
+  return (
+    <Panel title={`ปิดบัญชีสิ้นปี พ.ศ. ${year + 543}`}>
+      <QueryView q={q}>
+        {(d) => {
+          const closed = d.status === 'CLOSED';
+          return (
+            <div className="space-y-3 text-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge tone={closed ? 'navy' : 'ok'}>{closed ? 'ปิดบัญชีแล้ว' : 'ยังไม่ปิดบัญชี'}</Badge>
+                {closed && d.closedAt && <span className="text-muted">เมื่อ {formatDateTime(d.closedAt)}</span>}
+                {d.closingEntryId && <Link className="text-accent hover:underline" to={`/accounting/journals/${d.closingEntryId}`}>ดูรายการปิดบัญชี</Link>}
+              </div>
+              <ul className="space-y-1">
+                <Item ok={d.drafts === 0} label="รายการบัญชีร่าง" detail={d.drafts ? `เหลือ ${d.drafts} รายการ` : 'ไม่มี'} />
+                <Item ok={d.pending === 0} label="เอกสารรอลงบัญชี" detail={d.pending ? `เหลือ ${d.pending} รายการ` : 'ไม่มี'} />
+                <Item ok={!d.depreciationOwed} label="ค่าเสื่อมราคาค้างคิด" detail={d.depreciationOwed ? `ค้าง ${formatMoney(d.depreciationOwed)} บาท` : 'ไม่มี'} />
+                <Item ok={d.openEarlierYears.length === 0} label="ปีก่อนหน้าที่ยังไม่ปิด" detail={d.openEarlierYears.length ? d.openEarlierYears.map((y) => `พ.ศ. ${y + 543}`).join(', ') : 'ไม่มี'} />
+                <Item ok={d.decemberClosed || closed} label="งวดธันวาคม" detail={d.decemberClosed || closed ? 'ปิดแล้ว' : 'ยังเปิดอยู่ (ระบบจะปิดให้ทุกงวดเมื่อปิดบัญชี)'} />
+              </ul>
+              {blocked && <p className="rounded border border-red-200 bg-bad-soft px-3 py-2 text-bad">{blocked}</p>}
+              {canApprove && (
+                <div className="flex flex-wrap gap-2">
+                  {!closed && <Button disabled={!d.ok} title={d.ok ? undefined : 'ยังไม่ผ่านเงื่อนไขการปิดบัญชี'} onClick={() => { setBlocked(null); setClosing(true); }}>ปิดบัญชีปี {year + 543}</Button>}
+                  {closed && <Button variant="outline" onClick={() => setReopen(true)}>เปิดปีบัญชี</Button>}
+                </div>
+              )}
+            </div>
+          );
+        }}
+      </QueryView>
+      <ConfirmDialog open={closing} onOpenChange={setClosing} title={`ปิดบัญชีปี พ.ศ. ${year + 543}`} loading={close.isPending} confirmText="ปิดบัญชี"
+        message="ระบบจะโอนรายได้และค่าใช้จ่ายทั้งปีเข้ากำไรสะสม (สร้างรายการปิดบัญชี) และปิดทุกงวดของปีนี้ — หลังปิดจะบันทึก/ผ่านรายการในปีนี้ไม่ได้" onConfirm={doClose} />
+      <ConfirmDialog open={reopen} onOpenChange={setReopen} title={`เปิดปีบัญชี พ.ศ. ${year + 543}`} requireReason danger loading={doReopen.isPending}
+        message="ระบบจะกลับรายการปิดบัญชีและเปิดงวดของปีนี้อีกครั้ง" onConfirm={(r) => doReopen.mutate(r)} />
+    </Panel>
   );
 }
 
@@ -68,6 +130,7 @@ export function PeriodsTab({ lp, canApprove }: { lp: LP; canApprove: boolean }) 
         <label className="text-sm text-muted" htmlFor="fy">ปี</label>
         <Select id="fy" className="w-auto" options={years.sort((a, b) => b - a).map((y) => ({ value: String(y), label: `พ.ศ. ${y + 543}` }))} value={String(year)} onChange={(e) => lp.set({ year: e.target.value })} />
       </div>
+      <YearEndPanel year={year} canApprove={canApprove} />
       <Panel title={`งวดบัญชี พ.ศ. ${year + 543}`} bodyClass="p-0">
         <QueryView q={q}>
           {(rows) => (

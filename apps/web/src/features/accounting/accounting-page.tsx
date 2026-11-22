@@ -18,6 +18,7 @@ import { useAuth } from '@/lib/auth';
 import { useAction, useListParams } from '@/lib/hooks';
 import { AccountsTab } from './accounts-tab';
 import { ApTab } from './ap-tab';
+import { AssetsTab } from './assets-tab';
 import { BankTab } from './bank-tab';
 import { JournalDialog } from './journal-dialog';
 import { INV } from './lookups';
@@ -47,6 +48,7 @@ export function AccountingPage() {
           { value: 'autopost', label: 'ลงบัญชีอัตโนมัติ', content: <AutoPostTab canApprove={can('finance.approve')} /> },
           { value: 'ap', label: 'เจ้าหนี้', content: <ApTab lp={lp} canEdit={can('finance.edit')} canApprove={can('finance.approve')} /> },
           { value: 'bank', label: 'ธนาคาร', content: <BankTab lp={lp} canEdit={can('finance.edit')} canApprove={can('finance.approve')} /> },
+          { value: 'assets', label: 'ทรัพย์สิน', content: <AssetsTab lp={lp} canEdit={can('finance.edit')} canApprove={can('finance.approve')} /> },
           { value: 'tax', label: 'ภาษี', content: <TaxTab lp={lp} /> },
           { value: 'accounts', label: 'ผังบัญชี', content: <AccountsTab canApprove={can('finance.approve')} /> },
           { value: 'periods', label: 'งวดบัญชี', content: <PeriodsTab lp={lp} canApprove={can('finance.approve')} /> },

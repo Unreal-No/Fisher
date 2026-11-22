@@ -728,3 +728,31 @@ export const vendorPaymentSchema = z
   });
 export const bankRecSchema = z.object({ bankAccountId: id, statementDate: isoDate, statementBalance: reqNum(-1e12, 1e12), notes: optStr(500) });
 export const bankRecItemsSchema = z.object({ journalLineIds: z.array(id).max(5000) });
+
+// ---------- fixed assets / year end ----------
+export const fixedAssetSchema = z
+  .object({
+    name: reqStr(200),
+    category: z.enum(E.ASSET_CATEGORY),
+    vesselId: optId,
+    acquisitionDate: isoDate,
+    cost: posNum(1e11),
+    salvageValue: optNum(0, 1e11),
+    usefulLifeMonths: z.coerce.number({ error: 'กรุณากรอกตัวเลข' }).int('ต้องเป็นจำนวนเต็ม').min(1).max(1200),
+    assetAccountId: id,
+    accumDepAccountId: id,
+    depExpenseAccountId: id,
+    serialNo: optStr(100),
+    notes: optStr(1000),
+  })
+  .refine((a) => (a.salvageValue ?? 0) < a.cost, { path: ['salvageValue'], message: 'มูลค่าซากต้องน้อยกว่าราคาทุน' });
+export const assetDisposalSchema = z
+  .object({
+    disposedAt: isoDate,
+    proceeds: optNum(0, 1e11),
+    method: z.enum(E.PAYMENT_METHOD).default('TRANSFER'),
+    bankAccountId: optId,
+    reason: reqStr(500),
+  })
+  .refine((d) => !(d.proceeds && d.proceeds > 0 && d.method !== 'CASH' && !d.bankAccountId), { path: ['bankAccountId'], message: 'เลือกบัญชีธนาคารที่รับเงิน' });
+export const depreciationRunSchema = z.object({ year: z.coerce.number().int().min(2000).max(2200), month: z.coerce.number().int().min(1).max(12) });

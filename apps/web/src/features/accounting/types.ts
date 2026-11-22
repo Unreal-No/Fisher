@@ -1,4 +1,4 @@
-import type { AccountMapKey, AccountType, BankRecStatus, BillLineKind, FiscalStatus, JournalSource, JournalStatus, NormalBalance, PaymentMethod, VendorBillStatus, VendorPaymentStatus } from '@fisher/shared';
+import type { AccountMapKey, AssetCategory, AssetStatus, AccountType, BankRecStatus, BillLineKind, FiscalStatus, JournalSource, JournalStatus, NormalBalance, PaymentMethod, VendorBillStatus, VendorPaymentStatus } from '@fisher/shared';
 
 export interface Account {
   id: string; code: string; nameTh: string; nameEn: string | null; type: AccountType; normalBalance: NormalBalance; parentId: string | null;
@@ -94,4 +94,34 @@ export interface VatReport {
 export interface WhtRow { date: string; paymentNo: string; name: string; taxId: string | null; branch: string | null; address: string | null; base: number; rate: number; wht: number }
 export interface WhtReport {
   pnd3: WhtRow[]; pnd53: WhtRow[]; totals: { pnd3: { count: number; base: number; wht: number }; pnd53: { count: number; base: number; wht: number } }; missingTaxId: number;
+}
+
+// ---------- fixed assets / year-end / cash-flow / pnd1 ----------
+export interface AssetRow {
+  id: string; assetNo: string; name: string; category: AssetCategory; vessel: { id: string; code: string; name: string } | null;
+  acquisitionDate: string; depStartDate: string; cost: string; salvageValue: string; usefulLifeMonths: number; status: AssetStatus; disposedAt: string | null;
+  accumulatedDepreciation: string | number; bookValue: string | number;
+}
+type Acct = { id: string; code: string; nameTh: string };
+export interface AssetDetail extends AssetRow {
+  serialNo?: string | null; notes?: string | null; assetAccount: Acct; accumDepAccount: Acct; depExpenseAccount: Acct;
+  depLines: { amount: string; run: { year: number; month: number; entryId: string | null } }[];
+  monthlyDepreciation: string | number; disposalEntry: { id: string; entryNo: string } | null;
+}
+export interface DepRun { id: string; year: number; month: number; total: string; entryId: string | null; createdAt: string; _count: { lines: number } }
+export interface DepPreview { total: number; items: { assetId: string; assetNo: string; name: string; before: number; amount: number }[] }
+export interface AssetReconcile { id: string; code: string; nameTh: string; register: number; ledger: number; difference: number }
+export interface YearEndStatus {
+  year: number; status: FiscalStatus | string; closedAt: string | null; closingEntryId: string | null; drafts: number; pending: number; depreciationOwed: number;
+  openEarlierYears: number[]; decemberClosed: boolean; ok: boolean;
+}
+export interface CashFlow {
+  netProfit: number;
+  operating: { adjustments: RepLine[]; workingCapital: RepLine[]; total: number };
+  investing: { items: RepLine[]; total: number }; financing: { items: RepLine[]; total: number };
+  netChange: number; openingCash: number; closingCash: number; balanced: boolean;
+}
+export interface Pnd1Report {
+  rows: { employeeId: string; code: string; name: string; nationalIdNo: string | null; nationality: string | null; income: number; tax: number; periods: string[] }[];
+  totals: { count: number; income: number; tax: number }; notWithheld: { count: number; income: number }; missingId: number;
 }

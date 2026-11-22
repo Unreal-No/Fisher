@@ -1,9 +1,12 @@
 // Financial reports from posted ledger lines (POSTED + REVERSED entries; reversals offset each other).
 import { Prisma, prisma } from '../../lib/prisma';
 import { num } from '../../lib/http';
+import { maskId } from '@fisher/shared';
 import { r2 } from './ledger';
 
 const LEDGER = Prisma.sql`e.status IN ('POSTED', 'REVERSED')`;
+/** year-end closing entries move P&L into retained earnings; income statements and cash flow ignore them */
+const NOT_YE = Prisma.sql`(e.source_type IS NULL OR e.source_type <> 'YEAR_END')`;
 const dateSql = (d: string) => Prisma.sql`${d}::date`;
 type Row = { id: string; code: string; name_th: string; type: string; normal_balance: string; parent_id: string | null };
 
@@ -41,7 +44,7 @@ export async function profitLoss(from: string, to: string, vesselId?: string) {
   const rows = await prisma.$queryRaw<(Row & { amt: string })[]>`
     SELECT a.id, a.code, a.name_th, a.type, a.normal_balance, a.parent_id, SUM(l.credit - l.debit) AS amt
     FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id JOIN accounts a ON a.id = l.account_id
-    WHERE ${LEDGER} AND e.entry_date BETWEEN ${dateSql(from)} AND ${dateSql(to)} AND a.type IN ('REVENUE', 'EXPENSE') ${vf}
+    WHERE ${LEDGER} AND e.entry_date BETWEEN ${dateSql(from)} AND ${dateSql(to)} AND a.type IN ('REVENUE', 'EXPENSE') ${vf} AND ${NOT_YE}
     GROUP BY a.id ORDER BY a.code`;
   // revenue shown as credit − debit (contra revenue becomes negative); expenses as debit − credit
   const revenue = rows.filter((r) => r.type === 'REVENUE').map((r) => ({ accountId: r.id, code: r.code, nameTh: r.name_th, amount: r2(num(r.amt)) }));
@@ -54,7 +57,7 @@ export async function profitLoss(from: string, to: string, vesselId?: string) {
       COALESCE(SUM(CASE WHEN a.type = 'EXPENSE' THEN l.debit - l.credit END), 0) AS expense
     FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id JOIN accounts a ON a.id = l.account_id
     LEFT JOIN vessels v ON v.id = l.vessel_id
-    WHERE ${LEDGER} AND e.entry_date BETWEEN ${dateSql(from)} AND ${dateSql(to)} AND a.type IN ('REVENUE', 'EXPENSE') ${vf}
+    WHERE ${LEDGER} AND e.entry_date BETWEEN ${dateSql(from)} AND ${dateSql(to)} AND a.type IN ('REVENUE', 'EXPENSE') ${vf} AND ${NOT_YE}
     GROUP BY l.vessel_id, v.code, v.name ORDER BY v.code NULLS LAST`;
   const byVessel = vrows.map((v) => ({
     vesselId: v.vessel_id, code: v.code, name: v.name ?? 'ไม่ระบุเรือ (ส่วนกลาง)',
@@ -180,4 +183,84 @@ export async function whtReport(y: number, m: number) {
   const pnd53 = rows.filter((x) => !x.supplier.isIndividual).map(map);
   const t = (xs: { base: number; wht: number }[]) => ({ count: xs.length, base: r2(xs.reduce((s, x) => s + x.base, 0)), wht: r2(xs.reduce((s, x) => s + x.wht, 0)) });
   return { year: y, month: m, pnd3, pnd53, totals: { pnd3: t(pnd3), pnd53: t(pnd53) }, missingTaxId: rows.filter((x) => !x.supplier.taxId).length };
+}
+
+/** Cash flow statement, indirect method (simplified): net profit adjusted by balance changes of non-cash accounts. */
+export async function cashFlow(from: string, to: string) {
+  const [accounts, maps, banks] = await Promise.all([prisma.account.findMany(), prisma.accountMapping.findMany({ where: { key: { in: ['CASH', 'BANK'] } } }), prisma.bankAccount.findMany({ select: { glAccountId: true } })]);
+  const cash = new Set([...maps.map((m) => m.accountId), ...banks.map((b) => b.glAccountId)]);
+  const byId = new Map(accounts.map((a) => [a.id, a]));
+  const under = (id: string, code: string) => {
+    for (let a = byId.get(id); a; a = a.parentId ? byId.get(a.parentId) : undefined) if (a.code === code) return true;
+    return (byId.get(id)?.code ?? '').startsWith(code.slice(0, 2));
+  };
+  const rows = await prisma.$queryRaw<{ account_id: string; chg: string }[]>`
+    SELECT l.account_id, SUM(l.debit - l.credit) AS chg FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id
+    WHERE ${LEDGER} AND ${NOT_YE} AND e.entry_date BETWEEN ${dateSql(from)} AND ${dateSql(to)}
+    GROUP BY l.account_id`;
+  const cashIds = [...cash];
+  const [open] = cashIds.length
+    ? await prisma.$queryRaw<{ bal: string | null }[]>`
+        SELECT SUM(l.debit - l.credit) AS bal FROM journal_lines l JOIN journal_entries e ON e.id = l.entry_id
+        WHERE ${LEDGER} AND e.entry_date < ${dateSql(from)} AND l.account_id = ANY(${cashIds}::uuid[])`
+    : [{ bal: '0' }];
+  type Item = { accountId: string; code: string; nameTh: string; amount: number };
+  const adjustments: Item[] = [];
+  const workingCapital: Item[] = [];
+  const investing: Item[] = [];
+  const financing: Item[] = [];
+  let netProfit = 0;
+  let cashChange = 0;
+  for (const r of rows) {
+    const a = byId.get(r.account_id);
+    if (!a) continue;
+    const chg = num(r.chg);
+    if (cash.has(a.id)) { cashChange += chg; continue; }
+    if (a.type === 'REVENUE' || a.type === 'EXPENSE') { netProfit -= chg; continue; }
+    const item = { accountId: a.id, code: a.code, nameTh: a.nameTh, amount: r2(-chg) };
+    if (item.amount === 0) continue;
+    if (a.type === 'EQUITY') financing.push(item);
+    else if (a.type === 'LIABILITY') (under(a.id, '2200') ? financing : workingCapital).push(item);
+    else if (under(a.id, '1200')) (a.normalBalance === 'CREDIT' ? adjustments : investing).push(item);
+    else workingCapital.push(item);
+  }
+  const sum = (xs: Item[]) => r2(xs.reduce((s, x) => s + x.amount, 0));
+  const sort = (xs: Item[]) => xs.sort((x, y) => x.code.localeCompare(y.code));
+  const operating = r2(netProfit + sum(adjustments) + sum(workingCapital));
+  const openingCash = r2(num(open?.bal));
+  const netChange = r2(operating + sum(investing) + sum(financing));
+  return {
+    from, to, netProfit: r2(netProfit),
+    operating: { adjustments: sort(adjustments), workingCapital: sort(workingCapital), total: operating },
+    investing: { items: sort(investing), total: sum(investing) },
+    financing: { items: sort(financing), total: sum(financing) },
+    netChange, openingCash, closingCash: r2(openingCash + r2(cashChange)), balanced: netChange === r2(cashChange),
+  };
+}
+
+/** Salary withholding tax (ภ.ง.ด.1) for payroll periods paid in the month. */
+export async function pnd1Report(y: number, m: number, sensitive: boolean) {
+  const b = monthBounds(y, m);
+  const periods = await prisma.payrollPeriod.findMany({
+    where: { status: 'PAID', paidAt: { gte: b.startTs, lte: b.endTs } },
+    include: { records: { include: { employee: { select: { id: true, code: true, firstName: true, lastName: true, nationalIdNo: true, nationality: true } }, items: { where: { code: 'WITHHOLDING_TAX' }, select: { amount: true } } } } },
+  });
+  const byEmp = new Map<string, { employeeId: string; code: string; name: string; nationalIdNo: string | null; nationality: string; income: number; tax: number; periods: string[] }>();
+  for (const p of periods)
+    for (const r of p.records) {
+      const e = r.employee;
+      const cur = byEmp.get(e.id) ?? { employeeId: e.id, code: e.code, name: `${e.firstName} ${e.lastName}`, nationalIdNo: sensitive ? e.nationalIdNo : maskId(e.nationalIdNo), nationality: e.nationality, income: 0, tax: 0, periods: [] };
+      cur.income = r2(cur.income + num(r.gross));
+      cur.tax = r2(cur.tax + r.items.reduce((s, i) => s + num(i.amount), 0));
+      cur.periods.push(p.code);
+      byEmp.set(e.id, cur);
+    }
+  const all = [...byEmp.values()].sort((a, b2) => a.code.localeCompare(b2.code));
+  const rows = all.filter((x) => x.tax > 0);
+  return {
+    year: y, month: m, rows,
+    totals: { count: rows.length, income: r2(rows.reduce((s, x) => s + x.income, 0)), tax: r2(rows.reduce((s, x) => s + x.tax, 0)) },
+    notWithheld: { count: all.length - rows.length, income: r2(all.filter((x) => x.tax <= 0).reduce((s, x) => s + x.income, 0)) },
+    missingId: rows.filter((x) => !x.nationalIdNo).length,
+  };
 }

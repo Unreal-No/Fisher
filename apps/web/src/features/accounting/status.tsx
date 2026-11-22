@@ -1,4 +1,4 @@
-import { BANK_REC_STATUS_TH, FISCAL_STATUS_TH, JOURNAL_STATUS_TH, VENDOR_BILL_STATUS_TH, VENDOR_PAYMENT_STATUS_TH, type BankRecStatus, type FiscalStatus, type JournalStatus, type VendorBillStatus, type VendorPaymentStatus } from '@fisher/shared';
+import { ASSET_STATUS_TH, type AssetStatus, BANK_REC_STATUS_TH, FISCAL_STATUS_TH, JOURNAL_STATUS_TH, VENDOR_BILL_STATUS_TH, VENDOR_PAYMENT_STATUS_TH, type BankRecStatus, type FiscalStatus, type JournalStatus, type VendorBillStatus, type VendorPaymentStatus } from '@fisher/shared';
 import { Badge, type Tone } from '@/components/ui/badge';
 
 const J_TONE: Record<JournalStatus, Tone> = { DRAFT: 'neutral', POSTED: 'ok', REVERSED: 'warn', VOID: 'bad' };
@@ -13,3 +13,6 @@ const R_TONE: Record<BankRecStatus, Tone> = { DRAFT: 'warn', COMPLETED: 'ok' };
 export const BillStatusBadge = ({ s }: { s: VendorBillStatus }) => <Badge tone={B_TONE[s]}>{VENDOR_BILL_STATUS_TH[s]}</Badge>;
 export const VPayStatusBadge = ({ s }: { s: VendorPaymentStatus }) => <Badge tone={P_TONE[s]}>{VENDOR_PAYMENT_STATUS_TH[s]}</Badge>;
 export const RecStatusBadge = ({ s }: { s: BankRecStatus }) => <Badge tone={R_TONE[s]}>{BANK_REC_STATUS_TH[s]}</Badge>;
+
+const A_TONE: Record<AssetStatus, Tone> = { ACTIVE: 'ok', DISPOSED: 'neutral' };
+export const AssetStatusBadge = ({ s }: { s: AssetStatus }) => <Badge tone={A_TONE[s]}>{ASSET_STATUS_TH[s]}</Badge>;

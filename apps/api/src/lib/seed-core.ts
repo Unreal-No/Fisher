@@ -66,6 +66,8 @@ export const CHART_OF_ACCOUNTS: Acc[] = [
   ['2140', 'ค่าใช้จ่ายค้างจ่าย', 'LIABILITY', 'CREDIT', '2100', true],
   ['2150', 'ภาษีขาย', 'LIABILITY', 'CREDIT', '2100', true],
   ['2160', 'ภาษีหัก ณ ที่จ่ายค้างจ่าย', 'LIABILITY', 'CREDIT', '2100', true],
+  ['2200', 'หนี้สินไม่หมุนเวียน', 'LIABILITY', 'CREDIT', '2000', false],
+  ['2210', 'เงินกู้ยืมระยะยาวจากสถาบันการเงิน', 'LIABILITY', 'CREDIT', '2200', true],
   ['3000', 'ส่วนของเจ้าของ', 'EQUITY', 'CREDIT', null, false],
   ['3100', 'ทุนจดทะเบียน/ทุนเจ้าของ', 'EQUITY', 'CREDIT', '3000', true],
   ['3200', 'กำไร (ขาดทุน) สะสม', 'EQUITY', 'CREDIT', '3000', true],
@@ -74,6 +76,7 @@ export const CHART_OF_ACCOUNTS: Acc[] = [
   ['4100', 'รายได้จากการขายสัตว์น้ำ', 'REVENUE', 'CREDIT', '4000', true],
   ['4110', 'รับคืนและลดหนี้จากการขาย', 'REVENUE', 'DEBIT', '4000', true],
   ['4200', 'รายได้อื่น', 'REVENUE', 'CREDIT', '4000', true],
+  ['4210', 'กำไรจากการจำหน่ายทรัพย์สิน', 'REVENUE', 'CREDIT', '4000', true],
   ['5000', 'ต้นทุนและค่าใช้จ่าย', 'EXPENSE', 'DEBIT', null, false],
   ['5100', 'ต้นทุนการทำประมง', 'EXPENSE', 'DEBIT', '5000', false],
   ['5110', 'ค่าน้ำมันเชื้อเพลิง', 'EXPENSE', 'DEBIT', '5100', true],
@@ -85,6 +88,7 @@ export const CHART_OF_ACCOUNTS: Acc[] = [
   ['5210', 'เงินเดือนพนักงานสำนักงาน', 'EXPENSE', 'DEBIT', '5200', true],
   ['5220', 'ผลต่างจากการตรวจนับ/ปรับยอดสินค้า', 'EXPENSE', 'DEBIT', '5200', true],
   ['5230', 'ค่าเสื่อมราคา', 'EXPENSE', 'DEBIT', '5200', true],
+  ['5240', 'ขาดทุนจากการจำหน่ายทรัพย์สิน', 'EXPENSE', 'DEBIT', '5200', true],
   ['5290', 'ค่าใช้จ่ายเบ็ดเตล็ด', 'EXPENSE', 'DEBIT', '5200', true],
 ];
 export const DEFAULT_ACCOUNT_MAP: Record<AccountMapKey, string> = {
@@ -93,6 +97,7 @@ export const DEFAULT_ACCOUNT_MAP: Record<AccountMapKey, string> = {
   SALES_REVENUE: '4100', SALES_RETURNS: '4110', OTHER_INCOME: '4200',
   FUEL_EXPENSE: '5110', SUPPLIES_EXPENSE: '5120', CREW_WAGES: '5130', TRIP_OTHER_EXPENSE: '5140', MAINTENANCE_EXPENSE: '5150', INVENTORY_VARIANCE: '5220',
   AP: '2110', VAT_INPUT: '1150', WHT_PAYABLE: '2160',
+  RETAINED_EARNINGS: '3200', GAIN_ON_DISPOSAL: '4210', LOSS_ON_DISPOSAL: '5240',
 };
 
 /** Chart of accounts + mappings: created once; never overwrites accountant edits. */

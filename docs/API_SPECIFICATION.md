@@ -75,6 +75,10 @@ Codes: 400 VALIDATION_ERROR/BAD_REQUEST · 401 · 403 FORBIDDEN/CSRF/MUST_CHANGE
 | GET/POST /accounting/ap/payments · POST …/:id/void · GET /accounting/ap/aging?asOf | finance.view / finance.approve | 409 OVERPAY; WHT = ฐาน × อัตรา |
 | GET/POST /accounting/bank-accounts · PUT …/:id | finance.view / finance.approve | บัญชีแยกประเภทต้องเป็นสินทรัพย์ที่รับรายการ |
 | GET/POST /accounting/bank-recs · GET/DELETE …/:id · PUT …/:id/items · POST …/:id/complete | finance.view/edit/approve | 409 NOT_RECONCILED / ALREADY_CLEARED / DRAFT_EXISTS |
+| GET/POST /accounting/assets · GET/PUT …/:id · POST …/:id/dispose · GET /accounting/assets-reconcile | finance.view/edit/approve | 409 HAS_DEPRECIATION / DEPRECIATION_DUE |
+| GET /accounting/depreciation/runs · GET …/preview?year&month · POST /accounting/depreciation/runs {year,month} | finance.view / finance.approve | 409 RUN_ORDER (ต้องเรียงเดือน) / PERIOD_CLOSED |
+| GET /accounting/year-end/:year · POST …/close · POST …/reopen {reason} | finance.view / finance.approve | 409 YEAR_NOT_READY (details = checklist) / LATER_YEAR_CLOSED |
+| GET /accounting/reports/cash-flow?from&to · GET /accounting/tax/pnd1?year&month | finance.view | เลขบัตรประชาชน mask ถ้าไม่มี employee.sensitive |
 | GET /accounting/tax/vat?year&month · GET /accounting/tax/wht?year&month | finance.view | ภาษีขาย/ซื้อ (ไม่รวมยอดขายยกเว้น VAT ในตาราง), ภ.ง.ด.3 (บุคคลธรรมดา) / ภ.ง.ด.53 |
 | GET/POST /users · PATCH /users/:id · POST /users/:id/reset-password | user.manage | |
 | GET /roles · /permissions · PUT /roles/:id/permissions | role.manage∨user.manage / role.manage | SUPER_ADMIN แก้ไม่ได้ |

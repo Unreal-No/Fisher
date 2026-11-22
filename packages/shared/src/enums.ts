@@ -173,11 +173,11 @@ export type AdvanceStatus = (typeof ADVANCE_STATUS)[number];
 
 export const PAY_ITEM_CODE = [
   'SALARY', 'DAILY_WAGE', 'TRIP_PAY', 'REVENUE_SHARE', 'CATCH_PAY', 'BONUS', 'OTHER_EARNING',
-  'ADVANCE_RECOVERY', 'LOAN_REPAYMENT', 'OTHER_DEDUCTION',
+  'ADVANCE_RECOVERY', 'LOAN_REPAYMENT', 'OTHER_DEDUCTION', 'WITHHOLDING_TAX',
 ] as const;
 export type PayItemCode = (typeof PAY_ITEM_CODE)[number];
 export const EARNING_CODES: PayItemCode[] = ['SALARY', 'DAILY_WAGE', 'TRIP_PAY', 'REVENUE_SHARE', 'CATCH_PAY', 'BONUS', 'OTHER_EARNING'];
-export const ADJUSTMENT_CODES = ['BONUS', 'OTHER_EARNING', 'OTHER_DEDUCTION'] as const;
+export const ADJUSTMENT_CODES = ['BONUS', 'OTHER_EARNING', 'OTHER_DEDUCTION', 'WITHHOLDING_TAX'] as const;
 
 // ---------- accounting ----------
 export const ACCOUNT_TYPE = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'] as const;
@@ -191,7 +191,7 @@ export type FiscalStatus = (typeof FISCAL_STATUS)[number];
 /** Keys of the account mapping used by automatic posting. */
 export const ACCOUNT_MAP_KEY = [
   'CASH', 'BANK', 'AR', 'EMPLOYEE_ADVANCES', 'INVENTORY', 'FUEL_INVENTORY',
-  'GRNI', 'ACCRUED_EXPENSES', 'ACCRUED_WAGES', 'VAT_OUTPUT', 'AP', 'VAT_INPUT', 'WHT_PAYABLE',
+  'GRNI', 'ACCRUED_EXPENSES', 'ACCRUED_WAGES', 'VAT_OUTPUT', 'AP', 'VAT_INPUT', 'WHT_PAYABLE', 'RETAINED_EARNINGS', 'GAIN_ON_DISPOSAL', 'LOSS_ON_DISPOSAL',
   'SALES_REVENUE', 'SALES_RETURNS', 'OTHER_INCOME',
   'FUEL_EXPENSE', 'SUPPLIES_EXPENSE', 'CREW_WAGES', 'TRIP_OTHER_EXPENSE', 'MAINTENANCE_EXPENSE', 'INVENTORY_VARIANCE',
 ] as const;
@@ -200,6 +200,7 @@ export type AccountMapKey = (typeof ACCOUNT_MAP_KEY)[number];
 export const JOURNAL_SOURCE = [
   'SALES_INVOICE', 'SALES_PAYMENT', 'SALES_RETURN', 'GOODS_RECEIPT', 'STOCK_MOVEMENT', 'FUEL_TXN', 'TRIP_FUEL', 'TRIP_SUPPLY',
   'TRIP_EXPENSE', 'MAINTENANCE_ORDER', 'PAYROLL_PERIOD', 'EMPLOYEE_ADVANCE', 'VENDOR_BILL', 'VENDOR_PAYMENT',
+  'DEPRECIATION', 'ASSET_DISPOSAL', 'YEAR_END',
 ] as const;
 export type JournalSource = (typeof JOURNAL_SOURCE)[number];
 
@@ -214,3 +215,9 @@ export const BANK_REC_STATUS = ['DRAFT', 'COMPLETED'] as const;
 export type BankRecStatus = (typeof BANK_REC_STATUS)[number];
 /** Common Thai withholding tax rates (%) on payments to suppliers. */
 export const WHT_RATES = [1, 2, 3, 5] as const;
+
+// ---------- fixed assets ----------
+export const ASSET_CATEGORY = ['VESSEL', 'ENGINE', 'FISHING_GEAR', 'EQUIPMENT', 'VEHICLE', 'BUILDING', 'OTHER'] as const;
+export type AssetCategory = (typeof ASSET_CATEGORY)[number];
+export const ASSET_STATUS = ['ACTIVE', 'DISPOSED'] as const;
+export type AssetStatus = (typeof ASSET_STATUS)[number];

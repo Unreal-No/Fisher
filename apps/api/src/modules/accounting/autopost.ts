@@ -54,7 +54,9 @@ function byTrip<T>(rows: T[], get: (r: T) => { tripId: string | null; vesselId: 
   return [...m.values()].filter((x) => x.amount !== 0);
 }
 
-const COLLECTORS: Record<JournalSource, Collector> = {
+/** sources posted directly by accounting itself (not collected from operational documents) */
+type NativeSource = 'DEPRECIATION' | 'ASSET_DISPOSAL' | 'YEAR_END';
+const COLLECTORS: Record<Exclude<JournalSource, NativeSource>, Collector> = {
   async SALES_INVOICE(db, posted, to) {
     const rows = await db.salesInvoice.findMany({
       where: { confirmedAt: { not: null }, invoiceDate: { lte: to } },
@@ -277,6 +279,7 @@ const COLLECTORS: Record<JournalSource, Collector> = {
             ...wages.map((w) => ({ key: 'CREW_WAGES' as const, debit: w.amount, vesselId: w.vesselId, tripId: w.tripId })),
             { key: 'EMPLOYEE_ADVANCES', credit: sum(['ADVANCE_RECOVERY', 'LOAN_REPAYMENT']), description: 'หักคืนเงินเบิก/เงินกู้' },
             { key: 'OTHER_INCOME', credit: sum(['OTHER_DEDUCTION']), description: 'รายการหักพนักงานอื่น' },
+            { key: 'WHT_PAYABLE', credit: sum(['WITHHOLDING_TAX']), description: 'ภาษีหัก ณ ที่จ่าย ภ.ง.ด.1' },
             { key: 'ACCRUED_WAGES', credit: num(p.totalNet) },
           ],
         });

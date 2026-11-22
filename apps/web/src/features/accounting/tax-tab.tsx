@@ -9,7 +9,7 @@ import { QueryView } from '@/components/ui/states';
 import { api } from '@/lib/api';
 import { downloadCsv } from '@/lib/export';
 import type { useListParams } from '@/lib/hooks';
-import type { VatReport, WhtReport, WhtRow } from './types';
+import type { Pnd1Report, VatReport, WhtReport, WhtRow } from './types';
 
 type LP = ReturnType<typeof useListParams>;
 const th = 'px-3 py-2';
@@ -41,9 +41,10 @@ export function TaxTab({ lp }: { lp: LP }) {
         <Select options={years.map((y) => ({ value: String(y), label: String(y + 543) }))} value={String(year)} onChange={(e) => lp.set({ tyear: e.target.value })} aria-label="ปี พ.ศ." />
         <Button size="sm" variant={view === 'vat' ? 'primary' : 'outline'} onClick={() => lp.set({ tax: 'vat' })}>ภาษีมูลค่าเพิ่ม</Button>
         <Button size="sm" variant={view === 'wht' ? 'primary' : 'outline'} onClick={() => lp.set({ tax: 'wht' })}>ภาษีหัก ณ ที่จ่าย</Button>
+        <Button size="sm" variant={view === 'pnd1' ? 'primary' : 'outline'} onClick={() => lp.set({ tax: 'pnd1' })}>ภ.ง.ด.1</Button>
       </div>
-      <div className="hidden text-center print:block"><h1 className="text-lg font-bold">{view === 'vat' ? 'รายงานภาษีมูลค่าเพิ่ม' : 'รายงานภาษีหัก ณ ที่จ่าย'}</h1><p className="text-sm">{label}</p></div>
-      {view === 'vat' ? <VatView year={year} month={month} label={label} /> : <WhtView year={year} month={month} label={label} />}
+      <div className="hidden text-center print:block"><h1 className="text-lg font-bold">{view === 'vat' ? 'รายงานภาษีมูลค่าเพิ่ม' : view === 'pnd1' ? 'ภ.ง.ด.1 ภาษีหัก ณ ที่จ่ายจากเงินเดือน' : 'รายงานภาษีหัก ณ ที่จ่าย'}</h1><p className="text-sm">{label}</p></div>
+      {view === 'vat' ? <VatView year={year} month={month} label={label} /> : view === 'pnd1' ? <Pnd1View year={year} month={month} label={label} /> : <WhtView year={year} month={month} label={label} />}
     </div>
   );
 }
@@ -138,6 +139,43 @@ function WhtView({ year, month, label }: { year: number; month: number; label: s
           )}
           {table('ภ.ง.ด.3 (บุคคลธรรมดา)', 'pnd3', d.pnd3, d.totals.pnd3)}
           {table('ภ.ง.ด.53 (นิติบุคคล)', 'pnd53', d.pnd53, d.totals.pnd53)}
+        </div>
+      )}
+    </QueryView>
+  );
+}
+
+function Pnd1View({ year, month, label }: { year: number; month: number; label: string }) {
+  const q = useQuery({ queryKey: ['accounting', 'tax-pnd1', year, month], queryFn: () => api.get<Pnd1Report>('/accounting/tax/pnd1', { year, month }) });
+  const f = `${year}-${String(month).padStart(2, '0')}`;
+  return (
+    <QueryView q={q}>
+      {(d) => (
+        <div className="space-y-3 print:space-y-2">
+          {d.missingId > 0 && (
+            <div className="flex items-start gap-2 rounded border border-amber-300 bg-warn-soft px-3 py-2 text-sm text-warn print:hidden">
+              <AlertTriangle className="mt-0.5 size-4 shrink-0" /> พนักงาน {d.missingId} คนไม่มีเลขประจำตัวประชาชน — กรุณาแก้ไขข้อมูลพนักงานก่อนยื่นแบบ ({label})
+            </div>
+          )}
+          <Panel title={`ภ.ง.ด.1 (${d.totals.count} คน)`} bodyClass="p-0"
+            actions={<Actions csv={() => downloadCsv(`pnd1-${f}.csv`, [['รหัส', 'ชื่อ', 'เลขประจำตัวประชาชน', 'สัญชาติ', 'เงินได้', 'ภาษีที่หัก', 'งวดเงินเดือน'], ...d.rows.map((r) => [r.code, r.name, r.nationalIdNo, r.nationality, r.income, r.tax, r.periods.join(' ')]), ['', 'รวม', '', '', d.totals.income, d.totals.tax, '']])} />}>
+            <Wrap min={720}>
+              <thead className="bg-slate-50 text-left text-xs text-slate-600"><tr><th className={th}>รหัส</th><th className={th}>ชื่อ</th><th className={th}>เลขประจำตัวประชาชน</th><th className={thr}>เงินได้</th><th className={thr}>ภาษีที่หัก</th><th className={th}>งวด</th></tr></thead>
+              <tbody>
+                {d.rows.length === 0 && <Empty cols={6} />}
+                {d.rows.map((r) => (
+                  <tr key={r.employeeId} className="border-t border-line align-top">
+                    <td className="whitespace-nowrap px-3 py-1.5">{r.code}</td><td className="px-3 py-1.5">{r.name}</td>
+                    <td className={`px-3 py-1.5 ${r.nationalIdNo ? '' : 'text-bad'}`}>{r.nationalIdNo ?? 'ไม่มีเลขประจำตัว'}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{formatMoney(r.income)}</td><td className="px-3 py-1.5 text-right tabular-nums">{formatMoney(r.tax)}</td>
+                    <td className="px-3 py-1.5">{r.periods.join(', ') || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="border-t border-line bg-slate-50 font-semibold"><tr><td colSpan={3} className="px-3 py-2 text-right">รวม</td><td className="px-3 text-right tabular-nums">{formatMoney(d.totals.income)}</td><td className="px-3 text-right tabular-nums">{formatMoney(d.totals.tax)}</td><td /></tr></tfoot>
+            </Wrap>
+          </Panel>
+          <p className="text-xs text-muted">ไม่มีการหักภาษี {d.notWithheld.count} คน (เงินได้รวม {formatMoney(d.notWithheld.income)} บาท) — ไม่แสดงในรายงานนี้</p>
         </div>
       )}
     </QueryView>

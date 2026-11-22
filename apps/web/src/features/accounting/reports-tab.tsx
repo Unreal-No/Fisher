@@ -12,11 +12,11 @@ import { downloadCsv } from '@/lib/export';
 import type { useListParams } from '@/lib/hooks';
 import { useVessels, vesselOptions } from '@/lib/lookups';
 import { accountOptions, useAccounts } from './lookups';
-import type { BalanceSheet, GeneralLedger, ProfitLoss, RepLine, TrialBalance } from './types';
+import type { BalanceSheet, CashFlow, GeneralLedger, ProfitLoss, RepLine, TrialBalance } from './types';
 
 type LP = ReturnType<typeof useListParams>;
 const REPORTS = [
-  { value: 'tb', label: 'งบทดลอง' }, { value: 'pl', label: 'งบกำไรขาดทุน' }, { value: 'bs', label: 'งบแสดงฐานะการเงิน' }, { value: 'gl', label: 'บัญชีแยกประเภท' },
+  { value: 'tb', label: 'งบทดลอง' }, { value: 'pl', label: 'งบกำไรขาดทุน' }, { value: 'bs', label: 'งบแสดงฐานะการเงิน' }, { value: 'gl', label: 'บัญชีแยกประเภท' }, { value: 'cf', label: 'งบกระแสเงินสด' },
 ];
 const TITLE: Record<string, string> = Object.fromEntries(REPORTS.map((r) => [r.value, r.label]));
 const th = 'px-3 py-2';
@@ -53,6 +53,7 @@ export function ReportsTab({ lp }: { lp: LP }) {
         {rep === 'tb' && <TrialBalanceView from={from} to={to} range={asRange} />}
         {rep === 'pl' && <ProfitLossView from={from} to={to} vesselId={vesselId} range={asRange} />}
         {rep === 'bs' && <BalanceSheetView asOf={to} range={asRange} />}
+        {rep === 'cf' && <CashFlowView from={from} to={to} range={asRange} />}
         {rep === 'gl' && (accountId ? <LedgerView from={from} to={to} vesselId={vesselId} accountId={accountId} range={asRange} /> : <p className="text-sm text-muted">เลือกบัญชีเพื่อดูบัญชีแยกประเภท</p>)}
       </div>
     </div>
@@ -190,6 +191,61 @@ function LedgerView({ from, to, vesselId, accountId, range }: { from: string; to
               <tfoot className="border-t border-line bg-slate-50 font-semibold"><tr><td colSpan={4} className={`${th} text-right`}>รวม / ยอดคงเหลือ</td><td className={`${th} text-right tabular-nums`}>{money(d.totalDebit)}</td><td className={`${th} text-right tabular-nums`}>{money(d.totalCredit)}</td><td className={`${th} text-right tabular-nums`}>{money(d.closing)}</td></tr></tfoot>
             </table>
           </div>
+        </Panel>
+      )}
+    </QueryView>
+  );
+}
+
+function CfRows({ title, lines }: { title: string; lines: RepLine[] }) {
+  return (
+    <>
+      <tr className="border-t border-line bg-slate-50/60"><td colSpan={3} className="px-3 py-1.5 text-xs font-medium text-slate-600">{title}</td></tr>
+      {lines.length ? lines.map((l) => <tr key={l.accountId} className="border-t border-line"><td className="whitespace-nowrap px-3 py-1.5 tabular-nums">{l.code}</td><td className="px-3 py-1.5">{l.nameTh}</td><td className="px-3 py-1.5 text-right tabular-nums">{money(l.amount)}</td></tr>)
+        : <tr className="border-t border-line"><td colSpan={3} className="px-3 py-1.5 text-center text-muted">ไม่มีรายการ</td></tr>}
+    </>
+  );
+}
+const CfTotal = ({ label, v }: { label: string; v: number }) => (
+  <tr className="border-t border-line bg-slate-50 font-semibold"><td colSpan={2} className={`${th} text-right`}>{label}</td><td className={`${th} text-right tabular-nums`}>{money(v)}</td></tr>
+);
+
+function CashFlowView({ from, to, range }: { from: string; to: string; range: string }) {
+  const q = useQuery({ queryKey: ['accounting', 'rep', 'cf', from, to], queryFn: () => api.get<CashFlow>('/accounting/reports/cash-flow', { from, to }) });
+  return (
+    <QueryView q={q}>
+      {(d) => (
+        <Panel title={<span className="inline-flex items-center gap-2">งบกระแสเงินสด <Balanced ok={d.balanced} /></span>} bodyClass="p-0"
+          actions={<Csv name={`cash-flow-${from}_${to}.csv`} rows={[['หมวด', 'รหัส', 'รายการ', 'จำนวนเงิน'],
+            ['กิจกรรมดำเนินงาน', '', 'กำไร(ขาดทุน)สุทธิ', d.netProfit],
+            ...d.operating.adjustments.map((l) => ['รายการปรับปรุงที่ไม่ใช่เงินสด', l.code, l.nameTh, l.amount]),
+            ...d.operating.workingCapital.map((l) => ['การเปลี่ยนแปลงเงินทุนหมุนเวียน', l.code, l.nameTh, l.amount]),
+            ['กิจกรรมดำเนินงาน', '', 'เงินสดสุทธิจากกิจกรรมดำเนินงาน', d.operating.total],
+            ...d.investing.items.map((l) => ['กิจกรรมลงทุน', l.code, l.nameTh, l.amount]), ['กิจกรรมลงทุน', '', 'เงินสดสุทธิจากกิจกรรมลงทุน', d.investing.total],
+            ...d.financing.items.map((l) => ['กิจกรรมจัดหาเงิน', l.code, l.nameTh, l.amount]), ['กิจกรรมจัดหาเงิน', '', 'เงินสดสุทธิจากกิจกรรมจัดหาเงิน', d.financing.total],
+            ['', '', 'เงินสดเพิ่ม(ลด)สุทธิ', d.netChange], ['', '', 'เงินสดต้นงวด', d.openingCash], ['', '', 'เงินสดปลายงวด', d.closingCash]]} />}>
+          <p className="px-4 pt-2 text-xs text-muted print:hidden">{range}</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <tbody>
+                <tr className="bg-slate-50"><td colSpan={3} className={`${th} text-xs font-semibold text-slate-600`}>กิจกรรมดำเนินงาน</td></tr>
+                <tr className="border-t border-line"><td colSpan={2} className="px-3 py-1.5">กำไร (ขาดทุน) สุทธิ</td><td className="px-3 py-1.5 text-right tabular-nums">{money(d.netProfit)}</td></tr>
+                <CfRows title="รายการปรับปรุงที่ไม่ใช่เงินสด" lines={d.operating.adjustments} />
+                <CfRows title="การเปลี่ยนแปลงเงินทุนหมุนเวียน" lines={d.operating.workingCapital} />
+                <CfTotal label="เงินสดสุทธิจากกิจกรรมดำเนินงาน" v={d.operating.total} />
+                <tr className="border-t border-line bg-slate-50"><td colSpan={3} className={`${th} text-xs font-semibold text-slate-600`}>กิจกรรมลงทุน</td></tr>
+                <CfRows title="" lines={d.investing.items} />
+                <CfTotal label="เงินสดสุทธิจากกิจกรรมลงทุน" v={d.investing.total} />
+                <tr className="border-t border-line bg-slate-50"><td colSpan={3} className={`${th} text-xs font-semibold text-slate-600`}>กิจกรรมจัดหาเงิน</td></tr>
+                <CfRows title="" lines={d.financing.items} />
+                <CfTotal label="เงินสดสุทธิจากกิจกรรมจัดหาเงิน" v={d.financing.total} />
+                <CfTotal label="เงินสดเพิ่ม (ลด) สุทธิ" v={d.netChange} />
+                <tr className="border-t border-line"><td colSpan={2} className={`${th} text-right`}>เงินสดต้นงวด</td><td className={`${th} text-right tabular-nums`}>{money(d.openingCash)}</td></tr>
+                <CfTotal label="เงินสดปลายงวด" v={d.closingCash} />
+              </tbody>
+            </table>
+          </div>
+          <p className="px-4 py-2 text-xs text-muted">วิธีทางอ้อมแบบย่อ</p>
         </Panel>
       )}
     </QueryView>

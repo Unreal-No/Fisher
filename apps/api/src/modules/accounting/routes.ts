@@ -40,6 +40,11 @@ async function sourceLink(db: DbOrTx, type: string | null, id: string | null): P
     case 'MAINTENANCE_ORDER': return `/maintenance/orders/${id}`;
     case 'PAYROLL_PERIOD': return `/payroll/periods/${id}`;
     case 'EMPLOYEE_ADVANCE': return '/payroll?tab=advances';
+    case 'VENDOR_BILL': return `/accounting/bills/${id}`;
+    case 'VENDOR_PAYMENT': return '/accounting?tab=ap&sub=payments';
+    case 'DEPRECIATION': return '/accounting?tab=assets';
+    case 'ASSET_DISPOSAL': return '/accounting?tab=assets';
+    case 'YEAR_END': return '/accounting?tab=periods';
     default: return null;
   }
 }

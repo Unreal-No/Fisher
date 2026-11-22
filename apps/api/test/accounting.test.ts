@@ -29,7 +29,7 @@ const bal = (t: { items: { code: string; balance: number }[] }, code: string) =>
 
 describe('chart of accounts & manual journals', () => {
   it('standard chart and full mapping are seeded', async () => {
-    expect(accounts.length).toBe(40);
+    expect(accounts.length).toBe(44);
     expect(accounts.find((a) => a.code === '1000')!.isPostable).toBe(false);
     const maps = (await acc.get('/accounting/mappings')).body as { key: string; account: { code: string } | null }[];
     expect(maps.every((m) => m.account)).toBe(true);

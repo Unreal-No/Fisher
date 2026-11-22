@@ -195,7 +195,7 @@ export const ADVANCE_KIND_TH: Record<E.AdvanceKind, string> = { ADVANCE: 'เบ
 export const ADVANCE_STATUS_TH: Record<E.AdvanceStatus, string> = { OPEN: 'ค้างหัก', SETTLED: 'หักครบแล้ว', CANCELLED: 'ยกเลิก' };
 export const PAY_ITEM_CODE_TH: Record<E.PayItemCode, string> = {
   SALARY: 'เงินเดือน', DAILY_WAGE: 'ค่าจ้างรายวัน', TRIP_PAY: 'ค่าจ้างรายเที่ยว', REVENUE_SHARE: 'ส่วนแบ่งรายได้', CATCH_PAY: 'ค่าจ้างตามปริมาณสัตว์น้ำ',
-  BONUS: 'โบนัส', OTHER_EARNING: 'รายได้อื่น', ADVANCE_RECOVERY: 'หักเงินเบิกล่วงหน้า', LOAN_REPAYMENT: 'หักผ่อนเงินกู้', OTHER_DEDUCTION: 'รายการหักอื่น',
+  BONUS: 'โบนัส', OTHER_EARNING: 'รายได้อื่น', ADVANCE_RECOVERY: 'หักเงินเบิกล่วงหน้า', LOAN_REPAYMENT: 'หักผ่อนเงินกู้', OTHER_DEDUCTION: 'รายการหักอื่น', WITHHOLDING_TAX: 'ภาษีหัก ณ ที่จ่าย (ภ.ง.ด.1)',
 };
 /** Warning codes stored on payroll records (calc engine). */
 export const PAYROLL_WARNING_TH: Record<string, string> = {
@@ -217,14 +217,20 @@ export const ACCOUNT_MAP_KEY_TH: Record<E.AccountMapKey, string> = {
   FUEL_EXPENSE: 'ค่าน้ำมันเชื้อเพลิง', SUPPLIES_EXPENSE: 'ค่าเสบียง/วัสดุสิ้นเปลืองเที่ยวเรือ', CREW_WAGES: 'ค่าแรงลูกเรือ/เงินเดือน',
   TRIP_OTHER_EXPENSE: 'ค่าใช้จ่ายเที่ยวเรืออื่น', MAINTENANCE_EXPENSE: 'ค่าซ่อมบำรุงเรือ', INVENTORY_VARIANCE: 'ผลต่างจากการตรวจนับ/ปรับยอด',
   AP: 'เจ้าหนี้การค้า', VAT_INPUT: 'ภาษีซื้อ', WHT_PAYABLE: 'ภาษีหัก ณ ที่จ่ายค้างนำส่ง',
+  RETAINED_EARNINGS: 'กำไร (ขาดทุน) สะสม (ปิดบัญชีสิ้นปี)', GAIN_ON_DISPOSAL: 'กำไรจากการจำหน่ายทรัพย์สิน', LOSS_ON_DISPOSAL: 'ขาดทุนจากการจำหน่ายทรัพย์สิน',
 };
 export const JOURNAL_SOURCE_TH: Record<E.JournalSource, string> = {
   SALES_INVOICE: 'ใบแจ้งหนี้ขาย', SALES_PAYMENT: 'รับชำระ', SALES_RETURN: 'ใบลดหนี้', GOODS_RECEIPT: 'รับสินค้า (ใบสั่งซื้อ)',
   STOCK_MOVEMENT: 'เคลื่อนไหวคลัง', FUEL_TXN: 'ถังน้ำมัน', TRIP_FUEL: 'น้ำมันซื้อตรงเข้าเที่ยว', TRIP_SUPPLY: 'เสบียงซื้อตรงเข้าเที่ยว',
   TRIP_EXPENSE: 'ค่าใช้จ่ายเที่ยวเรือ', MAINTENANCE_ORDER: 'ใบสั่งซ่อม', PAYROLL_PERIOD: 'งวดเงินเดือน', EMPLOYEE_ADVANCE: 'เงินเบิก/เงินกู้',
   VENDOR_BILL: 'ใบแจ้งหนี้ผู้ขาย', VENDOR_PAYMENT: 'จ่ายชำระผู้ขาย',
+  DEPRECIATION: 'ค่าเสื่อมราคา', ASSET_DISPOSAL: 'จำหน่ายทรัพย์สิน', YEAR_END: 'ปิดบัญชีสิ้นปี',
 };
 export const VENDOR_BILL_STATUS_TH: Record<E.VendorBillStatus, string> = { DRAFT: 'ร่าง', APPROVED: 'อนุมัติแล้ว', VOID: 'ยกเลิก' };
 export const BILL_LINE_KIND_TH: Record<E.BillLineKind, string> = { GR: 'ใบรับสินค้า', EXPENSE: 'ค่าใช้จ่าย/ล้างค้างจ่าย' };
 export const VENDOR_PAYMENT_STATUS_TH: Record<E.VendorPaymentStatus, string> = { POSTED: 'จ่ายแล้ว', VOID: 'ยกเลิก' };
 export const BANK_REC_STATUS_TH: Record<E.BankRecStatus, string> = { DRAFT: 'กำลังกระทบยอด', COMPLETED: 'กระทบยอดแล้ว' };
+export const ASSET_CATEGORY_TH: Record<E.AssetCategory, string> = {
+  VESSEL: 'เรือ', ENGINE: 'เครื่องยนต์', FISHING_GEAR: 'เครื่องมือประมง', EQUIPMENT: 'อุปกรณ์', VEHICLE: 'ยานพาหนะ', BUILDING: 'อาคาร', OTHER: 'อื่นๆ',
+};
+export const ASSET_STATUS_TH: Record<E.AssetStatus, string> = { ACTIVE: 'ใช้งาน', DISPOSED: 'จำหน่ายแล้ว' };

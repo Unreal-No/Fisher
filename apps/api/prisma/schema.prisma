@@ -313,6 +313,7 @@ enum PayItemCode {
   ADVANCE_RECOVERY
   LOAN_REPAYMENT
   OTHER_DEDUCTION
+  WITHHOLDING_TAX
 }
 
 enum NotificationSeverity {
@@ -499,6 +500,7 @@ model Vessel {
   payrollRecords    PayrollRecord[]
   journalLines      JournalLine[]
   billLines         VendorBillLine[]
+  fixedAssets       FixedAsset[]
 
   @@index([status])
   @@index([deletedAt])
@@ -1790,6 +1792,9 @@ model Account {
   mappings      AccountMapping[]
   bankAccounts  BankAccount[]
   billLines     VendorBillLine[]
+  assetsCost    FixedAsset[]     @relation("AssetCost")
+  assetsAccum   FixedAsset[]     @relation("AssetAccum")
+  assetsDepExp  FixedAsset[]     @relation("AssetDepExp")
 
   @@index([type])
   @@map("accounts")
@@ -2049,4 +2054,97 @@ model BankRecItem {
 
   @@index([reconciliationId])
   @@map("bank_rec_items")
+}
+
+// ======================= FIXED ASSETS / YEAR END =======================
+enum AssetCategory {
+  VESSEL
+  ENGINE
+  FISHING_GEAR
+  EQUIPMENT
+  VEHICLE
+  BUILDING
+  OTHER
+}
+
+enum AssetStatus {
+  ACTIVE
+  DISPOSED
+}
+
+/// Fixed asset register (straight-line monthly depreciation). Acquisition is booked by the bill/journal that bought it.
+model FixedAsset {
+  id                  String             @id @default(uuid(7)) @db.Uuid
+  assetNo             String             @unique @map("asset_no")
+  name                String
+  category            AssetCategory
+  vesselId            String?            @map("vessel_id") @db.Uuid
+  acquisitionDate     DateTime           @map("acquisition_date") @db.Date
+  /// first month depreciated (month after acquisition, or the same month when acquired on the 1st)
+  depStartDate        DateTime           @map("dep_start_date") @db.Date
+  cost                Decimal            @db.Decimal(14, 2)
+  salvageValue        Decimal            @default(0) @map("salvage_value") @db.Decimal(14, 2)
+  usefulLifeMonths    Int                @map("useful_life_months")
+  assetAccountId      String             @map("asset_account_id") @db.Uuid
+  accumDepAccountId   String             @map("accum_dep_account_id") @db.Uuid
+  depExpenseAccountId String             @map("dep_expense_account_id") @db.Uuid
+  serialNo            String?            @map("serial_no")
+  status              AssetStatus        @default(ACTIVE)
+  disposedAt          DateTime?          @map("disposed_at") @db.Date
+  disposalProceeds    Decimal?           @map("disposal_proceeds") @db.Decimal(14, 2)
+  disposalReason      String?            @map("disposal_reason")
+  notes               String?
+  createdById         String?            @map("created_by_id") @db.Uuid
+  createdAt           DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt           DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  vessel              Vessel?            @relation(fields: [vesselId], references: [id])
+  assetAccount        Account            @relation("AssetCost", fields: [assetAccountId], references: [id])
+  accumDepAccount     Account            @relation("AssetAccum", fields: [accumDepAccountId], references: [id])
+  depExpenseAccount   Account            @relation("AssetDepExp", fields: [depExpenseAccountId], references: [id])
+  depLines            DepreciationLine[]
+
+  @@index([status])
+  @@map("fixed_assets")
+}
+
+model DepreciationRun {
+  id          String             @id @default(uuid(7)) @db.Uuid
+  year        Int
+  month       Int
+  total       Decimal            @db.Decimal(14, 2)
+  entryId     String?            @map("entry_id") @db.Uuid
+  createdById String?            @map("created_by_id") @db.Uuid
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  lines       DepreciationLine[]
+
+  @@unique([year, month])
+  @@map("depreciation_runs")
+}
+
+model DepreciationLine {
+  id      String          @id @default(uuid(7)) @db.Uuid
+  runId   String          @map("run_id") @db.Uuid
+  assetId String          @map("asset_id") @db.Uuid
+  amount  Decimal         @db.Decimal(14, 2)
+  run     DepreciationRun @relation(fields: [runId], references: [id])
+  asset   FixedAsset      @relation(fields: [assetId], references: [id])
+
+  @@unique([runId, assetId])
+  @@index([assetId])
+  @@map("depreciation_lines")
+}
+
+model FiscalYear {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  year           Int          @unique
+  status         FiscalStatus @default(OPEN)
+  closingEntryId String?      @map("closing_entry_id") @db.Uuid
+  closedAt       DateTime?    @map("closed_at") @db.Timestamptz
+  closedById     String?      @map("closed_by_id") @db.Uuid
+  reopenedAt     DateTime?    @map("reopened_at") @db.Timestamptz
+  reopenReason   String?      @map("reopen_reason")
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@map("fiscal_years")
 }
