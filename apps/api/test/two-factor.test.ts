@@ -39,7 +39,7 @@ describe('TOTP primitives', () => {
     expect(verifyTotp(secret, '081804', 37037036, t)).toBeNull(); // replay
     expect(verifyTotp(secret, '12345', null, t)).toBeNull();
     const enc = encrypt('secret-value');
-    expect(enc).toMatch(/^v1:/);
+    expect(enc).toMatch(/^v2:[0-9a-f]{8}:/);
     expect(enc).not.toContain('secret-value');
     expect(decrypt(enc)).toBe('secret-value');
   });

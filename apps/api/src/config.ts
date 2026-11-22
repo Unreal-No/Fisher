@@ -20,6 +20,8 @@ const schema = z.object({
   MAX_UPLOAD_MB: z.coerce.number().default(10),
   /** base64 32-byte key for secrets at rest (2FA). Required in production: `openssl rand -base64 32` */
   APP_ENCRYPTION_KEY: z.string().optional(),
+  /** previous keys (comma-separated) still accepted for decryption during key rotation */
+  APP_ENCRYPTION_KEYS_OLD: z.string().optional(),
   /** login attempts per IP per minute (password and 2FA steps each) */
   LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).default(10),
   /** API requests per IP per minute (all routes) */

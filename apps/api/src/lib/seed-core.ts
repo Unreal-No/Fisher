@@ -1,6 +1,6 @@
 // Idempotent reference data required in every environment (prod included).
 import { PERMISSIONS, ROLE_DEFS, type AccountMapKey } from '@fisher/shared';
-import { encryptExistingPii } from './pii';
+import { encryptExistingPii, reencryptAll } from './pii';
 import type { Db } from './prisma';
 
 export const DOCUMENT_TYPES = [
@@ -153,4 +153,7 @@ export async function seedCore(db: Db) {
   // personal data stored in plaintext by versions before 0.11 is encrypted in place
   const enc = await encryptExistingPii(db);
   if (enc.employees || enc.documents) console.log(`Encrypted personal data: ${enc.employees} employees, ${enc.documents} documents`);
+  // values written with an old key (APP_ENCRYPTION_KEYS_OLD) are re-encrypted with the current key
+  const rot = Object.values(await reencryptAll(db)).reduce((a, b) => a + b, 0);
+  if (rot) console.log(`Re-encrypted ${rot} values with the current key`);
 }

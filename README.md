@@ -58,6 +58,12 @@ docker compose exec api node apps/api/dist/seed.js
 ```
 API รัน `prisma migrate deploy` อัตโนมัติก่อนเริ่ม · วาง HTTPS (Caddy/Traefik/Cloudflare) หน้า `web:8080` · ไฟล์เก็บที่ volume `files` หรือ S3 (`STORAGE_DRIVER=s3`)
 
+## หมุนกุญแจเข้ารหัส (key rotation)
+1. สร้างกุญแจใหม่ `openssl rand -base64 32`
+2. ตั้ง `APP_ENCRYPTION_KEYS_OLD=<กุญแจเดิม>` และ `APP_ENCRYPTION_KEY=<กุญแจใหม่>` แล้วรีสตาร์ต API (ระหว่างนี้อ่านข้อมูลได้ทั้งสองกุญแจ)
+3. รัน seed (`pnpm db:seed` หรือ `docker compose exec api node apps/api/dist/seed.js`) — เข้ารหัสข้อมูลส่วนบุคคลและ secret ของ 2FA ใหม่ด้วยกุญแจใหม่ (แสดงจำนวนที่เข้ารหัสใหม่)
+4. ลบกุญแจเดิมออกจาก `APP_ENCRYPTION_KEYS_OLD` แล้วรีสตาร์ต — เก็บกุญแจเดิมไว้ในที่ปลอดภัยตราบที่ยังต้องกู้คืน backup เก่า
+
 ## Backup / Restore
 ```bash
 DATABASE_URL=postgresql://... STORAGE_DIR=/path/to/storage ./scripts/backup.sh ./backups 14
