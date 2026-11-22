@@ -10,6 +10,10 @@ export interface FleetVessel {
 export interface Fleet { signalLostMinutes: number; vessels: FleetVessel[] }
 export interface Track {
   total: number; sampledEvery: number;
+  /** demo points left out because the window has real data */
+  demoHidden?: number;
+  /** devices that reported in the window (the busiest is primary, others fill its gaps) */
+  devices?: number;
   points: Pos[];
   trips: { id: string; tripNo: string; departedAt: string | null; departureLat: string | null; departureLng: string | null; departurePort: string | null; arrivedAt: string | null; arrivalLat: string | null; arrivalLng: string | null; arrivalPort: string | null }[];
   analysis?: Analysis;

@@ -132,6 +132,13 @@ export function HistoryTab() {
                     <p>ระยะทาง {formatNumber(s.nm, 1)} ไมล์ทะเล ({formatNumber(s.km, 1)} กม.)</p>
                     <p>เดินเรือ {formatNumber(s.movingHours, 1)} ชม. · จอด/พัก {formatNumber(s.stoppedHours, 1)} ชม. ({s.stops} จุด, นานสุด {formatNumber(s.longestStopHours, 1)} ชม.)</p>
                   </div>
+                  {(!!t.demoHidden || (t.devices ?? 0) > 1) && (
+                    <p className="mt-2 text-xs text-muted">
+                      {!!t.demoHidden && `ไม่แสดงข้อมูลจำลอง ${formatNumber(t.demoHidden, 0)} จุด เพราะช่วงนี้มีข้อมูลจริง`}
+                      {!!t.demoHidden && (t.devices ?? 0) > 1 && ' · '}
+                      {(t.devices ?? 0) > 1 && `รวม ${t.devices} อุปกรณ์: ใช้อุปกรณ์ที่ส่งข้อมูลมากที่สุดเป็นหลัก และเติมช่วงที่ขาดจากอุปกรณ์อื่น`}
+                    </p>
+                  )}
                 </Panel>
               )}
               <Panel title="ไทม์ไลน์" bodyClass="p-0 max-h-[50vh] overflow-y-auto" actions={<ExportMenu size="sm" baseName="ประวัติการเดินทาง" sheetName="ไทม์ไลน์" rows={exportRows} disabled={!items.length} />}>

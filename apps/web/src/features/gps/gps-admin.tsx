@@ -117,7 +117,7 @@ function SimulatorPanel() {
         <input type="checkbox" role="switch" className="size-4" checked={!!q.data?.gpsSimulator} disabled={!q.data || save.isPending} onChange={(e) => save.mutate(e.target.checked)} />
         สัญญาณจำลอง AIS/VMS
       </label>
-      <p className="mt-2 text-xs text-muted">ใช้ระหว่างยังไม่เชื่อมต่อผู้ให้บริการจริง — เรือที่ออกทะเลจะเคลื่อนที่ตามเส้นทางจำลองทุก 1 นาที (ข้อมูลติดป้าย จำลอง และถูกลบเมื่อล้างข้อมูลก่อนใช้งานจริง)</p>
+      <p className="mt-2 text-xs text-muted">ใช้ระหว่างยังไม่เชื่อมต่อผู้ให้บริการจริง — เรือที่ออกทะเลจะเคลื่อนที่ตามเส้นทางจำลองทุก 1 นาที (ข้อมูลติดป้าย จำลอง และถูกลบเมื่อล้างข้อมูลก่อนใช้งานจริง) · เรือที่ลงทะเบียนอุปกรณ์ GPS จริง หรือมีข้อมูลจริงภายใน 24 ชม. จะไม่ถูกจำลอง เพื่อไม่ให้ปนกับข้อมูลจริง</p>
     </Panel>
   );
 }

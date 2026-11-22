@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { move } from '../src/modules/gps/geo';
+import { mergeDevices } from '../src/modules/gps/service';
 import { analyzeVoyage, type TrackPoint } from '../src/modules/gps/voyage';
 
 const PORT = { lat: 7.22, lng: 100.6 };
@@ -60,5 +61,24 @@ describe('voyage analysis', () => {
     expect(r.legs).toHaveLength(0);
     expect(analyzeVoyage([]).summary.start).toBeNull();
     expect(analyzeVoyage([pts[0]!]).summary).toMatchObject({ stops: 0, km: 0 });
+  });
+});
+
+describe('merging devices into one track', () => {
+  const at = (m: number) => new Date(Date.UTC(2026, 10, 1, 0, m));
+  const row = (deviceId: string, m: number, isDemo = false, lat = 7.5) => ({ deviceId, source: 'DEDICATED', isDemo, recordedAt: at(m), lat, lng: 100.8 });
+  it('keeps the busiest device, takes others where it was silent or where they agree, never mixes demo into real data', () => {
+    const a = [0, 10, 20, 30, 40, 100, 110].map((m) => row('A', m));
+    // B: 5 and 15 far away while A reports (dropped), 25 agrees with A (kept), 60–80 cover A's silent period
+    const b = [row('B', 5, false, 8.5), row('B', 15, false, 8.5), row('B', 25), ...[60, 70, 80].map((m) => row('B', m, false, 8.5))];
+    const demo = [0, 1, 2, 3].map((m) => row('SIM', m, true));
+    const r = mergeDevices([...a, ...b, ...demo]);
+    expect(r.demoHidden).toBe(4);
+    expect(r.devices).toBe(2);
+    expect(r.rows.map((x) => `${x.deviceId}${x.recordedAt.getUTCMinutes() + x.recordedAt.getUTCHours() * 60}`)).toEqual(['A0', 'A10', 'A20', 'B25', 'A30', 'A40', 'B60', 'B70', 'B80', 'A100', 'A110']);
+    const onlyDemo = mergeDevices(demo);
+    expect(onlyDemo).toMatchObject({ demoHidden: 0, devices: 1 });
+    expect(onlyDemo.rows).toHaveLength(4);
+    expect(mergeDevices([])).toMatchObject({ rows: [], demoHidden: 0, devices: 0 });
   });
 });

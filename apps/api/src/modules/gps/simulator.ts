@@ -16,6 +16,7 @@ const GROUND_RADIUS_KM = 12;
 const BACKFILL_DAYS = 21;
 const STEP_MIN = 10; // backfill resolution
 const HEARTBEAT_MIN = 15;
+const REAL_QUIET_HOURS = 24;
 
 /** deterministic 0..1 values per vessel */
 function seed(id: string, i: number) {
@@ -72,12 +73,33 @@ async function simDevice(vesselId: string) {
   });
 }
 
-/** Advance every vessel to `now`. Backfills from departure when a trip has no simulated track yet. */
+/**
+ * Vessels the simulator leaves alone: real hardware is registered for them (an active device that is not a simulator/demo
+ * one) or real positions arrived in the last 24 h. Real data is never mixed with simulated data.
+ */
+export async function vesselsWithRealData(now = new Date()) {
+  const [devices, recent] = await Promise.all([
+    prisma.gpsDevice.findMany({
+      where: { isActive: true, vesselId: { not: null }, NOT: [{ identifier: { startsWith: 'sim:' } }, { identifier: { startsWith: 'demo:' } }] },
+      select: { vesselId: true },
+    }),
+    prisma.gpsPosition.findMany({
+      where: { isDemo: false, recordedAt: { gte: new Date(now.getTime() - REAL_QUIET_HOURS * 3_600_000) } },
+      distinct: ['vesselId'], select: { vesselId: true },
+    }),
+  ]);
+  return new Set([...devices, ...recent].map((d) => d.vesselId!).filter(Boolean));
+}
+
+/** Advance every vessel without real data to `now`. Backfills from departure when a trip has no simulated track yet. */
 export async function runSimulatorTick(now = new Date()) {
-  const vessels = await prisma.vessel.findMany({
-    where: { deletedAt: null, status: { not: 'INACTIVE' } },
-    select: { id: true, trips: { where: { status: { in: [...AT_SEA_STATUSES] } }, select: { status: true, departedAt: true, departureLat: true, departureLng: true }, take: 1 } },
-  });
+  const real = await vesselsWithRealData(now);
+  const vessels = (
+    await prisma.vessel.findMany({
+      where: { deletedAt: null, status: { not: 'INACTIVE' } },
+      select: { id: true, trips: { where: { status: { in: [...AT_SEA_STATUSES] } }, select: { status: true, departedAt: true, departureLat: true, departureLng: true }, take: 1 } },
+    })
+  ).filter((v) => !real.has(v.id));
   let written = 0;
   for (const v of vessels) {
     const trip = v.trips[0];
@@ -107,5 +129,5 @@ export async function runSimulatorTick(now = new Date()) {
       written += r.accepted;
     }
   }
-  return { vessels: vessels.length, written };
+  return { vessels: vessels.length, skippedReal: real.size, written };
 }
