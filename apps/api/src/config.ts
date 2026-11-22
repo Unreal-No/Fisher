@@ -26,6 +26,11 @@ const schema = z.object({
   LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).default(10),
   /** API requests per IP per minute (all routes) */
   RATE_LIMIT_PER_MIN: z.coerce.number().int().min(10).default(600),
+  /** GPS over MQTT (optional): broker URL e.g. mqtts://broker:8883 — devices publish to {MQTT_TOPIC_PREFIX}/{adapter}/{device identifier} */
+  MQTT_URL: z.string().optional(),
+  MQTT_USERNAME: z.string().optional(),
+  MQTT_PASSWORD: z.string().optional(),
+  MQTT_TOPIC_PREFIX: z.string().default('fisher/gps'),
 });
 
 export type Config = z.infer<typeof schema>;

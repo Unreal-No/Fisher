@@ -17,6 +17,7 @@
 | M7.3 | คำนวณภาษีเงินได้/ประกันสังคมอัตโนมัติ, ไฟล์ยื่นภาษีอิเล็กทรอนิกส์, หนังสือรับรอง 50 ทวิ, นำเข้า statement ธนาคาร, งบประมาณ | ⏳ |
 | M8 Reports & hardening | 2FA (TOTP + รหัสกู้คืน + บังคับตามบทบาท + ผู้ดูแลรีเซ็ต), ส่งออก Excel (.xlsx) + CSV ทุกรายงาน (PDF ผ่านหน้าพิมพ์), label ฟอร์มผูกกับช่องกรอก (a11y), E2E Playwright ใน CI, dependency audit สะอาด | ✅ |
 | M8.1 | เข้ารหัสคอลัมน์ข้อมูลส่วนบุคคล (โปร่งใสผ่าน Prisma extension + เข้ารหัสข้อมูลเดิม), load test พร้อมข้อมูลปริมาณมาก (docs/PERFORMANCE.md), rate limit ตั้งค่าได้ | ✅ |
-| M8.2 | PDF ฝั่งเซิร์ฟเวอร์ + ส่งอีเมล, หมุนกุญแจเข้ารหัส, pen-test ภายนอก, MQTT bridge, cache แดชบอร์ด | ⏳ |
+| M8.2 | หมุนกุญแจเข้ารหัส (key id ใน ciphertext, กุญแจเก่าอ่านได้ระหว่างหมุน, seed เข้ารหัสใหม่), รับ GPS ผ่าน MQTT (ใช้ adapter + ingest เดิม, ทดสอบกับ broker จริง) | ✅ |
+| M8.3 | PDF ฝั่งเซิร์ฟเวอร์ + ส่งอีเมล (ต้องมี SMTP), ดึงข้อมูล AIS/VMS จากผู้ให้บริการ (ต้องมี credential), cache แดชบอร์ด, pen-test ภายนอก | ⏳ |
 
 แต่ละ milestone: typecheck → lint → unit/integration/API tests → build → อัปเดต docs

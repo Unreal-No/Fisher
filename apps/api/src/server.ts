@@ -1,6 +1,7 @@
 import { buildApp } from './app';
 import { config } from './config';
 import { prisma } from './lib/prisma';
+import { startMqttBridge } from './modules/gps/mqtt';
 import { scanSignalLost } from './modules/gps/service';
 import { scanLowStock } from './modules/inventory/alerts';
 import { scanMaintenanceDue } from './modules/maintenance/service';
@@ -8,6 +9,8 @@ import { scanExpirations } from './modules/notifications/service';
 
 const app = await buildApp();
 await app.listen({ port: config.PORT, host: '0.0.0.0' });
+// GPS over MQTT (only when MQTT_URL is set)
+const mqttClient = startMqttBridge(app.log);
 
 // Background jobs (single-instance). For multi-instance deploys move to a scheduler / advisory lock.
 const job = async () => {
@@ -28,6 +31,7 @@ for (const sig of ['SIGINT', 'SIGTERM'] as const) {
   process.on(sig, async () => {
     clearInterval(timer);
     clearInterval(gpsTimer);
+    mqttClient?.end();
     await app.close();
     await prisma.$disconnect();
     process.exit(0);
