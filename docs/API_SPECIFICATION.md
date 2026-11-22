@@ -65,6 +65,12 @@ Codes: 400 VALIDATION_ERROR/BAD_REQUEST · 401 · 403 FORBIDDEN/CSRF/MUST_CHANGE
 | GET /payroll/periods/:id/records/:recordId | payroll.view | สลิป (เลขบัญชี mask ถ้าไม่มี employee.sensitive) |
 | GET /payroll/periods/:id/bank-file | payroll.approve + employee.sensitive | CSV ทั่วไป (UTF-8 BOM), header x-missing-accounts; audit EXPORT |
 | GET /payroll/employees/:id/history | payroll.view | งวดและเงินเบิกของพนักงาน |
+| GET/POST /accounting/accounts · PUT …/:id | finance.view / finance.approve | บัญชีมีรายการแล้วเปลี่ยนรหัส/หมวดไม่ได้ (409 ACCOUNT_IN_USE); ผู้ใช้จำกัดเรือ → 403 ทั้งโมดูล |
+| GET/PUT /accounting/mappings | finance.view / finance.approve | บัญชีต้องรับรายการและเปิดใช้งาน |
+| GET /accounting/periods?year · GET …/:year/:month/checklist · POST …/close · POST …/reopen {reason} | finance.view / finance.approve | 409 PERIOD_NOT_READY (details = รายการร่าง/เอกสารรอลง) |
+| GET/POST /accounting/journals · GET/PUT …/:id · POST …/:id/{post,void,reverse} | finance.view/edit/approve | ผู้บันทึกผ่านรายการเองไม่ได้ (403); 409 PERIOD_CLOSED / AUTO_ENTRY (รายการอัตโนมัติให้ยกเลิกที่เอกสาร) |
+| GET /accounting/auto-post/pending?to · POST /accounting/auto-post {to?} | finance.view / finance.approve | คืน {posted, byType, exceptions[]} |
+| GET /accounting/reports/{trial-balance,profit-loss,balance-sheet,general-ledger} | finance.view | from/to (asOf), vesselId, accountId |
 | GET/POST /users · PATCH /users/:id · POST /users/:id/reset-password | user.manage | |
 | GET /roles · /permissions · PUT /roles/:id/permissions | role.manage∨user.manage / role.manage | SUPER_ADMIN แก้ไม่ได้ |
 | GET /audit-logs | audit.view | |

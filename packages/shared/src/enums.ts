@@ -178,3 +178,27 @@ export const PAY_ITEM_CODE = [
 export type PayItemCode = (typeof PAY_ITEM_CODE)[number];
 export const EARNING_CODES: PayItemCode[] = ['SALARY', 'DAILY_WAGE', 'TRIP_PAY', 'REVENUE_SHARE', 'CATCH_PAY', 'BONUS', 'OTHER_EARNING'];
 export const ADJUSTMENT_CODES = ['BONUS', 'OTHER_EARNING', 'OTHER_DEDUCTION'] as const;
+
+// ---------- accounting ----------
+export const ACCOUNT_TYPE = ['ASSET', 'LIABILITY', 'EQUITY', 'REVENUE', 'EXPENSE'] as const;
+export type AccountType = (typeof ACCOUNT_TYPE)[number];
+export const NORMAL_BALANCE = ['DEBIT', 'CREDIT'] as const;
+export type NormalBalance = (typeof NORMAL_BALANCE)[number];
+export const JOURNAL_STATUS = ['DRAFT', 'POSTED', 'REVERSED', 'VOID'] as const;
+export type JournalStatus = (typeof JOURNAL_STATUS)[number];
+export const FISCAL_STATUS = ['OPEN', 'CLOSED'] as const;
+export type FiscalStatus = (typeof FISCAL_STATUS)[number];
+/** Keys of the account mapping used by automatic posting. */
+export const ACCOUNT_MAP_KEY = [
+  'CASH', 'BANK', 'AR', 'EMPLOYEE_ADVANCES', 'INVENTORY', 'FUEL_INVENTORY',
+  'GRNI', 'ACCRUED_EXPENSES', 'ACCRUED_WAGES', 'VAT_OUTPUT',
+  'SALES_REVENUE', 'SALES_RETURNS', 'OTHER_INCOME',
+  'FUEL_EXPENSE', 'SUPPLIES_EXPENSE', 'CREW_WAGES', 'TRIP_OTHER_EXPENSE', 'MAINTENANCE_EXPENSE', 'INVENTORY_VARIANCE',
+] as const;
+export type AccountMapKey = (typeof ACCOUNT_MAP_KEY)[number];
+/** Source documents that are posted automatically (sourceType on journal entries). */
+export const JOURNAL_SOURCE = [
+  'SALES_INVOICE', 'SALES_PAYMENT', 'SALES_RETURN', 'GOODS_RECEIPT', 'STOCK_MOVEMENT', 'FUEL_TXN', 'TRIP_FUEL', 'TRIP_SUPPLY',
+  'TRIP_EXPENSE', 'MAINTENANCE_ORDER', 'PAYROLL_PERIOD', 'EMPLOYEE_ADVANCE',
+] as const;
+export type JournalSource = (typeof JOURNAL_SOURCE)[number];

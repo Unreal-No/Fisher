@@ -633,3 +633,41 @@ export const payrollPaySchema = z.object({
   method: z.enum(E.PAYMENT_METHOD),
   reference: optStr(100),
 });
+
+// ---------- accounting ----------
+export const accountSchema = z.object({
+  code: z.string({ error: REQ }).trim().regex(/^\d{4,6}$/, 'รหัสบัญชีเป็นตัวเลข 4–6 หลัก'),
+  nameTh: reqStr(150),
+  nameEn: optStr(150),
+  type: z.enum(E.ACCOUNT_TYPE),
+  normalBalance: z.enum(E.NORMAL_BALANCE),
+  parentId: optId,
+  isPostable: z.boolean().default(true),
+  isActive: z.boolean().default(true),
+  description: optStr(500),
+});
+const r2 = (v: number) => Math.round(v * 100) / 100;
+export const journalLineSchema = z
+  .object({
+    accountId: id,
+    debit: optNum(0, 1e12),
+    credit: optNum(0, 1e12),
+    description: optStr(300),
+    vesselId: optId,
+    tripId: optId,
+  })
+  .refine((l) => (l.debit ?? 0) > 0 !== (l.credit ?? 0) > 0, { path: ['debit'], message: 'แต่ละบรรทัดต้องมีเดบิตหรือเครดิตอย่างใดอย่างหนึ่ง' });
+export const journalSchema = z
+  .object({
+    entryDate: isoDate,
+    memo: reqStr(300),
+    reference: optStr(100),
+    lines: z.array(journalLineSchema).min(2, 'ต้องมีอย่างน้อย 2 บรรทัด').max(200),
+  })
+  .superRefine((j, ctx) => {
+    const dr = r2(j.lines.reduce((s, l) => s + (l.debit ?? 0), 0));
+    const cr = r2(j.lines.reduce((s, l) => s + (l.credit ?? 0), 0));
+    if (dr !== cr) ctx.addIssue({ code: 'custom', path: ['lines'], message: `เดบิต (${dr}) ต้องเท่ากับเครดิต (${cr})` });
+  });
+export const journalReverseSchema = z.object({ entryDate: isoDate, reason: reqStr(500) });
+export const accountMappingSchema = z.object({ mappings: z.partialRecord(z.enum(E.ACCOUNT_MAP_KEY), id) });

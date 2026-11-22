@@ -203,3 +203,22 @@ export const PAYROLL_WARNING_TH: Record<string, string> = {
   DEDUCTION_OVER_LIMIT: 'ยอดหักเกินร้อยละที่ตั้งไว้ — ตรวจสอบเพดานการหักตาม พ.ร.บ.คุ้มครองแรงงาน ม.76',
   NO_EARNINGS: 'ไม่มีรายได้ในงวดนี้',
 };
+
+// ---------- accounting ----------
+export const ACCOUNT_TYPE_TH: Record<E.AccountType, string> = { ASSET: 'สินทรัพย์', LIABILITY: 'หนี้สิน', EQUITY: 'ส่วนของเจ้าของ', REVENUE: 'รายได้', EXPENSE: 'ค่าใช้จ่าย' };
+export const NORMAL_BALANCE_TH: Record<E.NormalBalance, string> = { DEBIT: 'เดบิต', CREDIT: 'เครดิต' };
+export const JOURNAL_STATUS_TH: Record<E.JournalStatus, string> = { DRAFT: 'ร่าง', POSTED: 'ผ่านรายการแล้ว', REVERSED: 'กลับรายการแล้ว', VOID: 'ยกเลิก' };
+export const FISCAL_STATUS_TH: Record<E.FiscalStatus, string> = { OPEN: 'เปิด', CLOSED: 'ปิดงวดแล้ว' };
+export const ACCOUNT_MAP_KEY_TH: Record<E.AccountMapKey, string> = {
+  CASH: 'เงินสด (รับ/จ่ายด้วยเงินสด)', BANK: 'เงินฝากธนาคาร (โอน/เช็ค/อื่นๆ)', AR: 'ลูกหนี้การค้า', EMPLOYEE_ADVANCES: 'เงินยืม/เงินเบิกพนักงาน',
+  INVENTORY: 'สินค้าคงเหลือ (วัสดุ/อะไหล่)', FUEL_INVENTORY: 'น้ำมันคงเหลือในถัง', GRNI: 'รับสินค้า/บริการแล้วรอตั้งหนี้',
+  ACCRUED_EXPENSES: 'ค่าใช้จ่ายค้างจ่าย', ACCRUED_WAGES: 'ค่าแรงค้างจ่าย', VAT_OUTPUT: 'ภาษีขาย',
+  SALES_REVENUE: 'รายได้ขายสัตว์น้ำ', SALES_RETURNS: 'รับคืน/ลดหนี้จากการขาย', OTHER_INCOME: 'รายได้อื่น (ค่าขนส่งเรียกเก็บ/หักพนักงาน)',
+  FUEL_EXPENSE: 'ค่าน้ำมันเชื้อเพลิง', SUPPLIES_EXPENSE: 'ค่าเสบียง/วัสดุสิ้นเปลืองเที่ยวเรือ', CREW_WAGES: 'ค่าแรงลูกเรือ/เงินเดือน',
+  TRIP_OTHER_EXPENSE: 'ค่าใช้จ่ายเที่ยวเรืออื่น', MAINTENANCE_EXPENSE: 'ค่าซ่อมบำรุงเรือ', INVENTORY_VARIANCE: 'ผลต่างจากการตรวจนับ/ปรับยอด',
+};
+export const JOURNAL_SOURCE_TH: Record<E.JournalSource, string> = {
+  SALES_INVOICE: 'ใบแจ้งหนี้ขาย', SALES_PAYMENT: 'รับชำระ', SALES_RETURN: 'ใบลดหนี้', GOODS_RECEIPT: 'รับสินค้า (ใบสั่งซื้อ)',
+  STOCK_MOVEMENT: 'เคลื่อนไหวคลัง', FUEL_TXN: 'ถังน้ำมัน', TRIP_FUEL: 'น้ำมันซื้อตรงเข้าเที่ยว', TRIP_SUPPLY: 'เสบียงซื้อตรงเข้าเที่ยว',
+  TRIP_EXPENSE: 'ค่าใช้จ่ายเที่ยวเรือ', MAINTENANCE_ORDER: 'ใบสั่งซ่อม', PAYROLL_PERIOD: 'งวดเงินเดือน', EMPLOYEE_ADVANCE: 'เงินเบิก/เงินกู้',
+};

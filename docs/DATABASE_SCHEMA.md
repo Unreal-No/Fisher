@@ -53,6 +53,11 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | payroll_records | ยอดต่อพนักงานต่องวด gross/deduction/net + warnings | unique (period, employee); CHECK net ≥ 0 |
 | payroll_items | บรรทัดรายได้/รายการหัก + calc (สูตร/ข้อมูลที่ใช้), อ้างอิง trip/rule/advance | CHECK amount ≥ 0 |
 | payroll_adjustments | โบนัส/รายได้อื่น/รายการหักอื่น ระดับงวด (แก้แล้วงวดกลับเป็นร่าง) | CHECK amount > 0 |
+| accounts | ผังบัญชี: code, หมวด, ด้านปกติ, บัญชีคุม (ไม่รับรายการ)/บัญชีย่อย, เปิด-ปิดใช้งาน | code unique; CHECK ไม่ชี้ตัวเอง |
+| account_mappings | บัญชีที่ใช้ลงอัตโนมัติต่อ key (AR, GRNI, CREW_WAGES …) | PK key |
+| fiscal_periods | งวดบัญชีรายเดือน OPEN/CLOSED, ผู้ปิด, เหตุผลเปิดใหม่ | unique (year, month) |
+| journal_entries | สมุดรายวัน JV: DRAFT→POSTED→REVERSED / VOID; source_type/id/event ของเอกสารต้นทาง; reversal_of | partial unique (source_type, source_id, source_event); CHECK สมดุลเมื่อผ่านรายการ; trigger: สร้างเป็นร่างเท่านั้น, ผ่านรายการต้องสมดุล ≥2 บรรทัดและงวดไม่ปิด, ผ่านแล้วแก้/ลบไม่ได้ (ยกเว้นเปลี่ยนเป็น REVERSED) |
+| journal_lines | บรรทัดเดบิต/เครดิต + มิติ vessel/trip | CHECK ด้านเดียว ≥0; trigger: แก้ได้เฉพาะรายการร่าง |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |
@@ -60,4 +65,4 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 
 ## แผนตารางเฟสถัดไป
 - Payroll ต่อยอด: ประกันสังคม/ภาษีหัก ณ ที่จ่าย, payment vouchers ผูกบัญชี (M7)
-- Accounting: `chart_of_accounts`, `fiscal_periods` (closing), `journal_entries` (DRAFT/POSTED/REVERSED), `journal_lines` (Σdr=Σcr ตรวจด้วย deferred constraint trigger), `bank_accounts`, `cost_allocations` (vessel/trip/department)
+- Accounting ต่อยอด (M7.1): `vendor_bills` / `vendor_payments` (ล้างยอดรอตั้งหนี้), `bank_accounts` + กระทบยอด, ภาษีซื้อ/หัก ณ ที่จ่าย, ปิดบัญชีสิ้นปี, `fixed_assets` + ค่าเสื่อม

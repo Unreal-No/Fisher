@@ -20,6 +20,7 @@ import purchasingRoutes from './modules/purchasing/routes';
 import salesRoutes from './modules/sales/routes';
 import maintenanceRoutes from './modules/maintenance/routes';
 import payrollRoutes from './modules/payroll/routes';
+import accountingRoutes from './modules/accounting/routes';
 import notificationRoutes from './modules/notifications/routes';
 import tripRoutes from './modules/trips/routes';
 import vesselRoutes from './modules/vessels/routes';
@@ -71,6 +72,7 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
       await api.register(salesRoutes, { prefix: '/sales' });
       await api.register(maintenanceRoutes, { prefix: '/maintenance' });
       await api.register(payrollRoutes, { prefix: '/payroll' });
+      await api.register(accountingRoutes, { prefix: '/accounting' });
     },
     { prefix: '/api/v1' },
   );

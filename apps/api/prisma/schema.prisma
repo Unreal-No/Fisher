@@ -497,6 +497,7 @@ model Vessel {
   compensationRules CompensationRule[]
   payrollPeriods    PayrollPeriod[]
   payrollRecords    PayrollRecord[]
+  journalLines      JournalLine[]
 
   @@index([status])
   @@index([deletedAt])
@@ -699,6 +700,7 @@ model FishingTrip {
   vessel        Vessel              @relation(fields: [vesselId], references: [id])
   captain       Employee?           @relation("TripCaptain", fields: [captainId], references: [id])
   crew          TripCrew[]
+  journalLines  JournalLine[]
   fuel          TripFuel[]
   supplies      TripSupply[]
   expenses      TripExpense[]
@@ -1731,4 +1733,142 @@ model PayrollAdjustment {
 
   @@index([periodId])
   @@map("payroll_adjustments")
+}
+
+// ======================= ACCOUNTING =======================
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum NormalBalance {
+  DEBIT
+  CREDIT
+}
+
+enum JournalStatus {
+  DRAFT
+  POSTED
+  REVERSED
+  VOID
+}
+
+enum FiscalStatus {
+  OPEN
+  CLOSED
+}
+
+model Account {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  code          String           @unique
+  nameTh        String           @map("name_th")
+  nameEn        String?          @map("name_en")
+  type          AccountType
+  normalBalance NormalBalance    @map("normal_balance")
+  parentId      String?          @map("parent_id") @db.Uuid
+  /// header accounts group others and cannot be posted to
+  isPostable    Boolean          @default(true) @map("is_postable")
+  isActive      Boolean          @default(true) @map("is_active")
+  /// created by the standard chart (seed)
+  isSystem      Boolean          @default(false) @map("is_system")
+  description   String?
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime         @updatedAt @map("updated_at") @db.Timestamptz
+  parent        Account?         @relation("AccountTree", fields: [parentId], references: [id])
+  children      Account[]        @relation("AccountTree")
+  lines         JournalLine[]
+  mappings      AccountMapping[]
+
+  @@index([type])
+  @@map("accounts")
+}
+
+/// Which account automatic posting uses for each purpose (key = ACCOUNT_MAP_KEY).
+model AccountMapping {
+  key         String   @id
+  accountId   String   @map("account_id") @db.Uuid
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz
+  account     Account  @relation(fields: [accountId], references: [id])
+
+  @@map("account_mappings")
+}
+
+model FiscalPeriod {
+  id           String       @id @default(uuid(7)) @db.Uuid
+  year         Int
+  month        Int
+  startDate    DateTime     @map("start_date") @db.Date
+  endDate      DateTime     @map("end_date") @db.Date
+  status       FiscalStatus @default(OPEN)
+  closedAt     DateTime?    @map("closed_at") @db.Timestamptz
+  closedById   String?      @map("closed_by_id") @db.Uuid
+  reopenedAt   DateTime?    @map("reopened_at") @db.Timestamptz
+  reopenReason String?      @map("reopen_reason")
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@unique([year, month])
+  @@map("fiscal_periods")
+}
+
+/// Double-entry journal. Posted entries are immutable (DB trigger); corrections are reversing entries.
+model JournalEntry {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  entryNo       String        @unique @map("entry_no")
+  entryDate     DateTime      @map("entry_date") @db.Date
+  status        JournalStatus @default(DRAFT)
+  memo          String
+  reference     String?
+  /// automatic posting: source document + event (unique together)
+  sourceType    String?       @map("source_type")
+  sourceId      String?       @map("source_id") @db.Uuid
+  sourceEvent   String?       @map("source_event")
+  /// human document number of the source (e.g. INV-2569-0001)
+  sourceRef     String?       @map("source_ref")
+  totalDebit    Decimal       @default(0) @map("total_debit") @db.Decimal(16, 2)
+  totalCredit   Decimal       @default(0) @map("total_credit") @db.Decimal(16, 2)
+  reversalOfId  String?       @unique @map("reversal_of_id") @db.Uuid
+  createdById   String?       @map("created_by_id") @db.Uuid
+  postedAt      DateTime?     @map("posted_at") @db.Timestamptz
+  postedById    String?       @map("posted_by_id") @db.Uuid
+  reversedAt    DateTime?     @map("reversed_at") @db.Timestamptz
+  reverseReason String?       @map("reverse_reason")
+  voidedAt      DateTime?     @map("voided_at") @db.Timestamptz
+  voidReason    String?       @map("void_reason")
+  createdAt     DateTime      @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime      @updatedAt @map("updated_at") @db.Timestamptz
+  lines         JournalLine[]
+  reversalOf    JournalEntry? @relation("Reversal", fields: [reversalOfId], references: [id])
+  reversedBy    JournalEntry? @relation("Reversal")
+
+  @@index([entryDate])
+  @@index([status])
+  @@index([sourceType, sourceId])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  entryId     String       @map("entry_id") @db.Uuid
+  lineNo      Int          @map("line_no")
+  accountId   String       @map("account_id") @db.Uuid
+  debit       Decimal      @default(0) @db.Decimal(16, 2)
+  credit      Decimal      @default(0) @db.Decimal(16, 2)
+  description String?
+  vesselId    String?      @map("vessel_id") @db.Uuid
+  tripId      String?      @map("trip_id") @db.Uuid
+  entry       JournalEntry @relation(fields: [entryId], references: [id])
+  account     Account      @relation(fields: [accountId], references: [id])
+  vessel      Vessel?      @relation(fields: [vesselId], references: [id])
+  trip        FishingTrip? @relation(fields: [tripId], references: [id])
+
+  @@index([entryId])
+  @@index([accountId])
+  @@index([vesselId])
+  @@index([tripId])
+  @@map("journal_lines")
 }
