@@ -46,7 +46,7 @@ export async function buildApp(opts: FastifyServerOptions = {}) {
   });
   await app.register(cors, { origin: config.CORS_ORIGINS.split(',').map((s) => s.trim()), credentials: true });
   await app.register(cookie);
-  await app.register(rateLimit, { max: config.NODE_ENV === 'test' ? 10_000 : 600, timeWindow: '1 minute' });
+  await app.register(rateLimit, { max: config.NODE_ENV === 'test' ? 10_000 : config.RATE_LIMIT_PER_MIN, timeWindow: '1 minute' });
   await app.register(multipart, { limits: { fileSize: config.MAX_UPLOAD_MB * 1024 * 1024, files: 1 } });
   await app.register(authPlugin);
   registerErrorHandler(app);

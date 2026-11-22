@@ -65,6 +65,7 @@ Conventions: ตาราง/คอลัมน์ snake_case · PK UUIDv7 (`aud
 | fixed_assets | ทะเบียนทรัพย์สิน FA: ราคาทุน, มูลค่าซาก, อายุ (เดือน), เดือนเริ่มคิด, บัญชีทุน/ค่าเสื่อมสะสม/ค่าเสื่อม, เรือ, ACTIVE/DISPOSED | CHECK cost > 0, salvage < cost, life > 0 |
 | depreciation_runs / depreciation_lines | คิดค่าเสื่อมรายเดือน (เรียงเดือน), ยอดต่อทรัพย์สิน, entry_id | unique (year, month), unique (run, asset); CHECK amount > 0 |
 | fiscal_years | ปีบัญชี OPEN/CLOSED, closing_entry_id, เหตุผลเปิดใหม่ | unique year |
+| (PDPA) employees.national_id_no / bank_account_no, employee_documents.document_no | เก็บเป็นข้อความเข้ารหัส `v1:iv:tag:data` (AES-256-GCM, `APP_ENCRYPTION_KEY`) — ห้ามใช้ใน WHERE/ORDER BY | |
 | notifications | แจ้งเตือนต่อผู้ใช้ | unique (user, dedupe_key) |
 | audit_logs | append-only (trigger), before/after redact PDPA | idx (entity), (user,time), time |
 | app_settings | key/value JSON (docReminderDays ฯลฯ) | PK key |

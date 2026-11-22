@@ -22,6 +22,8 @@ const schema = z.object({
   APP_ENCRYPTION_KEY: z.string().optional(),
   /** login attempts per IP per minute (password and 2FA steps each) */
   LOGIN_RATE_LIMIT: z.coerce.number().int().min(1).default(10),
+  /** API requests per IP per minute (all routes) */
+  RATE_LIMIT_PER_MIN: z.coerce.number().int().min(10).default(600),
 });
 
 export type Config = z.infer<typeof schema>;

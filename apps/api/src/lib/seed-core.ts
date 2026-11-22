@@ -1,5 +1,6 @@
 // Idempotent reference data required in every environment (prod included).
 import { PERMISSIONS, ROLE_DEFS, type AccountMapKey } from '@fisher/shared';
+import { encryptExistingPii } from './pii';
 import type { Db } from './prisma';
 
 export const DOCUMENT_TYPES = [
@@ -149,4 +150,7 @@ export async function seedCore(db: Db) {
       update: {},
     });
   await seedAccounting(db);
+  // personal data stored in plaintext by versions before 0.11 is encrypted in place
+  const enc = await encryptExistingPii(db);
+  if (enc.employees || enc.documents) console.log(`Encrypted personal data: ${enc.employees} employees, ${enc.documents} documents`);
 }

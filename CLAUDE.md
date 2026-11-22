@@ -18,7 +18,7 @@ Never run `prisma migrate reset` against non-test DBs.
 - Every mutation: `prisma.$transaction` + `audit(tx, req, {...})`; transactions are never hard-deleted (cancel/void/REPLACED)
 - Guards: `{ preHandler: app.can('x.y') }`; vessel scope via `vesselWhere(req)` / `assertVesselScope`
 - Auth: 2FA in modules/auth (lib/totp, secrets encrypted with lib/crypto); exports via components/ui/export-menu (CSV/XLSX)
-- PDPA fields: nationalIdNo, bankAccountNo, documentNo → `maskEmployee` / audit `redact`
+- PDPA fields: nationalIdNo, bankAccountNo, documentNo → encrypted at rest by the Prisma extension in lib/prisma + lib/pii (never filter/sort on them in SQL; raw SQL sees ciphertext) → `maskEmployee` / audit `redact`
 - Errors thrown as `AppError` with Thai message; Decimal returned as string
 - UI: Thai labels from shared `*_TH`; list state in URL (`useListParams`); mutations via `useAction` (toast + invalidate)
 - No fake buttons/numbers; unimplemented modules are hidden

@@ -22,7 +22,7 @@ jobs:
           POSTGRES_DB: fisher_test
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U fisher"
+          --health-cmd "pg_isready -U fisher -d postgres"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       # API tests TRUNCATE tables: the database name must end with _test (guarded in test setup)
@@ -57,7 +57,7 @@ jobs:
           POSTGRES_DB: fisher_e2e
         ports: ['5432:5432']
         options: >-
-          --health-cmd "pg_isready -U fisher"
+          --health-cmd "pg_isready -U fisher -d postgres"
           --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       DATABASE_URL: postgresql://fisher:fisher@localhost:5432/fisher_e2e
