@@ -17,10 +17,13 @@ import { api } from '@/lib/api';
 import { useAuth } from '@/lib/auth';
 import { useAction, useListParams } from '@/lib/hooks';
 import { AccountsTab } from './accounts-tab';
+import { ApTab } from './ap-tab';
+import { BankTab } from './bank-tab';
 import { JournalDialog } from './journal-dialog';
 import { INV } from './lookups';
 import { PeriodsTab } from './periods-tab';
 import { ReportsTab } from './reports-tab';
+import { TaxTab } from './tax-tab';
 import { JournalStatusBadge } from './status';
 import type { AutoPostResult, JournalRow, PendingItem, PendingResult } from './types';
 
@@ -38,10 +41,13 @@ export function AccountingPage() {
       <PageHeader title="บัญชี" subtitle="สมุดรายวัน ผังบัญชี งวดบัญชี และรายงานการเงิน" />
       <Tabs
         value={tab}
-        onValueChange={(t) => lp.set({ tab: t, page: undefined })}
+        onValueChange={(t) => lp.set({ tab: t, page: undefined, q: undefined, status: undefined, sub: undefined })}
         tabs={[
           { value: 'journals', label: 'สมุดรายวัน', content: <JournalsTab lp={lp} canEdit={can('finance.edit')} /> },
           { value: 'autopost', label: 'ลงบัญชีอัตโนมัติ', content: <AutoPostTab canApprove={can('finance.approve')} /> },
+          { value: 'ap', label: 'เจ้าหนี้', content: <ApTab lp={lp} canEdit={can('finance.edit')} canApprove={can('finance.approve')} /> },
+          { value: 'bank', label: 'ธนาคาร', content: <BankTab lp={lp} canEdit={can('finance.edit')} canApprove={can('finance.approve')} /> },
+          { value: 'tax', label: 'ภาษี', content: <TaxTab lp={lp} /> },
           { value: 'accounts', label: 'ผังบัญชี', content: <AccountsTab canApprove={can('finance.approve')} /> },
           { value: 'periods', label: 'งวดบัญชี', content: <PeriodsTab lp={lp} canApprove={can('finance.approve')} /> },
           { value: 'reports', label: 'รายงาน', content: <ReportsTab lp={lp} /> },

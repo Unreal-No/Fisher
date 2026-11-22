@@ -3,7 +3,7 @@ import type { PoStatus, PrStatus, SupplyCategory } from '@fisher/shared';
 export interface Supplier {
   id: string; code: string; name: string; taxId: string | null; branch: string | null; contactName: string | null; phone: string | null;
   email: string | null; address: string | null; paymentTermDays: number | null; bankName: string | null; bankAccountNo: string | null;
-  isActive: boolean; notes: string | null;
+  isActive: boolean; isIndividual?: boolean; notes: string | null;
 }
 
 export interface PrItem { id: string; itemId: string | null; description: string; quantity: string; unit: string; estUnitCost: string | null; notes: string | null }

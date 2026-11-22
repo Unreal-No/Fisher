@@ -60,7 +60,7 @@ function Breadcrumbs() {
         return (
           <span key={to} className="flex min-w-0 items-center gap-1">
             <ChevronRight className="size-3.5 shrink-0 text-slate-400" />
-            {last || ['admin', 'requests', 'orders', 'invoices', 'periods', 'slips', 'journals'].includes(p) ? <span className={cn('truncate', last && 'font-medium text-ink')}>{label}</span> : <Link to={to} className="truncate text-muted hover:text-ink">{label}</Link>}
+            {last || ['admin', 'requests', 'orders', 'invoices', 'periods', 'slips', 'journals', 'bills', 'bank-recs'].includes(p) ? <span className={cn('truncate', last && 'font-medium text-ink')}>{label}</span> : <Link to={to} className="truncate text-muted hover:text-ink">{label}</Link>}
           </span>
         );
       })}
@@ -112,7 +112,7 @@ export function AppLayout() {
           );
         })}
       </nav>
-      <div className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-500">v0.7.0</div>
+      <div className="border-t border-white/10 px-4 py-2 text-[11px] text-slate-500">v0.8.0</div>
     </div>
   );
 

@@ -39,7 +39,7 @@ export function SupplierDialog({ supplier, onClose }: { supplier: Supplier | nul
     defaultValues: {
       code: s?.code ?? '', name: s?.name ?? '', taxId: s?.taxId ?? '', branch: s?.branch ?? '', contactName: s?.contactName ?? '', phone: s?.phone ?? '',
       email: s?.email ?? '', address: s?.address ?? '', paymentTermDays: s?.paymentTermDays ?? '', bankName: s?.bankName ?? '', bankAccountNo: s?.bankAccountNo ?? '',
-      isActive: s?.isActive ?? true, notes: s?.notes ?? '',
+      isActive: s?.isActive ?? true, isIndividual: s?.isIndividual ?? false, notes: s?.notes ?? '',
     },
   });
   const save = useAction((v: FieldValues) => (s ? api.patch(`/purchasing/suppliers/${s.id}`, v) : api.post('/purchasing/suppliers', v)), { success: 'บันทึกผู้ขายแล้ว', invalidate: INV, onSuccess: onClose });
@@ -61,6 +61,7 @@ export function SupplierDialog({ supplier, onClose }: { supplier: Supplier | nul
         <Field label="ที่อยู่" error={e('address')} className="sm:col-span-2"><Textarea rows={2} {...f.register('address')} /></Field>
         <Field label="หมายเหตุ" error={e('notes')} className="sm:col-span-2"><Textarea rows={2} {...f.register('notes')} /></Field>
         <Checkbox label="เปิดใช้งาน" {...f.register('isActive')} />
+        <Checkbox label="บุคคลธรรมดา (ภ.ง.ด.3)" {...f.register('isIndividual')} />
       </FormGrid>
     </Dialog>
   );
