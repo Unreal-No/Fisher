@@ -1,8 +1,8 @@
 ﻿# Fisher ERP - install and manage on Windows (Windows PowerShell 5.1+ / PowerShell 7). Easiest: double-click fisher.cmd
 #   fisher.cmd                  install (first time) or rebuild + start
-#   fisher.cmd install -Port 8090 -NoDemo
-#   fisher.cmd start | stop | restart | status | logs [api|web|db] | backup | restore <db.dump> [files.tar.gz] | update | uninstall [-Purge]
-#   fisher.cmd reset-password [username] [-Reset2fa]   (nobody can sign in: new one-time password)
+#   .\fisher.cmd install -Port 8090 -NoDemo
+#   .\fisher.cmd start | stop | restart | status | logs [api|web|db] | backup | restore <db.dump> [files.tar.gz] | update | uninstall [-Purge]
+#   .\fisher.cmd reset-password [username] [-Reset2fa]   (nobody can sign in: new one-time password)
 # Same behaviour as fisher.sh (Linux/macOS). Settings and secrets live in fisher.env. Requires Docker Desktop.
 param(
   [Parameter(Position = 0)][string]$Command = 'install',
@@ -71,7 +71,7 @@ function CreateEnv([int]$port, [bool]$demo) {
   if (PortBusy $port) {
     $p = $port
     while ((PortBusy $p) -and $p -lt ($port + 20)) { $p++ }
-    if (PortBusy $p) { Fail "พอร์ต $port-$p ถูกใช้งานอยู่ทั้งหมด - ระบุพอร์ตอื่น เช่น fisher.cmd install -Port 9000" }
+    if (PortBusy $p) { Fail "พอร์ต $port-$p ถูกใช้งานอยู่ทั้งหมด - ระบุพอร์ตอื่น เช่น .\fisher.cmd install -Port 9000" }
     Info "พอร์ต $port ถูกใช้งานอยู่ ใช้พอร์ต $p แทน"
     $port = $p
   }
@@ -107,13 +107,13 @@ function WaitReady {
     Start-Sleep -Seconds 2
   }
   Dc logs --tail 40 api
-  Fail 'ระบบไม่พร้อมภายใน 3 นาที - ดูข้อความด้านบน หรือ fisher.cmd logs api'
+  Fail 'ระบบไม่พร้อมภายใน 3 นาที - ดูข้อความด้านบน หรือ .\fisher.cmd logs api'
 }
 function Seed {
   $extra = if ((EnvGet 'SEED_DEMO_DATA') -eq 'true') { ' และข้อมูลตัวอย่าง' } else { '' }
   Info "เตรียมข้อมูลตั้งต้น (ผังบัญชี บทบาท ผู้ดูแลระบบ$extra)..."
   & docker compose -p $Project --env-file $EnvFile -f docker-compose.yml exec -T api node apps/api/dist/seed.js | Out-Null
-  if ($LASTEXITCODE -ne 0) { Fail 'เตรียมข้อมูลไม่สำเร็จ - fisher.cmd logs api' }
+  if ($LASTEXITCODE -ne 0) { Fail 'เตรียมข้อมูลไม่สำเร็จ - .\fisher.cmd logs api' }
   Ok 'ข้อมูลตั้งต้นพร้อม'
 }
 function ShowAccess {
@@ -143,7 +143,7 @@ function Install {
   }
   if ((EnvGet 'SEED_DEMO_DATA') -eq 'true') { Write-Host '  มีข้อมูลตัวอย่างให้ทดลอง - ก่อนใช้งานจริงให้ลบที่ ตั้งค่า -> ล้างข้อมูลทั้งหมด' }
   Write-Host ""
-  Write-Host '  คำสั่งอื่น: fisher.cmd stop | start | status | logs | backup | update'
+  Write-Host '  คำสั่งอื่น: .\fisher.cmd stop | start | status | logs | backup | update'
   Write-Host "  สำคัญ: สำรองไฟล์ $EnvFile ไว้ที่ปลอดภัย (มีกุญแจเข้ารหัสข้อมูล)"
   $p = EnvGet 'FISHER_PORT'
   try { Start-Process "http://localhost:$p" } catch { }
@@ -154,7 +154,7 @@ function Backup {
   $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
   New-Item -ItemType Directory -Force -Path backups | Out-Null
   # dump inside the containers and copy out: PowerShell redirection would corrupt binary output
-  if (-not (DcOk exec -T db pg_dump -U fisher -Fc -f /tmp/fisher.dump fisher)) { Fail 'สำรองฐานข้อมูลไม่สำเร็จ (ระบบเริ่มทำงานอยู่หรือไม่? fisher.cmd status)' }
+  if (-not (DcOk exec -T db pg_dump -U fisher -Fc -f /tmp/fisher.dump fisher)) { Fail 'สำรองฐานข้อมูลไม่สำเร็จ (ระบบเริ่มทำงานอยู่หรือไม่? .\fisher.cmd status)' }
   if (-not (DcOk cp db:/tmp/fisher.dump "backups/fisher-db-$ts.dump")) { Fail 'คัดลอกไฟล์สำรองไม่สำเร็จ' }
   Dc exec -T db rm -f /tmp/fisher.dump
   if (-not (DcOk exec -T api tar -C /data/storage -czf /tmp/fisher-files.tar.gz .)) { Fail 'สำรองไฟล์แนบไม่สำเร็จ' }
@@ -166,7 +166,7 @@ function Backup {
 
 function Restore($db, $files) {
   NeedDocker; NeedEnv
-  if (-not $db -or -not (Test-Path $db)) { Fail 'ระบุไฟล์ฐานข้อมูล: fisher.cmd restore backups\fisher-db-....dump [backups\fisher-files-....tar.gz]' }
+  if (-not $db -or -not (Test-Path $db)) { Fail 'ระบุไฟล์ฐานข้อมูล: .\fisher.cmd restore backups\fisher-db-....dump [backups\fisher-files-....tar.gz]' }
   if ($files -and -not (Test-Path $files)) { Fail "ไม่พบไฟล์ $files" }
   if ($env:FISHER_YES -ne '1') {
     $a = Read-Host "ข้อมูลปัจจุบันจะถูกแทนที่ด้วยข้อมูลจาก $db`nพิมพ์ yes เพื่อยืนยัน"
@@ -195,7 +195,7 @@ function Update {
   } else {
     Info "ดาวน์โหลดรุ่นใหม่มาแตกทับโฟลเดอร์นี้ (เก็บไฟล์ $EnvFile ไว้) แล้วรันคำสั่งนี้อีกครั้ง"
   }
-  Info 'แนะนำ: fisher.cmd backup ก่อนอัปเดตทุกครั้ง'
+  Info 'แนะนำ: .\fisher.cmd backup ก่อนอัปเดตทุกครั้ง'
   if (-not (DcOk up -d --build)) { Fail 'สร้างหรือเริ่มระบบไม่สำเร็จ' }
   WaitReady
   Seed
@@ -211,14 +211,14 @@ function Uninstall {
     Ok "ลบระบบและข้อมูลแล้ว (ไฟล์ $EnvFile ยังอยู่ - ลบเองได้ถ้าไม่ต้องการแล้ว)"
   } else {
     Dc down
-    Ok 'หยุดและนำระบบออกแล้ว ข้อมูลยังเก็บไว้ (ติดตั้งกลับด้วย fisher.cmd) - ลบข้อมูลด้วย: fisher.cmd uninstall -Purge'
+    Ok 'หยุดและนำระบบออกแล้ว ข้อมูลยังเก็บไว้ (ติดตั้งกลับด้วย fisher.cmd) - ลบข้อมูลด้วย: .\fisher.cmd uninstall -Purge'
   }
 }
 
 switch ($Command.ToLower()) {
   'install' { Install }
   'start' { NeedDocker; NeedEnv; Dc up -d; WaitReady; ShowAccess }
-  'stop' { NeedDocker; NeedEnv; Dc stop; Ok 'หยุดระบบแล้ว (ข้อมูลยังอยู่) - เริ่มใหม่: fisher.cmd start' }
+  'stop' { NeedDocker; NeedEnv; Dc stop; Ok 'หยุดระบบแล้ว (ข้อมูลยังอยู่) - เริ่มใหม่: .\fisher.cmd start' }
   'restart' { NeedDocker; NeedEnv; Dc restart; WaitReady; ShowAccess }
   'status' { NeedDocker; NeedEnv; Dc ps; ShowAccess }
   'logs' { NeedDocker; NeedEnv; if ($Arg1) { Dc logs -f --tail 100 $Arg1 } else { Dc logs -f --tail 100 } }
@@ -232,5 +232,5 @@ switch ($Command.ToLower()) {
     Dc exec -T api node apps/api/dist/reset-password.js @extra
   }
   { $_ -in 'help', '-h', '--help' } { Get-Content $PSCommandPath -Encoding UTF8 | Select-Object -Skip 1 -First 5 | ForEach-Object { $_ -replace '^#\s?', '' } }
-  default { Fail "ไม่รู้จักคำสั่ง $Command - ดู fisher.cmd help" }
+  default { Fail "ไม่รู้จักคำสั่ง $Command - ดู .\fisher.cmd help" }
 }
