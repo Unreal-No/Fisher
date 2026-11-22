@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef } from 'react';
 import { formatDateTime, formatNumber } from '@fisher/shared';
+import { addBaseLayer } from './tiles';
 import type { Track } from './types';
 
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
@@ -17,7 +18,7 @@ export function HistoryMap({ track, endLabel, focus }: { track: Track; endLabel:
   useEffect(() => {
     if (!el.current || map.current) return;
     const m = L.map(el.current).setView([9.5, 100.8], 6);
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '&copy; OpenStreetMap contributors' }).addTo(m);
+    addBaseLayer(m);
     L.control.scale({ metric: true, imperial: false }).addTo(m);
     map.current = m;
     layers.current = L.layerGroup().addTo(m);

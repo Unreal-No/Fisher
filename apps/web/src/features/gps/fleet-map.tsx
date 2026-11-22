@@ -3,6 +3,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { useEffect, useRef } from 'react';
 import { formatDateTime, formatNumber } from '@fisher/shared';
+import { addBaseLayer } from './tiles';
 import type { FleetVessel, Geofence, Track } from './types';
 
 const COLORS = { ONLINE: '#15803d', LOST: '#b91c1c', NO_DATA: '#64748b', DEMO: '#7c8796' };
@@ -34,10 +35,7 @@ export function FleetMap({ vessels, track, fences, selectedId, onSelect }: {
   useEffect(() => {
     if (!el.current || map.current) return;
     const m = L.map(el.current, { zoomControl: true, attributionControl: true }).setView([9.5, 100.8], 6); // Gulf of Thailand
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 18,
-      attribution: '&copy; OpenStreetMap contributors',
-    }).addTo(m);
+    addBaseLayer(m);
     L.control.scale({ metric: true, imperial: false }).addTo(m);
     map.current = m;
     layers.current = L.layerGroup().addTo(m);
